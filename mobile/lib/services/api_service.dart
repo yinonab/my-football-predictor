@@ -1,0 +1,218 @@
+import 'dart:convert';
+
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../models/prediction_result.dart';
+
+class ApiException implements Exception {
+  final String message;
+  final int? statusCode;
+
+  const ApiException(this.message, {this.statusCode});
+
+  @override
+  String toString() => message;
+}
+
+class ApiService {
+  Future<PredictionSettings> loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    var apiUrl = prefs.getString('apiBaseUrl') ?? defaultBaseUrl();
+
+    if (!kIsWeb && apiUrl.contains('10.0.2.2')) {
+      // keep emulator URL on Android
+    } else if (kIsWeb && apiUrl.contains('10.0.2.2')) {
+      apiUrl = defaultBaseUrl();
+    }
+
+    if (kIsWeb) {
+      apiUrl = await _resolveWorkingUrl(apiUrl);
+    }
+
+    return PredictionSettings(
+      rho: prefs.getDouble('rho') ?? -0.15,
+      avgGoals: prefs.getDouble('avgGoals') ?? 3.0,
+      homeAdvantage: prefs.getDouble('homeAdvantage') ?? 0,
+      alpha: prefs.getDouble('alpha') ?? 0.0,
+      altitude: prefs.getInt('altitude') ?? 0,
+      starAbsent: prefs.getBool('starAbsent') ?? false,
+      awayStarAbsent: prefs.getBool('awayStarAbsent') ?? false,
+      neutralGround: prefs.getBool('neutralGround') ?? true,
+      useLiveStats: prefs.getBool('useLiveStats') ?? false,
+      apiBaseUrl: apiUrl,
+    );
+  }
+
+  Future<void> saveSettings(PredictionSettings settings) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('rho', settings.rho);
+    await prefs.setDouble('avgGoals', settings.avgGoals);
+    await prefs.setDouble('homeAdvantage', settings.homeAdvantage);
+    await prefs.setDouble('alpha', settings.alpha);
+    await prefs.setInt('altitude', settings.altitude);
+    await prefs.setBool('starAbsent', settings.starAbsent);
+    await prefs.setBool('awayStarAbsent', settings.awayStarAbsent);
+    await prefs.setBool('neutralGround', settings.neutralGround);
+    await prefs.setBool('useLiveStats', settings.useLiveStats);
+    await prefs.setString('apiBaseUrl', settings.apiBaseUrl);
+  }
+
+  static String defaultBaseUrl() {
+    if (kIsWeb) return 'http://127.0.0.1:8000';
+    return 'http://10.0.2.2:8000';
+  }
+
+  Future<String> _resolveWorkingUrl(String preferred) async {
+    final candidates = {
+      preferred,
+      'http://127.0.0.1:8000',
+      'http://127.0.0.1:8001',
+      'http://localhost:8000',
+      'http://localhost:8001',
+    };
+    for (final url in candidates) {
+      if (await checkHealth(url)) return url;
+    }
+    return preferred;
+  }
+
+  Future<bool> checkHealth(String baseUrl) async {
+    try {
+      final response = await http
+          .get(Uri.parse('$baseUrl/api/health'))
+          .timeout(const Duration(seconds: 5));
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<List<String>> fetchTeams(String baseUrl) async {
+    final response = await http
+        .get(Uri.parse('$baseUrl/api/teams'))
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode != 200) {
+      throw ApiException('שגיאה בטעינת נבחרות', statusCode: response.statusCode);
+    }
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return List<String>.from(data['teams'] as List<dynamic>);
+  }
+
+  Future<Map<String, List<Map<String, dynamic>>>> fetchGroups(
+    String baseUrl,
+  ) async {
+    final response = await http
+        .get(Uri.parse('$baseUrl/api/groups'))
+        .timeout(const Duration(seconds: 10));
+
+    if (response.statusCode != 200) {
+      throw ApiException('שגיאה בטעינת בתים', statusCode: response.statusCode);
+    }
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    final groups = data['groups'] as Map<String, dynamic>;
+    return groups.map(
+      (key, value) => MapEntry(
+        key,
+        List<Map<String, dynamic>>.from(value as List<dynamic>),
+      ),
+    );
+  }
+
+  Future<PredictionResult> predict({
+    required String baseUrl,
+    required String homeTeam,
+    required String awayTeam,
+    required PredictionSettings settings,
+  }) async {
+    final body = jsonEncode({
+      'home_team': homeTeam,
+      'away_team': awayTeam,
+      'neutral_ground': settings.neutralGround,
+      'rho': settings.rho,
+      'avg_goals': settings.avgGoals,
+      'home_advantage': settings.homeAdvantage,
+      'alpha': settings.alpha,
+      'altitude': settings.altitude,
+      'star_absent': settings.starAbsent,
+      'away_star_absent': settings.awayStarAbsent,
+      'use_live_stats': settings.useLiveStats,
+      'top_n': 10,
+    });
+
+    final response = await http
+        .post(
+          Uri.parse('$baseUrl/api/predict'),
+          headers: {'Content-Type': 'application/json'},
+          body: body,
+        )
+        .timeout(const Duration(seconds: 15));
+
+    if (response.statusCode == 400 || response.statusCode == 404) {
+      final error = jsonDecode(response.body) as Map<String, dynamic>;
+      throw ApiException(error['detail']?.toString() ?? 'שגיאת בקשה');
+    }
+
+    if (response.statusCode != 200) {
+      throw ApiException(
+        'שגיאת שרת (${response.statusCode})',
+        statusCode: response.statusCode,
+      );
+    }
+
+    return PredictionResult.fromJson(
+      jsonDecode(response.body) as Map<String, dynamic>,
+    );
+  }
+
+  Future<List<GroupStanding>> simulateGroup({
+    required String baseUrl,
+    required String group,
+    int iterations = 500,
+  }) async {
+    final body = jsonEncode({'group': group, 'iterations': iterations});
+    final response = await http
+        .post(
+          Uri.parse('$baseUrl/api/simulate/group'),
+          headers: {'Content-Type': 'application/json'},
+          body: body,
+        )
+        .timeout(const Duration(seconds: 60));
+
+    if (response.statusCode != 200) {
+      throw ApiException('שגיאה בסימולציית בית', statusCode: response.statusCode);
+    }
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return (data['standings'] as List<dynamic>)
+        .map((e) => GroupStanding.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  Future<List<ChampionOdds>> simulateChampion({
+    required String baseUrl,
+    int iterations = 1000,
+  }) async {
+    final body = jsonEncode({'iterations': iterations});
+    final response = await http
+        .post(
+          Uri.parse('$baseUrl/api/simulate/champion'),
+          headers: {'Content-Type': 'application/json'},
+          body: body,
+        )
+        .timeout(const Duration(seconds: 120));
+
+    if (response.statusCode != 200) {
+      throw ApiException('שגיאה בסימולציית אליפות', statusCode: response.statusCode);
+    }
+
+    final data = jsonDecode(response.body) as Map<String, dynamic>;
+    return (data['champion_odds'] as List<dynamic>)
+        .map((e) => ChampionOdds.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+}
