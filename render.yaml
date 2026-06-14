@@ -3,9 +3,11 @@ services:
   - type: web
     name: football-predictor-api
     runtime: python
+    plan: free
     rootDir: backend
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
     envVars:
       - key: API_FOOTBALL_KEY
         sync: false
