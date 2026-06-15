@@ -59,8 +59,6 @@ from core.team_power import TeamPowerEvaluator
 from core.tournament_sim import TournamentSimulator
 from data.api_football import ApiFootballClient
 from data.database import FIFA_ELO_2026, LiveDataManager, compute_derived_metrics
-from run_fetch_quota_safe import fetch_quota_safe
-from run_fetch_nt_history import save_fetched_matches
 
 logging.basicConfig(
     level=logging.INFO,
@@ -394,6 +392,9 @@ def refresh_history() -> RefreshHistoryResponse:
         )
 
     try:
+        from run_fetch_quota_safe import fetch_quota_safe
+        from run_fetch_nt_history import save_fetched_matches
+
         matches, api_calls = fetch_quota_safe(budget=80)
         save_fetched_matches(matches)
         _refresh_model_data()
