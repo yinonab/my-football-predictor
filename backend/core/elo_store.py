@@ -30,3 +30,9 @@ def save_elo_overrides(overrides: dict[str, float]) -> None:
         json.dumps(payload, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+    try:
+        from core.cloud_persist import push_file
+
+        push_file(STORE_PATH)
+    except Exception:
+        pass

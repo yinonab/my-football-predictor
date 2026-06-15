@@ -9,8 +9,10 @@ import config
 
 class HealthResponse(BaseModel):
     status: str
-    version: str = "1.9.0"
+    version: str = "2.0.0"
     live_stats_available: bool = False
+    odds_available: bool = False
+    cloud_persist_available: bool = False
 
 
 class PredictRequest(BaseModel):
@@ -128,6 +130,7 @@ class RefreshHistoryResponse(BaseModel):
     total_matches: int
     teams_rated: int
     h2h_pairs: int
+    api_calls_used: int = 0
 
 
 class SimulateGroupRequest(BaseModel):

@@ -14,6 +14,9 @@ if str(BACKEND_ROOT) not in sys.path:
     sys.path.insert(0, str(BACKEND_ROOT))
 
 import config
+from dotenv import load_dotenv
+
+load_dotenv(BACKEND_ROOT / ".env")
 from api.schemas import (
     ChampionOddsRow,
     EloUpdateRequest,
@@ -50,11 +53,14 @@ from core.opponent_maher import build_opponent_index, estimate_xg_opponent_aware
 from core.team_ratings import build_all_matches, build_and_save_ratings
 from core.math_engine import AdvancedDixonColesEngine
 from core.odds_ensemble import OddsClient, blend_1x2
+from core.cloud_persist import is_configured as cloud_persist_configured, pull_all as cloud_pull_all
 from core.elo_store import load_elo_overrides, save_elo_overrides
 from core.team_power import TeamPowerEvaluator
 from core.tournament_sim import TournamentSimulator
 from data.api_football import ApiFootballClient
 from data.database import FIFA_ELO_2026, LiveDataManager, compute_derived_metrics
+from run_fetch_quota_safe import fetch_quota_safe
+from run_fetch_nt_history import save_fetched_matches
 
 logging.basicConfig(
     level=logging.INFO,
@@ -65,7 +71,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Football Predictor API",
     description="Dixon-Coles match prediction engine — WC 2026",
-    version="1.9.0",
+    version="2.0.0",
 )
 
 app.add_middleware(
@@ -76,11 +82,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+if cloud_persist_configured():
+    cloud_pull_all()
+
 _data_manager = LiveDataManager()
 _power_evaluator = TeamPowerEvaluator(_data_manager)
 _api_client = ApiFootballClient()
 _h2h_store = H2HStore()
 _odds_client = OddsClient()
+
 _opponent_index = build_opponent_index(
     build_all_matches(),
     set(FIFA_ELO_2026.keys()),
@@ -111,6 +121,8 @@ def health() -> HealthResponse:
     return HealthResponse(
         status="ok",
         live_stats_available=_api_client.is_available,
+        odds_available=_odds_client.is_available,
+        cloud_persist_available=cloud_persist_configured(),
     )
 
 
@@ -381,10 +393,8 @@ def refresh_history() -> RefreshHistoryResponse:
             detail="API_FOOTBALL_KEY לא מוגדר — הוסף מפתח ב-Render או ב-backend/.env",
         )
 
-    from run_fetch_nt_history import fetch_all_teams, save_fetched_matches
-
     try:
-        matches = fetch_all_teams(client=_api_client)
+        matches, api_calls = fetch_quota_safe(budget=80)
         save_fetched_matches(matches)
         _refresh_model_data()
     except Exception as exc:
@@ -397,6 +407,7 @@ def refresh_history() -> RefreshHistoryResponse:
         total_matches=len(all_matches),
         teams_rated=len(_data_manager.list_teams()),
         h2h_pairs=_h2h_store.pair_count(),
+        api_calls_used=api_calls,
     )
 
 

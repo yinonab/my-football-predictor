@@ -18,7 +18,10 @@ client = TestClient(app)
 def test_health() -> None:
     response = client.get("/api/health")
     assert response.status_code == 200
-    assert response.json()["status"] == "ok"
+    data = response.json()
+    assert data["status"] == "ok"
+    assert "odds_available" in data
+    assert "cloud_persist_available" in data
 
 
 def test_list_teams() -> None:
@@ -161,7 +164,14 @@ def test_elo_update_endpoint(tmp_path, monkeypatch) -> None:
     assert data["live_match_count"] >= 1
 
 
-def test_refresh_history_without_api_key() -> None:
+def test_refresh_history_without_api_key(monkeypatch) -> None:
+    monkeypatch.delenv("API_FOOTBALL_KEY", raising=False)
+    from data.api_football import ApiFootballClient
+
+    monkeypatch.setattr(
+        "api.main._api_client",
+        ApiFootballClient(api_key=""),
+    )
     response = client.post("/api/admin/refresh-history")
     assert response.status_code == 400
 

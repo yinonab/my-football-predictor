@@ -83,6 +83,12 @@ def save_fetched_matches(matches: list[NationalTeamMatch]) -> Path:
         json.dumps(payload, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
+    try:
+        from core.cloud_persist import push_file
+
+        push_file(FETCHED_HISTORY_PATH)
+    except Exception:
+        pass
     return FETCHED_HISTORY_PATH
 
 
@@ -100,7 +106,7 @@ def main() -> None:
     print(f"  Total with bundled tournaments: {len(all_matches)}")
 
     ratings_path = build_and_save_ratings()
-    print(f"  Ratings rebuilt → {ratings_path.parent / 'nt_ratings.json'}")
+    print(f"  Ratings rebuilt -> {ratings_path.parent / 'nt_ratings.json'}")
     print("=" * 60)
 
 

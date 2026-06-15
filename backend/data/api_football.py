@@ -29,8 +29,19 @@ QUALIFIER_LEAGUE_IDS: tuple[tuple[int, str], ...] = (
 class ApiFootballClient:
     """Fetch recent team form when API_FOOTBALL_KEY is configured."""
 
-    def __init__(self, api_key: str | None = None) -> None:
-        self.api_key = api_key or os.getenv("API_FOOTBALL_KEY", "").strip()
+    def __init__(self, api_key: str | None = None, *, max_requests: int | None = None) -> None:
+        if api_key is not None:
+            self.api_key = api_key.strip()
+        else:
+            self.api_key = os.getenv("API_FOOTBALL_KEY", "").strip()
+        self._max_requests = max_requests
+        self.request_count = 0
+
+    @property
+    def requests_remaining(self) -> int | None:
+        if self._max_requests is None:
+            return None
+        return max(0, self._max_requests - self.request_count)
 
     @property
     def is_available(self) -> bool:
@@ -45,6 +56,11 @@ class ApiFootballClient:
     def _get(self, path: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         if not self.is_available:
             raise RuntimeError("API_FOOTBALL_KEY is not set")
+        if self._max_requests is not None and self.request_count >= self._max_requests:
+            raise RuntimeError(
+                f"API request budget exhausted ({self._max_requests} calls)"
+            )
+        self.request_count += 1
         url = f"{API_BASE}{path}"
         response = requests.get(
             url,
@@ -159,28 +175,48 @@ class ApiFootballClient:
         fixtures: list[dict[str, Any]] = []
         page = 1
         while True:
-            data = self._get(
-                "/fixtures",
-                params={
-                    "league": league_id,
-                    "season": season,
-                    "status": "FT",
-                    "page": page,
-                },
-            )
-            fixtures.extend(data.get("response") or [])
+            params: dict[str, Any] = {
+                "league": league_id,
+                "season": season,
+                "status": "FT",
+            }
+            if page > 1:
+                params["page"] = page
+            try:
+                data = self._get("/fixtures", params=params)
+            except RuntimeError as exc:
+                if page == 1 and "page" in str(exc).lower():
+                    data = self._get(
+                        "/fixtures",
+                        params={
+                            "league": league_id,
+                            "season": season,
+                            "status": "FT",
+                        },
+                    )
+                else:
+                    raise
+            batch = data.get("response") or []
+            fixtures.extend(batch)
             paging = data.get("paging") or {}
             total_pages = int(paging.get("total") or 1)
-            if page >= total_pages:
+            current_page = int(paging.get("current") or page)
+            if current_page >= total_pages or not batch:
                 break
             page += 1
-            time.sleep(0.2)
+            time.sleep(6.5)
         return fixtures
 
-    def fetch_all_qualifiers(self, seasons: tuple[int, ...] = (2023, 2024, 2025, 2026)) -> list[NationalTeamMatch]:
+    def fetch_all_qualifiers(
+        self,
+        seasons: tuple[int, ...] = (2023, 2024, 2025, 2026),
+        *,
+        league_ids: tuple[tuple[int, str], ...] | None = None,
+    ) -> list[NationalTeamMatch]:
         """Fetch WC qualifier fixtures across confederations when API key is set."""
         collected: list[NationalTeamMatch] = []
-        for league_id, label in QUALIFIER_LEAGUE_IDS:
+        leagues = league_ids or QUALIFIER_LEAGUE_IDS
+        for league_id, label in leagues:
             for season in seasons:
                 try:
                     fixtures = self.fetch_league_fixtures(league_id, season)
@@ -191,7 +227,7 @@ class ApiFootballClient:
                     logger.info("%s season %s: %d fixtures", label, season, len(fixtures))
                 except Exception as exc:
                     logger.warning("Qualifier fetch %s %s: %s", label, season, exc)
-                time.sleep(0.3)
+                time.sleep(6.5)
         return collected
 
     def fetch_recent_form(

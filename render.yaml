@@ -13,6 +13,10 @@ services:
         sync: false
       - key: THE_ODDS_API_KEY
         sync: false
+      - key: GITHUB_GIST_TOKEN
+        sync: false
+      - key: GITHUB_GIST_ID
+        sync: false
 
   - type: web
     name: football-predictor-web

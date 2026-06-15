@@ -39,6 +39,12 @@ def save_live_matches(matches: list[NationalTeamMatch], path: Path | None = None
         "matches": [m.to_dict() for m in matches],
     }
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    try:
+        from core.cloud_persist import push_file
+
+        push_file(path)
+    except Exception:
+        pass
     return path
 
 
