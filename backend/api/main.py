@@ -43,7 +43,11 @@ from core.explanations import (
     explain_outcome_1x2,
     explain_score_coverage,
 )
+from core.h2h_adjustment import H2HStore, apply_h2h_adjustment
+from core.maher import estimate_xg_pair
 from core.math_engine import AdvancedDixonColesEngine
+from core.odds_ensemble import OddsClient, blend_1x2
+from core.elo_store import load_elo_overrides, save_elo_overrides
 from core.team_power import TeamPowerEvaluator
 from core.tournament_sim import TournamentSimulator
 from data.api_football import ApiFootballClient
@@ -58,7 +62,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Football Predictor API",
     description="Dixon-Coles match prediction engine — WC 2026",
-    version="1.6.0",
+    version="1.8.0",
 )
 
 app.add_middleware(
@@ -72,6 +76,8 @@ app.add_middleware(
 _data_manager = LiveDataManager()
 _power_evaluator = TeamPowerEvaluator(_data_manager)
 _api_client = ApiFootballClient()
+_h2h_store = H2HStore()
+_odds_client = OddsClient()
 
 
 def _team_breakdown(team_input: str, *, use_live: bool) -> TeamBreakdown:
@@ -141,7 +147,24 @@ def predict(request: PredictRequest) -> PredictResponse:
         star_absent=request.away_star_absent,
     )
 
+    h2h_summary = _h2h_store.get(home_resolved, away_resolved)
+    home_power, away_power, h2h_note = apply_h2h_adjustment(
+        home_power,
+        away_power,
+        h2h_summary,
+    )
+
     advantage = 0.0 if request.neutral_ground else request.home_advantage
+
+    home_data = _data_manager.get_team_data(home_resolved, use_live=request.use_live_stats)
+    away_data = _data_manager.get_team_data(away_resolved, use_live=request.use_live_stats)
+    home_xg, away_xg = estimate_xg_pair(
+        home_data.get("goals_for_per_game", 0.0),
+        home_data.get("goals_against_per_game", 0.0),
+        away_data.get("goals_for_per_game", 0.0),
+        away_data.get("goals_against_per_game", 0.0),
+        global_avg=request.avg_goals,
+    )
 
     engine = AdvancedDixonColesEngine(
         rho=request.rho,
@@ -153,19 +176,27 @@ def predict(request: PredictRequest) -> PredictResponse:
         away_power,
         advantage,
         top_n=request.top_n,
+        home_xg_override=home_xg,
+        away_xg_override=away_xg,
     )
 
+    market_odds = _odds_client.fetch_match_odds(
+        home_name := request.home_team.strip(),
+        away_name := request.away_team.strip(),
+    )
+    probs = blend_1x2(result["probabilities_1x2"], market_odds)
+    result["probabilities_1x2"] = probs
+
     logger.info(
-        "Prediction: %s vs %s | 1X2: %s",
-        request.home_team,
-        request.away_team,
-        result["probabilities_1x2"],
+        "Prediction: %s vs %s | 1X2: %s | Maher xG %.2f-%.2f",
+        home_name,
+        away_name,
+        probs,
+        result["home_xg"],
+        result["away_xg"],
     )
 
     coverage = result["score_coverage"]
-    probs = result["probabilities_1x2"]
-    home_name = request.home_team.strip()
-    away_name = request.away_team.strip()
 
     top_with_expl = []
     for rank, item in enumerate(result["top_scores"], start=1):
@@ -244,7 +275,9 @@ def predict(request: PredictRequest) -> PredictResponse:
             home_xg=result["home_xg"],
             away_xg=result["away_xg"],
             probs=probs,
-        ),
+        )
+        + (f"\n{h2h_note}" if h2h_note else ""),
+        h2h_summary=h2h_note,
     )
 
 
@@ -267,13 +300,14 @@ def elo_update(request: EloUpdateRequest) -> EloUpdateResponse:
     )
 
     if home_resolved in _data_manager.team_database:
-        _data_manager.team_database[home_resolved].update(
-            compute_derived_metrics(new_home)
-        )
+        _data_manager.team_database[home_resolved]["elo"] = new_home
     if away_resolved in _data_manager.team_database:
-        _data_manager.team_database[away_resolved].update(
-            compute_derived_metrics(new_away)
-        )
+        _data_manager.team_database[away_resolved]["elo"] = new_away
+
+    overrides = load_elo_overrides()
+    overrides[home_resolved] = new_home
+    overrides[away_resolved] = new_away
+    save_elo_overrides(overrides)
 
     logger.info(
         "Elo update: %s (%.0f→%.0f) vs %s (%.0f→%.0f)",

@@ -267,6 +267,28 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       ],
+                      if (_result!.h2hSummary.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Card(
+                          color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.4),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Row(
+                              children: [
+                                Icon(Icons.history, size: 20, color: theme.colorScheme.secondary),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _result!.h2hSummary,
+                                    style: theme.textTheme.bodyMedium,
+                                    textAlign: TextAlign.right,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       Card(
                         child: Padding(
@@ -331,7 +353,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        '10 התוצאות המדויקות הכי סבירות',
+                        'תחזית מדויקת — 3 האפשרויות המובילות',
                         style: theme.textTheme.titleMedium,
                         textAlign: TextAlign.right,
                       ),

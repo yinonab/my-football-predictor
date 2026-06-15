@@ -4,14 +4,26 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from typing import Any
 
 import requests
+
+from data.nt_match import NationalTeamMatch, competition_weight
 
 logger = logging.getLogger(__name__)
 
 API_BASE = "https://v3.football.api-sports.io"
 REQUEST_TIMEOUT = 15
+
+# API-Football league IDs for WC 2026 qualification (v3)
+QUALIFIER_LEAGUE_IDS: tuple[tuple[int, str], ...] = (
+    (32, "World Cup - Qualification Europe"),
+    (34, "World Cup - Qualification South America"),
+    (29, "World Cup - Qualification Africa"),
+    (30, "World Cup - Qualification Asia"),
+    (31, "World Cup - Qualification CONCACAF"),
+)
 
 
 class ApiFootballClient:
@@ -48,9 +60,139 @@ class ApiFootballClient:
 
     def search_team(self, name: str) -> dict[str, Any] | None:
         """Resolve team name to API-Football team record."""
+        return self.search_national_team(name)
+
+    def search_national_team(self, name: str) -> dict[str, Any] | None:
+        """Prefer national-team records over clubs with similar names."""
         data = self._get("/teams", params={"search": name})
         items = data.get("response") or []
+        for item in items:
+            team = item["team"]
+            if team.get("national"):
+                return team
         return items[0]["team"] if items else None
+
+    def fetch_team_fixtures(
+        self,
+        team_id: int,
+        date_from: str,
+        date_to: str,
+    ) -> list[dict[str, Any]]:
+        """All finished fixtures for a team in a date range (paginated)."""
+        fixtures: list[dict[str, Any]] = []
+        page = 1
+        while True:
+            data = self._get(
+                "/fixtures",
+                params={
+                    "team": team_id,
+                    "from": date_from,
+                    "to": date_to,
+                    "status": "FT",
+                    "page": page,
+                },
+            )
+            fixtures.extend(data.get("response") or [])
+            paging = data.get("paging") or {}
+            total_pages = int(paging.get("total") or 1)
+            if page >= total_pages:
+                break
+            page += 1
+            time.sleep(0.2)
+        return fixtures
+
+    def parse_fixture(self, fixture: dict[str, Any]) -> NationalTeamMatch | None:
+        """Convert API fixture payload to NationalTeamMatch (national teams only)."""
+        home = fixture["teams"]["home"]
+        away = fixture["teams"]["away"]
+        if not (home.get("national") or away.get("national")):
+            return None
+
+        goals = fixture["goals"]
+        if goals["home"] is None or goals["away"] is None:
+            return None
+
+        league_name = fixture["league"]["name"]
+        fixture_date = fixture["fixture"]["date"][:10]
+        venue = fixture.get("fixture", {}).get("venue", {}) or {}
+        neutral = not bool(venue.get("city"))
+
+        return NationalTeamMatch(
+            date=fixture_date,
+            home=home["name"],
+            away=away["name"],
+            home_goals=int(goals["home"]),
+            away_goals=int(goals["away"]),
+            neutral=neutral,
+            competition=league_name,
+            weight=competition_weight(league_name),
+        )
+
+    def fetch_head_to_head(
+        self,
+        team_a_id: int,
+        team_b_id: int,
+    ) -> list[dict[str, Any]]:
+        """Historical fixtures between two national teams."""
+        fixtures: list[dict[str, Any]] = []
+        page = 1
+        while True:
+            data = self._get(
+                "/fixtures/headtohead",
+                params={"h2h": f"{team_a_id}-{team_b_id}", "status": "FT", "page": page},
+            )
+            fixtures.extend(data.get("response") or [])
+            paging = data.get("paging") or {}
+            total_pages = int(paging.get("total") or 1)
+            if page >= total_pages:
+                break
+            page += 1
+            time.sleep(0.2)
+        return fixtures
+
+    def fetch_league_fixtures(
+        self,
+        league_id: int,
+        season: int,
+    ) -> list[dict[str, Any]]:
+        """All finished fixtures for a qualifier league season."""
+        fixtures: list[dict[str, Any]] = []
+        page = 1
+        while True:
+            data = self._get(
+                "/fixtures",
+                params={
+                    "league": league_id,
+                    "season": season,
+                    "status": "FT",
+                    "page": page,
+                },
+            )
+            fixtures.extend(data.get("response") or [])
+            paging = data.get("paging") or {}
+            total_pages = int(paging.get("total") or 1)
+            if page >= total_pages:
+                break
+            page += 1
+            time.sleep(0.2)
+        return fixtures
+
+    def fetch_all_qualifiers(self, seasons: tuple[int, ...] = (2023, 2024, 2025, 2026)) -> list[NationalTeamMatch]:
+        """Fetch WC qualifier fixtures across confederations when API key is set."""
+        collected: list[NationalTeamMatch] = []
+        for league_id, label in QUALIFIER_LEAGUE_IDS:
+            for season in seasons:
+                try:
+                    fixtures = self.fetch_league_fixtures(league_id, season)
+                    for fx in fixtures:
+                        parsed = self.parse_fixture(fx)
+                        if parsed:
+                            collected.append(parsed)
+                    logger.info("%s season %s: %d fixtures", label, season, len(fixtures))
+                except Exception as exc:
+                    logger.warning("Qualifier fetch %s %s: %s", label, season, exc)
+                time.sleep(0.3)
+        return collected
 
     def fetch_recent_form(
         self,

@@ -1,0 +1,281 @@
+{
+  "version": 1,
+  "pair_count": 25,
+  "pairs": {
+    "Portugal (פורטוגל)|Spain (ספרד)": {
+      "home_key": "Portugal (פורטוגל)",
+      "away_key": "Spain (ספרד)",
+      "match_count": 2,
+      "avg_home_goals": 1.5,
+      "avg_away_goals": 2.0,
+      "avg_total_goals": 3.5,
+      "home_win_rate": 0.0,
+      "draw_rate": 0.5,
+      "away_win_rate": 0.5
+    },
+    "Morocco (מרוקו)|Portugal (פורטוגל)": {
+      "home_key": "Morocco (מרוקו)",
+      "away_key": "Portugal (פורטוגל)",
+      "match_count": 2,
+      "avg_home_goals": 0.5,
+      "avg_away_goals": 0.5,
+      "avg_total_goals": 1.0,
+      "home_win_rate": 0.5,
+      "draw_rate": 0.0,
+      "away_win_rate": 0.5
+    },
+    "Morocco (מרוקו)|Spain (ספרד)": {
+      "home_key": "Morocco (מרוקו)",
+      "away_key": "Spain (ספרד)",
+      "match_count": 2,
+      "avg_home_goals": 1.0,
+      "avg_away_goals": 1.0,
+      "avg_total_goals": 2.0,
+      "home_win_rate": 0.0,
+      "draw_rate": 1.0,
+      "away_win_rate": 0.0
+    },
+    "Australia (אוסטרליה)|France (צרפת)": {
+      "home_key": "Australia (אוסטרליה)",
+      "away_key": "France (צרפת)",
+      "match_count": 2,
+      "avg_home_goals": 1.0,
+      "avg_away_goals": 3.0,
+      "avg_total_goals": 4.0,
+      "home_win_rate": 0.0,
+      "draw_rate": 0.0,
+      "away_win_rate": 1.0
+    },
+    "Argentina (ארגנטינה)|Croatia (קרואטיה)": {
+      "home_key": "Argentina (ארגנטינה)",
+      "away_key": "Croatia (קרואטיה)",
+      "match_count": 2,
+      "avg_home_goals": 1.5,
+      "avg_away_goals": 1.5,
+      "avg_total_goals": 3.0,
+      "home_win_rate": 0.5,
+      "draw_rate": 0.0,
+      "away_win_rate": 0.5
+    },
+    "Brazil (ברזיל)|Switzerland (שוויץ)": {
+      "home_key": "Brazil (ברזיל)",
+      "away_key": "Switzerland (שוויץ)",
+      "match_count": 2,
+      "avg_home_goals": 1.0,
+      "avg_away_goals": 0.5,
+      "avg_total_goals": 1.5,
+      "home_win_rate": 0.5,
+      "draw_rate": 0.5,
+      "away_win_rate": 0.0
+    },
+    "Belgium (בלגיה)|England (אנגליה)": {
+      "home_key": "Belgium (בלגיה)",
+      "away_key": "England (אנגליה)",
+      "match_count": 2,
+      "avg_home_goals": 1.5,
+      "avg_away_goals": 0.0,
+      "avg_total_goals": 1.5,
+      "home_win_rate": 1.0,
+      "draw_rate": 0.0,
+      "away_win_rate": 0.0
+    },
+    "Argentina (ארגנטינה)|France (צרפת)": {
+      "home_key": "Argentina (ארגנטינה)",
+      "away_key": "France (צרפת)",
+      "match_count": 2,
+      "avg_home_goals": 3.0,
+      "avg_away_goals": 3.5,
+      "avg_total_goals": 6.5,
+      "home_win_rate": 0.0,
+      "draw_rate": 0.5,
+      "away_win_rate": 0.5
+    },
+    "Portugal (פורטוגל)|Uruguay (אורוגוואי)": {
+      "home_key": "Portugal (פורטוגל)",
+      "away_key": "Uruguay (אורוגוואי)",
+      "match_count": 2,
+      "avg_home_goals": 1.5,
+      "avg_away_goals": 1.0,
+      "avg_total_goals": 2.5,
+      "home_win_rate": 0.5,
+      "draw_rate": 0.0,
+      "away_win_rate": 0.5
+    },
+    "Belgium (בלגיה)|France (צרפת)": {
+      "home_key": "Belgium (בלגיה)",
+      "away_key": "France (צרפת)",
+      "match_count": 2,
+      "avg_home_goals": 0.0,
+      "avg_away_goals": 1.0,
+      "avg_total_goals": 1.0,
+      "home_win_rate": 0.0,
+      "draw_rate": 0.0,
+      "away_win_rate": 1.0
+    },
+    "Croatia (קרואטיה)|France (צרפת)": {
+      "home_key": "Croatia (קרואטיה)",
+      "away_key": "France (צרפת)",
+      "match_count": 2,
+      "avg_home_goals": 1.0,
+      "avg_away_goals": 3.0,
+      "avg_total_goals": 4.0,
+      "home_win_rate": 0.0,
+      "draw_rate": 0.0,
+      "away_win_rate": 1.0
+    },
+    "Germany (גרמניה)|Spain (ספרד)": {
+      "home_key": "Germany (גרמניה)",
+      "away_key": "Spain (ספרד)",
+      "match_count": 2,
+      "avg_home_goals": 1.0,
+      "avg_away_goals": 1.5,
+      "avg_total_goals": 2.5,
+      "home_win_rate": 0.0,
+      "draw_rate": 0.5,
+      "away_win_rate": 0.5
+    },
+    "Croatia (קרואטיה)|Morocco (מרוקו)": {
+      "home_key": "Croatia (קרואטיה)",
+      "away_key": "Morocco (מרוקו)",
+      "match_count": 2,
+      "avg_home_goals": 1.0,
+      "avg_away_goals": 0.5,
+      "avg_total_goals": 1.5,
+      "home_win_rate": 0.5,
+      "draw_rate": 0.5,
+      "away_win_rate": 0.0
+    },
+    "Argentina (ארגנטינה)|Canada (קנדה)": {
+      "home_key": "Argentina (ארגנטינה)",
+      "away_key": "Canada (קנדה)",
+      "match_count": 2,
+      "avg_home_goals": 2.0,
+      "avg_away_goals": 0.0,
+      "avg_total_goals": 2.0,
+      "home_win_rate": 1.0,
+      "draw_rate": 0.0,
+      "away_win_rate": 0.0
+    },
+    "Colombia (קולומביה)|Paraguay (פרגוואי)": {
+      "home_key": "Colombia (קולומביה)",
+      "away_key": "Paraguay (פרגוואי)",
+      "match_count": 2,
+      "avg_home_goals": 2.0,
+      "avg_away_goals": 1.0,
+      "avg_total_goals": 3.0,
+      "home_win_rate": 1.0,
+      "draw_rate": 0.0,
+      "away_win_rate": 0.0
+    },
+    "Brazil (ברזיל)|Paraguay (פרגוואי)": {
+      "home_key": "Brazil (ברזיל)",
+      "away_key": "Paraguay (פרגוואי)",
+      "match_count": 2,
+      "avg_home_goals": 2.5,
+      "avg_away_goals": 0.5,
+      "avg_total_goals": 3.0,
+      "home_win_rate": 1.0,
+      "draw_rate": 0.0,
+      "away_win_rate": 0.0
+    },
+    "Brazil (ברזיל)|Colombia (קולומביה)": {
+      "home_key": "Brazil (ברזיל)",
+      "away_key": "Colombia (קולומביה)",
+      "match_count": 2,
+      "avg_home_goals": 1.0,
+      "avg_away_goals": 1.5,
+      "avg_total_goals": 2.5,
+      "home_win_rate": 0.0,
+      "draw_rate": 0.5,
+      "away_win_rate": 0.5
+    },
+    "Argentina (ארגנטינה)|Ecuador (אקוודור)": {
+      "home_key": "Argentina (ארגנטינה)",
+      "away_key": "Ecuador (אקוודור)",
+      "match_count": 3,
+      "avg_home_goals": 1.0,
+      "avg_away_goals": 0.67,
+      "avg_total_goals": 1.67,
+      "home_win_rate": 0.33,
+      "draw_rate": 0.67,
+      "away_win_rate": 0.0
+    },
+    "Brazil (ברזיל)|Uruguay (אורוגוואי)": {
+      "home_key": "Brazil (ברזיל)",
+      "away_key": "Uruguay (אורוגוואי)",
+      "match_count": 2,
+      "avg_home_goals": 0.0,
+      "avg_away_goals": 1.0,
+      "avg_total_goals": 1.0,
+      "home_win_rate": 0.0,
+      "draw_rate": 0.5,
+      "away_win_rate": 0.5
+    },
+    "Colombia (קולומביה)|Uruguay (אורוגוואי)": {
+      "home_key": "Colombia (קולומביה)",
+      "away_key": "Uruguay (אורוגוואי)",
+      "match_count": 2,
+      "avg_home_goals": 1.5,
+      "avg_away_goals": 1.0,
+      "avg_total_goals": 2.5,
+      "home_win_rate": 0.5,
+      "draw_rate": 0.5,
+      "away_win_rate": 0.0
+    },
+    "Argentina (ארגנטינה)|Colombia (קולומביה)": {
+      "home_key": "Argentina (ארגנטינה)",
+      "away_key": "Colombia (קולומביה)",
+      "match_count": 2,
+      "avg_home_goals": 1.0,
+      "avg_away_goals": 0.5,
+      "avg_total_goals": 1.5,
+      "home_win_rate": 0.5,
+      "draw_rate": 0.5,
+      "away_win_rate": 0.0
+    },
+    "Ecuador (אקוודור)|Uruguay (אורוגוואי)": {
+      "home_key": "Ecuador (אקוודור)",
+      "away_key": "Uruguay (אורוגוואי)",
+      "match_count": 2,
+      "avg_home_goals": 1.0,
+      "avg_away_goals": 0.5,
+      "avg_total_goals": 1.5,
+      "home_win_rate": 0.5,
+      "draw_rate": 0.5,
+      "away_win_rate": 0.0
+    },
+    "Colombia (קולומביה)|Ecuador (אקוודור)": {
+      "home_key": "Colombia (קולומביה)",
+      "away_key": "Ecuador (אקוודור)",
+      "match_count": 2,
+      "avg_home_goals": 1.0,
+      "avg_away_goals": 0.5,
+      "avg_total_goals": 1.5,
+      "home_win_rate": 0.5,
+      "draw_rate": 0.0,
+      "away_win_rate": 0.5
+    },
+    "Argentina (ארגנטינה)|Brazil (ברזיל)": {
+      "home_key": "Argentina (ארגנטינה)",
+      "away_key": "Brazil (ברזיל)",
+      "match_count": 2,
+      "avg_home_goals": 1.0,
+      "avg_away_goals": 0.5,
+      "avg_total_goals": 1.5,
+      "home_win_rate": 0.5,
+      "draw_rate": 0.5,
+      "away_win_rate": 0.0
+    },
+    "Paraguay (פרגוואי)|Uruguay (אורוגוואי)": {
+      "home_key": "Paraguay (פרגוואי)",
+      "away_key": "Uruguay (אורוגוואי)",
+      "match_count": 2,
+      "avg_home_goals": 0.5,
+      "avg_away_goals": 1.0,
+      "avg_total_goals": 1.5,
+      "home_win_rate": 0.0,
+      "draw_rate": 0.5,
+      "away_win_rate": 0.5
+    }
+  }
+}

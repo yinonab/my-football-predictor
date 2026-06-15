@@ -9,7 +9,7 @@ import config
 
 class HealthResponse(BaseModel):
     status: str
-    version: str = "1.6.0"
+    version: str = "1.8.0"
     live_stats_available: bool = False
 
 
@@ -25,7 +25,7 @@ class PredictRequest(BaseModel):
     altitude: int = Field(default=0, ge=0)
     star_absent: bool = False
     away_star_absent: bool = False
-    top_n: int = Field(default=10, ge=1, le=15)
+    top_n: int = Field(default=3, ge=1, le=15)
 
 
 class ScoreProbability(BaseModel):
@@ -75,6 +75,7 @@ class PredictResponse(BaseModel):
     top_scores: list[ScoreProbability]
     score_coverage: ScoreCoverage
     match_summary: str = ""
+    h2h_summary: str = ""
 
 
 class TeamsResponse(BaseModel):

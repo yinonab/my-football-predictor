@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../config/api_config.dart';
 import '../models/prediction_result.dart';
 
 class ApiException implements Exception {
@@ -17,14 +18,21 @@ class ApiException implements Exception {
 }
 
 class ApiService {
+  static bool isLocalDevUrl(String url) {
+    final lower = url.toLowerCase();
+    return lower.contains('10.0.2.2') ||
+        lower.contains('127.0.0.1') ||
+        lower.contains('localhost');
+  }
+
   Future<PredictionSettings> loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
     var apiUrl = prefs.getString('apiBaseUrl') ?? defaultBaseUrl();
 
-    if (!kIsWeb && apiUrl.contains('10.0.2.2')) {
-      // keep emulator URL on Android
-    } else if (kIsWeb && apiUrl.contains('10.0.2.2')) {
-      apiUrl = defaultBaseUrl();
+    // Physical devices: migrate old emulator/localhost URLs to production server.
+    if (!kIsWeb && isLocalDevUrl(apiUrl)) {
+      apiUrl = productionApiUrl;
+      await prefs.setString('apiBaseUrl', apiUrl);
     }
 
     if (kIsWeb) {
@@ -32,7 +40,7 @@ class ApiService {
     }
 
     return PredictionSettings(
-      rho: prefs.getDouble('rho') ?? -0.15,
+      rho: prefs.getDouble('rho') ?? -0.10,
       avgGoals: prefs.getDouble('avgGoals') ?? 3.0,
       homeAdvantage: prefs.getDouble('homeAdvantage') ?? 0,
       alpha: prefs.getDouble('alpha') ?? 0.0,
@@ -61,7 +69,14 @@ class ApiService {
 
   static String defaultBaseUrl() {
     if (kIsWeb) return 'http://127.0.0.1:8000';
-    return 'http://10.0.2.2:8000';
+    return productionApiUrl;
+  }
+
+  Duration _timeoutFor(String baseUrl, {int seconds = 10}) {
+    if (baseUrl.contains('onrender.com')) {
+      return const Duration(seconds: 90);
+    }
+    return Duration(seconds: seconds);
   }
 
   Future<String> _resolveWorkingUrl(String preferred) async {
@@ -82,7 +97,7 @@ class ApiService {
     try {
       final response = await http
           .get(Uri.parse('$baseUrl/api/health'))
-          .timeout(const Duration(seconds: 5));
+          .timeout(_timeoutFor(baseUrl, seconds: 5));
       return response.statusCode == 200;
     } catch (_) {
       return false;
@@ -92,7 +107,7 @@ class ApiService {
   Future<List<String>> fetchTeams(String baseUrl) async {
     final response = await http
         .get(Uri.parse('$baseUrl/api/teams'))
-        .timeout(const Duration(seconds: 10));
+        .timeout(_timeoutFor(baseUrl));
 
     if (response.statusCode != 200) {
       throw ApiException('שגיאה בטעינת נבחרות', statusCode: response.statusCode);
@@ -107,7 +122,7 @@ class ApiService {
   ) async {
     final response = await http
         .get(Uri.parse('$baseUrl/api/groups'))
-        .timeout(const Duration(seconds: 10));
+        .timeout(_timeoutFor(baseUrl));
 
     if (response.statusCode != 200) {
       throw ApiException('שגיאה בטעינת בתים', statusCode: response.statusCode);
@@ -141,7 +156,7 @@ class ApiService {
       'star_absent': settings.starAbsent,
       'away_star_absent': settings.awayStarAbsent,
       'use_live_stats': settings.useLiveStats,
-      'top_n': 10,
+      'top_n': 3,
     });
 
     final response = await http
@@ -150,7 +165,7 @@ class ApiService {
           headers: {'Content-Type': 'application/json'},
           body: body,
         )
-        .timeout(const Duration(seconds: 15));
+        .timeout(_timeoutFor(baseUrl, seconds: 15));
 
     if (response.statusCode == 400 || response.statusCode == 404) {
       final error = jsonDecode(response.body) as Map<String, dynamic>;
@@ -181,7 +196,7 @@ class ApiService {
           headers: {'Content-Type': 'application/json'},
           body: body,
         )
-        .timeout(const Duration(seconds: 60));
+        .timeout(_timeoutFor(baseUrl, seconds: 120));
 
     if (response.statusCode != 200) {
       throw ApiException('שגיאה בסימולציית בית', statusCode: response.statusCode);
@@ -204,7 +219,7 @@ class ApiService {
           headers: {'Content-Type': 'application/json'},
           body: body,
         )
-        .timeout(const Duration(seconds: 120));
+        .timeout(_timeoutFor(baseUrl, seconds: 180));
 
     if (response.statusCode != 200) {
       throw ApiException('שגיאה בסימולציית אליפות', statusCode: response.statusCode);

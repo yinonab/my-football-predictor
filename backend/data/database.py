@@ -98,11 +98,18 @@ class LiveDataManager:
     """World Cup 2026 data — official 48 teams, FIFA Elo June 2026."""
 
     def __init__(self) -> None:
+        from core.elo_store import load_elo_overrides
+        from core.team_ratings import load_ratings
+
         self._api = ApiFootballClient()
-        self.team_database: dict[str, dict[str, float]] = {
-            name: compute_derived_metrics(elo)
-            for name, elo in FIFA_ELO_2026.items()
-        }
+        self._history_ratings = load_ratings()
+        self._elo_overrides = load_elo_overrides()
+        self.team_database: dict[str, dict[str, float]] = {}
+        for name, elo in FIFA_ELO_2026.items():
+            data = compute_derived_metrics(elo)
+            if name in self._elo_overrides:
+                data["elo"] = self._elo_overrides[name]
+            self.team_database[name] = data
 
         self.aliases: dict[str, str] = {}
         for key in self.team_database:
@@ -143,6 +150,14 @@ class LiveDataManager:
     def get_team_data(self, team_name: str, *, use_live: bool = False) -> dict[str, Any]:
         key, data = self.resolve_team(team_name)
         payload = dict(data)
+        hist = self._history_ratings.get(key)
+        if hist and int(hist.get("matches_used", 0)) > 0:
+            payload["elo"] = float(hist["elo"])
+            payload["attack"] = float(hist["attack"])
+            payload["defense"] = float(hist["defense"])
+            payload["form"] = float(hist["form"])
+            payload["matches_used"] = int(hist["matches_used"])
+            payload["rating_source"] = hist.get("rating_source", "history_blend")
         if use_live and self._api.is_available:
             payload = self._api.enrich_team_data(key, payload)
         return payload

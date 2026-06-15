@@ -117,24 +117,25 @@ def test_groups_endpoint() -> None:
     assert len(groups["J"]) == 4
 
 
-def test_predict_returns_top10_and_coverage() -> None:
+def test_predict_returns_top3_and_coverage() -> None:
     response = client.post(
         "/api/predict",
         json={
             "home_team": "Argentina (ארגנטינה)",
             "away_team": "France (צרפת)",
-            "top_n": 10,
+            "top_n": 3,
         },
     )
     assert response.status_code == 200
     data = response.json()
-    assert len(data["top_scores"]) == 10
+    assert len(data["top_scores"]) == 3
     assert len(data["score_coverage"]["scores"]) >= 1
     assert data["home_breakdown"]["group"] == "J"
     assert data["away_breakdown"]["group"] == "I"
     assert data["top_scores"][0]["explanation"]
     assert data["outcome_explanations"]["draw"]
     assert data["match_summary"]
+    assert "h2h_summary" in data
 
 
 def test_elo_update_endpoint() -> None:

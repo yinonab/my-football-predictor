@@ -11,3 +11,16 @@ services:
     envVars:
       - key: API_FOOTBALL_KEY
         sync: false
+      - key: THE_ODDS_API_KEY
+        sync: false
+
+  - type: web
+    name: football-predictor-web
+    runtime: static
+    plan: free
+    rootDir: mobile/build/web
+    staticPublishPath: .
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

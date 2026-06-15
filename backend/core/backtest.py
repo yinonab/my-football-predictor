@@ -9,6 +9,9 @@ from typing import Any
 import config
 from core.math_engine import AdvancedDixonColesEngine
 from core.team_power import TeamPowerEvaluator
+import config
+from data.database import FIFA_ELO_2026
+from data.nt_match import NationalTeamMatch, registry_key_for_nt
 from data.wc2022 import WC2022_MATCHES, Wc2022DataManager, Wc2022Match
 
 
@@ -182,6 +185,136 @@ class BacktestRunner:
             baseline_outcome_accuracy=round(baseline_outcome / n * 100, 1),
             baseline_exact_accuracy=round(baseline_exact / n * 100, 1),
             upsets=upsets[:8],
+            best_predictions=sorted_by_log[:5],
+            worst_predictions=sorted(results, key=lambda r: r.log_loss_score, reverse=True)[
+                :8
+            ],
+        )
+
+
+class NationalTeamBacktestRunner:
+    """Evaluate model on bundled national-team matches (WC/Euro/Copa)."""
+
+    def __init__(
+        self,
+        data_manager: Any | None = None,
+        engine: AdvancedDixonColesEngine | None = None,
+        home_advantage: float = config.DEFAULT_HOME_ADV,
+    ) -> None:
+        from data.database import LiveDataManager
+
+        self._dm = data_manager or LiveDataManager()
+        self._evaluator = TeamPowerEvaluator(self._dm)
+        self._engine = engine or AdvancedDixonColesEngine()
+        self._home_advantage = home_advantage
+        self._registry = set(FIFA_ELO_2026.keys())
+
+    def _predict_nt_match(self, match: NationalTeamMatch) -> dict[str, Any] | None:
+        home_key = registry_key_for_nt(match.home, self._registry)
+        away_key = registry_key_for_nt(match.away, self._registry)
+        if not home_key or not away_key:
+            return None
+
+        home_power = self._evaluator.calculate_composite_power(home_key)
+        away_power = self._evaluator.calculate_composite_power(away_key)
+        home_power = self._evaluator.apply_environmental_modifiers(home_power)
+        away_power = self._evaluator.apply_environmental_modifiers(away_power)
+        advantage = 0.0 if match.neutral else self._home_advantage
+        return self._engine.generate_match_prediction(
+            home_power,
+            away_power,
+            advantage,
+            include_all_scores=True,
+        )
+
+    def evaluate_nt_match(self, match: NationalTeamMatch) -> MatchBacktestResult | None:
+        prediction = self._predict_nt_match(match)
+        if not prediction:
+            return None
+
+        probs = prediction["probabilities_1x2"]
+        actual = _outcome(match.home_goals, match.away_goals)
+        predicted = _predicted_outcome(
+            {
+                "home_win": probs["home_win"],
+                "draw": probs["draw"],
+                "away_win": probs["away_win"],
+            }
+        )
+
+        actual_score = f"{match.home_goals}-{match.away_goals}"
+        top_scores = prediction["top_scores"]
+        predicted_top = top_scores[0]["score"]
+        top3 = {item["score"] for item in top_scores[:3]}
+
+        all_scores: dict[str, float] = prediction.get("all_scores", {})
+        actual_prob = all_scores.get(actual_score, 0.01)
+
+        return MatchBacktestResult(
+            home=match.home,
+            away=match.away,
+            actual_score=actual_score,
+            predicted_top_score=predicted_top,
+            actual_outcome=actual,
+            predicted_outcome=predicted,
+            outcome_correct=actual == predicted,
+            top3_hit=actual_score in top3,
+            exact_hit=actual_score == predicted_top,
+            brier=_brier_score(probs, actual),
+            log_loss_score=_log_loss_score(actual_prob),
+        )
+
+    def run_matches(
+        self,
+        matches: list[NationalTeamMatch],
+        tournament_name: str = "Bundled NT",
+    ) -> BacktestReport:
+        results = [
+            r for m in matches if (r := self.evaluate_nt_match(m)) is not None
+        ]
+        n = len(results)
+        if n == 0:
+            raise ValueError("No evaluable matches in backtest set")
+
+        outcome_hits = sum(1 for r in results if r.outcome_correct)
+        exact_hits = sum(1 for r in results if r.exact_hit)
+        top3_hits = sum(1 for r in results if r.top3_hit)
+
+        baseline_outcome = 0
+        baseline_exact = 0
+        for match in matches:
+            home_key = registry_key_for_nt(match.home, self._registry)
+            away_key = registry_key_for_nt(match.away, self._registry)
+            if not home_key or not away_key:
+                continue
+            home_elo = self._dm.get_team_data(home_key)["elo"]
+            away_elo = self._dm.get_team_data(away_key)["elo"]
+            actual = _outcome(match.home_goals, match.away_goals)
+            if home_elo == away_elo:
+                predicted = "draw"
+            elif home_elo > away_elo:
+                predicted = "home"
+            else:
+                predicted = "away"
+            if predicted == actual:
+                baseline_outcome += 1
+            if match.home_goals == 1 and match.away_goals == 0 and predicted == "home":
+                baseline_exact += 1
+            elif match.home_goals == 0 and match.away_goals == 1 and predicted == "away":
+                baseline_exact += 1
+
+        sorted_by_log = sorted(results, key=lambda r: r.log_loss_score)
+        return BacktestReport(
+            tournament=tournament_name,
+            match_count=n,
+            outcome_accuracy=round(outcome_hits / n * 100, 1),
+            exact_score_accuracy=round(exact_hits / n * 100, 1),
+            top3_score_hit_rate=round(top3_hits / n * 100, 1),
+            mean_brier=round(sum(r.brier for r in results) / n, 4),
+            mean_log_loss=round(sum(r.log_loss_score for r in results) / n, 4),
+            baseline_outcome_accuracy=round(baseline_outcome / n * 100, 1),
+            baseline_exact_accuracy=round(baseline_exact / n * 100, 1),
+            upsets=[],
             best_predictions=sorted_by_log[:5],
             worst_predictions=sorted(results, key=lambda r: r.log_loss_score, reverse=True)[
                 :8

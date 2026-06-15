@@ -6,8 +6,9 @@ from dataclasses import dataclass
 from itertools import product
 
 import config
-from core.backtest import BacktestReport, BacktestRunner
+from core.backtest import BacktestReport, BacktestRunner, NationalTeamBacktestRunner
 from core.math_engine import AdvancedDixonColesEngine
+from data.nt_history_bundle import BUNDLED_NT_MATCHES
 
 
 @dataclass(frozen=True)
@@ -46,14 +47,24 @@ def _composite_score(report: BacktestReport) -> float:
     return report.mean_brier + report.mean_log_loss * 0.05 - report.top3_score_hit_rate * 0.001
 
 
-def evaluate_params(params: ModelParams) -> CalibrationResult:
+def evaluate_params(params: ModelParams, *, use_bundle: bool = True) -> CalibrationResult:
     engine = AdvancedDixonColesEngine(
         rho=params.rho,
         global_avg=params.avg_goals,
         alpha=params.alpha,
     )
-    runner = BacktestRunner(engine=engine, home_advantage=params.home_advantage)
-    report = runner.run_wc2022()
+    if use_bundle:
+        runner = NationalTeamBacktestRunner(
+            engine=engine,
+            home_advantage=params.home_advantage,
+        )
+        report = runner.run_matches(
+            list(BUNDLED_NT_MATCHES),
+            tournament_name="WC18+22 Euro24 Copa24",
+        )
+    else:
+        runner = BacktestRunner(engine=engine, home_advantage=params.home_advantage)
+        report = runner.run_wc2022()
     return CalibrationResult(
         params=params,
         report=report,

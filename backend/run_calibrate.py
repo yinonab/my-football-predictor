@@ -1,4 +1,4 @@
-"""Run parameter calibration on WC 2022 backtest."""
+"""Run parameter calibration on bundled tournaments (WC/Euro/Copa)."""
 
 from __future__ import annotations
 
@@ -27,7 +27,7 @@ def _print_result(rank: int, item) -> None:
 
 def main() -> None:
     print("=" * 60)
-    print("  CALIBRATION — World Cup 2022 grid search")
+    print("  CALIBRATION — WC18+22 Euro24 Copa24 grid search")
     print("=" * 60)
 
     baseline = current_defaults_report()

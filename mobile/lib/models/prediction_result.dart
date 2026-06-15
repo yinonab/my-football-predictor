@@ -1,3 +1,5 @@
+import '../config/api_config.dart';
+
 class ScoreProbability {
   final String score;
   final double probability;
@@ -121,6 +123,7 @@ class PredictionResult {
   final List<ScoreProbability> topScores;
   final ScoreCoverage scoreCoverage;
   final String matchSummary;
+  final String h2hSummary;
 
   const PredictionResult({
     required this.homeTeam,
@@ -136,6 +139,7 @@ class PredictionResult {
     required this.topScores,
     required this.scoreCoverage,
     this.matchSummary = '',
+    this.h2hSummary = '',
   });
 
   factory PredictionResult.fromJson(Map<String, dynamic> json) {
@@ -165,6 +169,7 @@ class PredictionResult {
         json['score_coverage'] as Map<String, dynamic>,
       ),
       matchSummary: json['match_summary'] as String? ?? '',
+      h2hSummary: json['h2h_summary'] as String? ?? '',
     );
   }
 }
@@ -222,7 +227,7 @@ class PredictionSettings {
   final String apiBaseUrl;
 
   const PredictionSettings({
-    this.rho = -0.15,
+    this.rho = -0.10,
     this.avgGoals = 3.0,
     this.homeAdvantage = 0,
     this.alpha = 0.0,
@@ -231,7 +236,7 @@ class PredictionSettings {
     this.awayStarAbsent = false,
     this.neutralGround = true,
     this.useLiveStats = false,
-    this.apiBaseUrl = 'http://10.0.2.2:8000',
+    this.apiBaseUrl = productionApiUrl,
   });
 
   PredictionSettings copyWith({

@@ -17,10 +17,17 @@ def test_exactly_48_teams() -> None:
     assert len(FIFA_ELO_2026) == 48
 
 
-def test_argentina_top_elo() -> None:
+def test_argentina_uses_history_blend() -> None:
     dm = LiveDataManager()
     data = dm.get_team_data("Argentina (ארגנטינה)")
-    assert data["elo"] == 1877
+    assert data.get("matches_used", 0) >= 6
+    assert data.get("rating_source") == "history_blend"
+    assert data["elo"] >= 1750
+    ranked = sorted(
+        (dm.get_team_data(team)["elo"] for team in dm.list_teams()),
+        reverse=True,
+    )
+    assert data["elo"] >= ranked[4]
 
 
 def test_derived_metrics_in_range() -> None:

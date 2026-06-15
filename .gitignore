@@ -2,6 +2,8 @@
 backend/__pycache__/
 backend/.pytest_cache/
 backend/.venv/
+backend/data/cache/nt_history_fetched.json
+backend/data/cache/elo_overrides.json
 *.pyc
 .env
 .env.*
@@ -9,7 +11,9 @@ backend/.venv/
 
 # Flutter
 mobile/.dart_tool/
-mobile/build/
+mobile/build/*
+!mobile/build/web/
+!mobile/build/web/**
 mobile/.flutter-plugins-dependencies
 
 # IDE

@@ -66,14 +66,19 @@ class AdvancedDixonColesEngine:
         advantage: float,
         max_goals: int = 6,
         include_all_scores: bool = False,
-        top_n: int = 10,
+        top_n: int = 3,
         coverage_target: float = 50.0,
+        home_xg_override: float | None = None,
+        away_xg_override: float | None = None,
     ) -> dict[str, Any]:
-        delta_power = power_home - power_away + advantage
-        prob_home = 1.0 / (1.0 + math.pow(10, -delta_power / 400))
-
-        home_xg = prob_home * self.global_avg
-        away_xg = (1.0 - prob_home) * self.global_avg
+        if home_xg_override is not None and away_xg_override is not None:
+            home_xg = home_xg_override
+            away_xg = away_xg_override
+        else:
+            delta_power = power_home - power_away + advantage
+            prob_home = 1.0 / (1.0 + math.pow(10, -delta_power / 400))
+            home_xg = prob_home * self.global_avg
+            away_xg = (1.0 - prob_home) * self.global_avg
 
         home_vector = self._get_nbinom_probs(home_xg, max_goals)
         away_vector = self._get_nbinom_probs(away_xg, max_goals)

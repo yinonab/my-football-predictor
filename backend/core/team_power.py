@@ -50,12 +50,14 @@ class TeamPowerEvaluator:
     ) -> dict[str, str | float]:
         raw = self._dm.get_team_data(team_name, use_live=use_live)
         power = self.calculate_composite_power(team_name, use_live=use_live)
+        matches_used = raw.get("matches_used")
+        extra = f" | מבוסס על {matches_used} משחקים" if matches_used else ""
         return {
             "name": team_name,
             "power_score": round(power, 2),
             "elo": raw["elo"],
             "breakdown": (
                 f"התקפה: {raw['attack']} | הגנה: {raw['defense']} | "
-                f"כושר: {raw['form']}"
+                f"כושר: {raw['form']}{extra}"
             ),
         }

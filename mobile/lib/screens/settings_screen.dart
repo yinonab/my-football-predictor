@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../config/api_config.dart';
 import '../models/prediction_result.dart';
 import '../services/api_service.dart';
 
@@ -125,8 +126,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
               icon: const Icon(Icons.refresh),
               label: const Text('בדוק חיבור'),
             ),
+            if (ApiService.isLocalDevUrl(_apiUrlController.text))
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'כתובת מקומית לא עובדת בטלפון — השתמש בשרת Render',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+            TextButton.icon(
+              onPressed: () {
+                setState(() => _apiUrlController.text = productionApiUrl);
+                _checkServer();
+              },
+              icon: const Icon(Icons.cloud),
+              label: const Text('החלף לשרת Render'),
+            ),
             const Divider(height: 32),
-            Text('פרמטרי מודל (כיול WC 2022)', style: Theme.of(context).textTheme.titleMedium),
+            Text('פרמטרי מודל (כיול WC 2018–2026)', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: () {
+                setState(() {
+                  _rho = -0.10;
+                  _avgGoals = 3.0;
+                  _homeAdvantage = 0;
+                  _alpha = 0.0;
+                  _neutralGround = true;
+                  _apiUrlController.text = productionApiUrl;
+                });
+                _checkServer();
+              },
+              icon: const Icon(Icons.restore),
+              label: const Text('איפוס לערכי כיול'),
+            ),
             const SizedBox(height: 16),
             Text('Dixon-Coles (ρ): ${_rho.toStringAsFixed(2)}'),
             Slider(value: _rho, min: -0.15, max: 0, divisions: 15, onChanged: (v) => setState(() => _rho = v)),
