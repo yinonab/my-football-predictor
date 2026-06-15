@@ -18,6 +18,16 @@ STAR_ABSENT_PENALTY: float = 0.08
 MIN_MODIFIER: float = 0.70
 MAX_MODIFIER: float = 1.30
 
+# Match context (rest / travel / weather)
+TRAVEL_KM_THRESHOLD: float = 2000.0
+RAIN_LIGHT_XG_PENALTY: float = 0.12
+RAIN_HEAVY_XG_PENALTY: float = 0.28
+HEAT_TEMP_C: float = 32.0
+HEAT_XG_PENALTY: float = 0.10
+COLD_TEMP_C: float = 5.0
+COLD_XG_PENALTY: float = 0.06
+CONTEXT_CACHE_HOURS: int = 6
+
 # API
 API_HOST: str = "0.0.0.0"
 API_PORT: int = 8000

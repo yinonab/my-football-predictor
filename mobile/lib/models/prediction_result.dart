@@ -109,6 +109,77 @@ class TeamBreakdown {
   }
 }
 
+class MatchContextInfo {
+  final bool enabled;
+  final String dataSource;
+  final int? homeRestDays;
+  final int? awayRestDays;
+  final String? homeLastCity;
+  final String? awayLastCity;
+  final String? venueCity;
+  final String? matchDate;
+  final String? stage;
+  final double? awayTravelKm;
+  final double? homeTravelKm;
+  final String? weatherSummary;
+  final double? weatherTempC;
+  final double? weatherRainMm;
+  final double homePowerMult;
+  final double awayPowerMult;
+  final double xgTotalDelta;
+  final List<String> notes;
+
+  const MatchContextInfo({
+    this.enabled = true,
+    this.dataSource = 'offline',
+    this.homeRestDays,
+    this.awayRestDays,
+    this.homeLastCity,
+    this.awayLastCity,
+    this.venueCity,
+    this.matchDate,
+    this.stage,
+    this.awayTravelKm,
+    this.homeTravelKm,
+    this.weatherSummary,
+    this.weatherTempC,
+    this.weatherRainMm,
+    this.homePowerMult = 1.0,
+    this.awayPowerMult = 1.0,
+    this.xgTotalDelta = 0.0,
+    this.notes = const [],
+  });
+
+  bool get hasDetails =>
+      notes.isNotEmpty ||
+      weatherSummary != null ||
+      homeRestDays != null ||
+      awayRestDays != null;
+
+  factory MatchContextInfo.fromJson(Map<String, dynamic> json) {
+    return MatchContextInfo(
+      enabled: json['enabled'] as bool? ?? true,
+      dataSource: json['data_source'] as String? ?? 'offline',
+      homeRestDays: json['home_rest_days'] as int?,
+      awayRestDays: json['away_rest_days'] as int?,
+      homeLastCity: json['home_last_city'] as String?,
+      awayLastCity: json['away_last_city'] as String?,
+      venueCity: json['venue_city'] as String?,
+      matchDate: json['match_date'] as String?,
+      stage: json['stage'] as String?,
+      awayTravelKm: (json['away_travel_km'] as num?)?.toDouble(),
+      homeTravelKm: (json['home_travel_km'] as num?)?.toDouble(),
+      weatherSummary: json['weather_summary'] as String?,
+      weatherTempC: (json['weather_temp_c'] as num?)?.toDouble(),
+      weatherRainMm: (json['weather_rain_mm'] as num?)?.toDouble(),
+      homePowerMult: (json['home_power_mult'] as num?)?.toDouble() ?? 1.0,
+      awayPowerMult: (json['away_power_mult'] as num?)?.toDouble() ?? 1.0,
+      xgTotalDelta: (json['xg_total_delta'] as num?)?.toDouble() ?? 0.0,
+      notes: List<String>.from(json['notes'] as List<dynamic>? ?? []),
+    );
+  }
+}
+
 class PredictionResult {
   final String homeTeam;
   final String awayTeam;
@@ -124,6 +195,7 @@ class PredictionResult {
   final ScoreCoverage scoreCoverage;
   final String matchSummary;
   final String h2hSummary;
+  final MatchContextInfo? matchContext;
 
   const PredictionResult({
     required this.homeTeam,
@@ -140,6 +212,7 @@ class PredictionResult {
     required this.scoreCoverage,
     this.matchSummary = '',
     this.h2hSummary = '',
+    this.matchContext,
   });
 
   factory PredictionResult.fromJson(Map<String, dynamic> json) {
@@ -170,6 +243,11 @@ class PredictionResult {
       ),
       matchSummary: json['match_summary'] as String? ?? '',
       h2hSummary: json['h2h_summary'] as String? ?? '',
+      matchContext: json['match_context'] != null
+          ? MatchContextInfo.fromJson(
+              json['match_context'] as Map<String, dynamic>,
+            )
+          : null,
     );
   }
 }

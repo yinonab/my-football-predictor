@@ -9,7 +9,7 @@ import config
 
 class HealthResponse(BaseModel):
     status: str
-    version: str = "2.0.2"
+    version: str = "2.1.0"
     live_stats_available: bool = False
     odds_available: bool = False
     cloud_persist_available: bool = False
@@ -28,6 +28,36 @@ class PredictRequest(BaseModel):
     star_absent: bool = False
     away_star_absent: bool = False
     top_n: int = Field(default=3, ge=1, le=15)
+    use_match_context: bool = True
+    match_date: str | None = Field(
+        default=None,
+        description="ISO date YYYY-MM-DD for weather/rest reference",
+    )
+    venue_city: str | None = Field(
+        default=None,
+        description="Host city for travel/weather (e.g. Miami)",
+    )
+
+
+class MatchContextResponse(BaseModel):
+    enabled: bool = True
+    data_source: str = "offline"
+    home_rest_days: int | None = None
+    away_rest_days: int | None = None
+    home_last_city: str | None = None
+    away_last_city: str | None = None
+    venue_city: str | None = None
+    match_date: str | None = None
+    stage: str | None = None
+    away_travel_km: float | None = None
+    home_travel_km: float | None = None
+    weather_summary: str | None = None
+    weather_temp_c: float | None = None
+    weather_rain_mm: float | None = None
+    home_power_mult: float = 1.0
+    away_power_mult: float = 1.0
+    xg_total_delta: float = 0.0
+    notes: list[str] = Field(default_factory=list)
 
 
 class ScoreProbability(BaseModel):
@@ -78,6 +108,7 @@ class PredictResponse(BaseModel):
     score_coverage: ScoreCoverage
     match_summary: str = ""
     h2h_summary: str = ""
+    match_context: MatchContextResponse | None = None
 
 
 class TeamsResponse(BaseModel):

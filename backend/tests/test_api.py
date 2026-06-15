@@ -39,6 +39,8 @@ def test_predict_valid_match() -> None:
             "home_team": "Canada (קנדה)",
             "away_team": "Bosnia (בוסניה)",
             "neutral_ground": True,
+            "venue_city": "Miami",
+            "match_date": "2026-06-15",
         },
     )
     assert response.status_code == 200
@@ -49,6 +51,13 @@ def test_predict_valid_match() -> None:
         + data["probabilities_1x2"]["away_win"]
     )
     assert 99.9 <= total <= 100.1
+    assert "match_context" in data
+    assert data["match_context"]["venue_city"] == "Miami"
+
+
+def test_health_version() -> None:
+    response = client.get("/api/health")
+    assert response.json()["version"] == "2.1.0"
 
 
 def test_predict_custom_team_name() -> None:

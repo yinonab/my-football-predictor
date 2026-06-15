@@ -88,6 +88,46 @@ class ApiFootballClient:
                 return team
         return items[0]["team"] if items else None
 
+    def fetch_last_finished_fixture(self, team_id: int) -> dict[str, Any] | None:
+        """Most recent finished match for a national team."""
+        data = self._get(
+            "/fixtures",
+            params={"team": team_id, "last": 1, "status": "FT"},
+        )
+        items = data.get("response") or []
+        return items[0] if items else None
+
+    def extract_fixture_context(self, fixture: dict[str, Any]) -> dict[str, Any]:
+        """Date, city, round, league from a fixture payload."""
+        fix = fixture.get("fixture") or {}
+        league = fixture.get("league") or {}
+        venue = fix.get("venue") or {}
+        return {
+            "date": (fix.get("date") or "")[:10] or None,
+            "city": venue.get("city"),
+            "round": league.get("round"),
+            "league": league.get("name"),
+        }
+
+    def find_scheduled_h2h_fixture(
+        self,
+        team_a_id: int,
+        team_b_id: int,
+    ) -> dict[str, Any] | None:
+        """Next scheduled fixture between two teams (if any)."""
+        data = self._get(
+            "/fixtures/headtohead",
+            params={"h2h": f"{team_a_id}-{team_b_id}", "status": "NS"},
+        )
+        items = data.get("response") or []
+        if not items:
+            return None
+        items_sorted = sorted(
+            items,
+            key=lambda fx: (fx.get("fixture") or {}).get("date") or "",
+        )
+        return self.extract_fixture_context(items_sorted[0])
+
     def fetch_team_fixtures(
         self,
         team_id: int,

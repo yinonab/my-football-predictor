@@ -289,6 +289,78 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       ],
+                      if (_result!.matchContext?.hasDetails == true) ...[
+                        const SizedBox(height: 8),
+                        Card(
+                          color: theme.colorScheme.tertiaryContainer.withValues(alpha: 0.45),
+                          child: Padding(
+                            padding: const EdgeInsets.all(12),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.wb_sunny_outlined,
+                                      size: 20,
+                                      color: theme.colorScheme.tertiary,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'הקשר משחק',
+                                      style: theme.textTheme.titleSmall?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (_result!.matchContext!.weatherSummary != null) ...[
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    _result!.matchContext!.weatherSummary!,
+                                    style: theme.textTheme.bodyMedium,
+                                    textAlign: TextAlign.right,
+                                  ),
+                                ],
+                                if (_result!.matchContext!.homeRestDays != null ||
+                                    _result!.matchContext!.awayRestDays != null) ...[
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'מנוחה: בית ${_result!.matchContext!.homeRestDays ?? "—"} ימים · '
+                                    'חוץ ${_result!.matchContext!.awayRestDays ?? "—"} ימים',
+                                    style: theme.textTheme.bodySmall,
+                                    textAlign: TextAlign.right,
+                                  ),
+                                ],
+                                if (_result!.matchContext!.awayTravelKm != null &&
+                                    _result!.matchContext!.awayTravelKm! >= 2000) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'נסיעת חוץ: ${_result!.matchContext!.awayTravelKm!.toStringAsFixed(0)} ק"מ',
+                                    style: theme.textTheme.bodySmall,
+                                    textAlign: TextAlign.right,
+                                  ),
+                                ],
+                                if (_result!.matchContext!.notes.isNotEmpty) ...[
+                                  const SizedBox(height: 8),
+                                  ..._result!.matchContext!.notes.map(
+                                    (n) => Padding(
+                                      padding: const EdgeInsets.only(bottom: 4),
+                                      child: Text(
+                                        '• $n',
+                                        style: theme.textTheme.bodySmall?.copyWith(
+                                          color: theme.colorScheme.onSurfaceVariant,
+                                        ),
+                                        textAlign: TextAlign.right,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       Card(
                         child: Padding(

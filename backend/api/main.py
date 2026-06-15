@@ -26,6 +26,7 @@ from api.schemas import (
     GroupsResponse,
     HealthResponse,
     OutcomeExplanations,
+    MatchContextResponse,
     PredictRequest,
     PredictResponse,
     RefreshHistoryResponse,
@@ -50,6 +51,8 @@ from core.explanations import (
 from core.h2h_adjustment import H2HStore, apply_h2h_adjustment, load_h2h_index
 from core.match_store import append_live_match, load_live_matches
 from core.blowout import apply_blowout_adjustment
+from core.context_adjustments import apply_xg_context_delta, compute_context_adjustments
+from core.match_context import MatchContextGatherer
 from core.maher import blend_maher_with_power
 from core.opponent_maher import build_opponent_index, estimate_xg_opponent_aware
 from core.team_ratings import build_all_matches, build_and_save_ratings
@@ -71,7 +74,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Football Predictor API",
     description="Dixon-Coles match prediction engine — WC 2026",
-    version="2.0.2",
+    version="2.1.0",
 )
 
 app.add_middleware(
@@ -90,6 +93,7 @@ _power_evaluator = TeamPowerEvaluator(_data_manager)
 _api_client = ApiFootballClient()
 _h2h_store = H2HStore()
 _odds_client = OddsClient()
+_context_gatherer = MatchContextGatherer(_api_client)
 
 _opponent_index = build_opponent_index(
     build_all_matches(),
@@ -185,6 +189,48 @@ def predict(request: PredictRequest) -> PredictResponse:
         h2h_summary,
     )
 
+    ctx_info = _context_gatherer.gather(
+        home_resolved,
+        away_resolved,
+        match_date=request.match_date,
+        venue_city=request.venue_city,
+        enabled=request.use_match_context,
+    )
+    ctx_adj = compute_context_adjustments(
+        home_rest_days=ctx_info.home_rest_days,
+        away_rest_days=ctx_info.away_rest_days,
+        away_travel_km=ctx_info.away_travel_km,
+        home_travel_km=ctx_info.home_travel_km,
+        rain_mm=ctx_info.weather_rain_mm,
+        temp_c=ctx_info.weather_temp_c,
+        stage=ctx_info.stage,
+    )
+    if request.use_match_context:
+        home_power *= ctx_adj.home_power_mult
+        away_power *= ctx_adj.away_power_mult
+
+    ctx_notes = list(ctx_info.notes or []) + list(ctx_adj.notes)
+    match_context = MatchContextResponse(
+        enabled=request.use_match_context,
+        data_source=ctx_info.data_source,
+        home_rest_days=ctx_info.home_rest_days,
+        away_rest_days=ctx_info.away_rest_days,
+        home_last_city=ctx_info.home_last_city,
+        away_last_city=ctx_info.away_last_city,
+        venue_city=ctx_info.venue_city,
+        match_date=ctx_info.match_date,
+        stage=ctx_info.stage,
+        away_travel_km=ctx_info.away_travel_km,
+        home_travel_km=ctx_info.home_travel_km,
+        weather_summary=ctx_info.weather_summary,
+        weather_temp_c=ctx_info.weather_temp_c,
+        weather_rain_mm=ctx_info.weather_rain_mm,
+        home_power_mult=round(ctx_adj.home_power_mult, 3),
+        away_power_mult=round(ctx_adj.away_power_mult, 3),
+        xg_total_delta=round(ctx_adj.xg_total_delta, 3),
+        notes=ctx_notes,
+    )
+
     advantage = 0.0 if request.neutral_ground else request.home_advantage
 
     home_data = _data_manager.get_team_data(home_resolved, use_live=request.use_live_stats)
@@ -207,6 +253,12 @@ def predict(request: PredictRequest) -> PredictResponse:
         advantage,
         global_avg=request.avg_goals,
     )
+    if request.use_match_context and abs(ctx_adj.xg_total_delta) > 1e-6:
+        home_xg, away_xg = apply_xg_context_delta(
+            home_xg,
+            away_xg,
+            ctx_adj.xg_total_delta,
+        )
     blowout = apply_blowout_adjustment(
         home_xg,
         away_xg,
@@ -330,8 +382,14 @@ def predict(request: PredictRequest) -> PredictResponse:
         )
         + (f"\n{h2h_note}" if h2h_note else "")
         + (f"\n{maher_note}" if maher_note else "")
-        + (f"\n{blowout.note}" if blowout.active else ""),
+        + (f"\n{blowout.note}" if blowout.active else "")
+        + (
+            "\nהקשר משחק: " + "; ".join(ctx_notes)
+            if request.use_match_context and ctx_notes
+            else ""
+        ),
         h2h_summary=h2h_note,
+        match_context=match_context,
     )
 
 

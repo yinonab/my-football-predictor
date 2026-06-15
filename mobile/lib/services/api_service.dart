@@ -156,6 +156,7 @@ class ApiService {
       'star_absent': settings.starAbsent,
       'away_star_absent': settings.awayStarAbsent,
       'use_live_stats': settings.useLiveStats,
+      'use_match_context': true,
       'top_n': 3,
     });
 
