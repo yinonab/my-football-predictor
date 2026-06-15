@@ -49,6 +49,7 @@ from core.explanations import (
 )
 from core.h2h_adjustment import H2HStore, apply_h2h_adjustment, load_h2h_index
 from core.match_store import append_live_match, load_live_matches
+from core.blowout import apply_blowout_adjustment
 from core.maher import blend_maher_with_power
 from core.opponent_maher import build_opponent_index, estimate_xg_opponent_aware
 from core.team_ratings import build_all_matches, build_and_save_ratings
@@ -70,7 +71,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Football Predictor API",
     description="Dixon-Coles match prediction engine — WC 2026",
-    version="2.0.1",
+    version="2.0.2",
 )
 
 app.add_middleware(
@@ -206,17 +207,27 @@ def predict(request: PredictRequest) -> PredictResponse:
         advantage,
         global_avg=request.avg_goals,
     )
+    blowout = apply_blowout_adjustment(
+        home_xg,
+        away_xg,
+        home_power,
+        away_power,
+        advantage,
+        base_alpha=request.alpha,
+    )
+    home_xg, away_xg = blowout.home_xg, blowout.away_xg
 
     engine = AdvancedDixonColesEngine(
         rho=request.rho,
         global_avg=request.avg_goals,
-        alpha=request.alpha,
+        alpha=blowout.alpha,
     )
     result = engine.generate_match_prediction(
         home_power,
         away_power,
         advantage,
         top_n=request.top_n,
+        max_goals=blowout.max_goals,
         home_xg_override=home_xg,
         away_xg_override=away_xg,
     )
@@ -318,7 +329,8 @@ def predict(request: PredictRequest) -> PredictResponse:
             probs=probs,
         )
         + (f"\n{h2h_note}" if h2h_note else "")
-        + (f"\n{maher_note}" if maher_note else ""),
+        + (f"\n{maher_note}" if maher_note else "")
+        + (f"\n{blowout.note}" if blowout.active else ""),
         h2h_summary=h2h_note,
     )
 

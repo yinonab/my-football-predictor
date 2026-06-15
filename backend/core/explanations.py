@@ -48,14 +48,26 @@ def explain_exact_score(
             parts.append(f"תיקו תוצאתי ({score}) — שתי התקפות מייצרות שערים.")
     elif h > a:
         margin = h - a
-        if margin >= 2:
+        if margin >= 3:
+            parts.append(
+                f"{home_label} דומיננטית (xG {home_xg:.1f} vs {away_xg:.1f}) — תרחיש גולנט."
+            )
+        elif margin >= 2:
             parts.append(f"{home_label} שולטת עם יתרון התקפי (xG {home_xg:.1f} vs {away_xg:.1f}).")
+        elif xg_gap > 1.0:
+            parts.append(f"ניצחון צר ל{home_label} — xG גבוה אך תוצאה מינימלית.")
         else:
             parts.append(f"ניצחון צמוד ל{home_label} — יתרון קל בהתקפה הצפויה.")
     else:
         margin = a - h
-        if margin >= 2:
+        if margin >= 3:
+            parts.append(
+                f"{away_label} דומיננטית (xG {away_xg:.1f} vs {home_xg:.1f}) — תרחיש גולנט."
+            )
+        elif margin >= 2:
             parts.append(f"{away_label} שולטת עם יתרון התקפי (xG {away_xg:.1f} vs {home_xg:.1f}).")
+        elif -xg_gap > 1.0:
+            parts.append(f"ניצחון צר ל{away_label} — xG גבוה אך תוצאה מינימלית.")
         else:
             parts.append(f"ניצחון צמוד ל{away_label} — יתרון קל בהתקפה הצפויה.")
 
