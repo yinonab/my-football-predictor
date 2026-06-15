@@ -44,6 +44,36 @@ def test_outcome_explanation_home_favorite() -> None:
     assert "55" in text
 
 
+def test_outcome_explanation_underdog_away() -> None:
+    text = explain_outcome_1x2(
+        "away",
+        9.6,
+        home_power=998,
+        away_power=582,
+        home_xg=2.2,
+        away_xg=0.4,
+        home_team="Spain (ספרד)",
+        away_team="Cape Verde (כף ורד)",
+    )
+    assert "הפתעה" in text or "9.6" in text
+    assert "קטן" not in text
+
+
+def test_outcome_explanation_draw_mismatch() -> None:
+    text = explain_outcome_1x2(
+        "draw",
+        20.0,
+        home_power=998,
+        away_power=582,
+        home_xg=2.2,
+        away_xg=0.4,
+        home_team="Spain (ספרד)",
+        away_team="Cape Verde (כף ורד)",
+    )
+    assert "יתרון" in text or "למרות" in text
+    assert "קרובים" not in text
+
+
 def test_match_summary() -> None:
     summary = build_match_summary(
         home_team="Argentina (ארגנטינה)",

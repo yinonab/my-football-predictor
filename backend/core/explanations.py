@@ -103,6 +103,11 @@ def explain_outcome_1x2(
 
     if outcome == "away":
         gap = away_power - home_power
+        if gap < -150:
+            return (
+                f"הפתעה: ניצחון {away_label} רק ב-{probability:.1f}% — "
+                f"פער כוח {abs(gap):.0f} נקודות לטובת {home_label}."
+            )
         if gap > 80:
             return (
                 f"{away_label} חזקה משמעותית (כוח {away_power:.0f} מול {home_power:.0f}). "
@@ -119,6 +124,18 @@ def explain_outcome_1x2(
         )
 
     # draw
+    if abs(power_gap) > 150:
+        favorite = home_label if power_gap > 0 else away_label
+        return (
+            f"תיקו ב-{probability:.1f}% למרות יתרון ברור ל{favorite} "
+            f"(פער {abs(power_gap):.0f} נקודות). xG {home_xg:.1f}–{away_xg:.1f} — "
+            "Dixon-Coles מעלה הסתברות לתוצאות שוויון נמוכות."
+        )
+    if abs(power_gap) > 50:
+        return (
+            f"תיקו ב-{probability:.1f}% — כוחות לא שווים (פער {abs(power_gap):.0f}) "
+            f"אך xG קרוב ({home_xg:.1f}–{away_xg:.1f}). תיקון Dixon-Coles לתוצאות נמוכות."
+        )
     return (
         f"כוחות קרובים (פער {abs(power_gap):.0f} נקודות) ו-xG דומה "
         f"({home_xg:.1f}–{away_xg:.1f}). תיקו מועדף ב-{probability:.1f}% "
