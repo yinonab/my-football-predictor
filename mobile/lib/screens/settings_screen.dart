@@ -31,6 +31,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _apiUrlController;
   bool _serverOnline = false;
   bool _checking = false;
+  final _eloHomeController = TextEditingController();
+  final _eloAwayController = TextEditingController();
+  final _homeGoalsController = TextEditingController(text: '0');
+  final _awayGoalsController = TextEditingController(text: '0');
+  String? _eloMessage;
+  bool _eloUpdating = false;
 
   @override
   void initState() {
@@ -51,6 +57,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void dispose() {
     _apiUrlController.dispose();
+    _eloHomeController.dispose();
+    _eloAwayController.dispose();
+    _homeGoalsController.dispose();
+    _awayGoalsController.dispose();
     super.dispose();
   }
 
@@ -80,6 +90,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
     await widget.apiService.saveSettings(settings);
     if (mounted) Navigator.pop(context, settings);
+  }
+
+  Future<void> _submitMatchResult() async {
+    final home = _eloHomeController.text.trim();
+    final away = _eloAwayController.text.trim();
+    if (home.isEmpty || away.isEmpty) {
+      setState(() => _eloMessage = 'יש להזין שמות נבחרות');
+      return;
+    }
+    setState(() {
+      _eloUpdating = true;
+      _eloMessage = null;
+    });
+    try {
+      final result = await widget.apiService.updateElo(
+        baseUrl: _apiUrlController.text.trim(),
+        homeTeam: home,
+        awayTeam: away,
+        homeGoals: int.tryParse(_homeGoalsController.text) ?? 0,
+        awayGoals: int.tryParse(_awayGoalsController.text) ?? 0,
+        neutralGround: _neutralGround,
+      );
+      if (mounted) {
+        setState(() {
+          _eloMessage =
+              'עודכן: ${result['home_team']} ${result['home_elo_after']} | '
+              '${result['away_team']} ${result['away_elo_after']} '
+              '(${result['live_match_count']} משחקים שמורים)';
+        });
+      }
+    } on ApiException catch (e) {
+      if (mounted) setState(() => _eloMessage = e.message);
+    } catch (_) {
+      if (mounted) setState(() => _eloMessage = 'שגיאת רשת');
+    } finally {
+      if (mounted) setState(() => _eloUpdating = false);
+    }
   }
 
   @override
@@ -148,8 +195,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             OutlinedButton.icon(
               onPressed: () {
                 setState(() {
-                  _rho = -0.10;
-                  _avgGoals = 3.0;
+                  _rho = -0.15;
+                  _avgGoals = 2.6;
                   _homeAdvantage = 0;
                   _alpha = 0.0;
                   _neutralGround = true;
@@ -180,6 +227,78 @@ class _SettingsScreenState extends State<SettingsScreen> {
               value: _useLiveStats,
               onChanged: (v) => setState(() => _useLiveStats = v),
             ),
+            const Divider(height: 32),
+            Text('תוצאת משחק אמיתית (מונדיאל)', style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 8),
+            Text(
+              'מעדכן Elo, שומר משחק ומחשב מחדש דירוגים',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _eloHomeController,
+              decoration: const InputDecoration(
+                labelText: 'נבחרת א\' (בית)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _eloAwayController,
+              decoration: const InputDecoration(
+                labelText: 'נבחרת ב\' (חוץ)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _homeGoalsController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'שערים א\'',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: _awayGoalsController,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'שערים ב\'',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: _eloUpdating || !_serverOnline ? null : _submitMatchResult,
+              icon: _eloUpdating
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Icon(Icons.save),
+              label: Text(_eloUpdating ? 'שומר...' : 'שמור תוצאה + עדכן Elo'),
+            ),
+            if (_eloMessage != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                _eloMessage!,
+                style: TextStyle(
+                  color: _eloMessage!.startsWith('עודכן')
+                      ? Theme.of(context).colorScheme.primary
+                      : Theme.of(context).colorScheme.error,
+                ),
+              ),
+            ],
             const Divider(height: 32),
             Text('תיקונים ידניים', style: Theme.of(context).textTheme.titleMedium),
             Text('גובה: $_altitude מ\''),

@@ -4,6 +4,7 @@ backend/.pytest_cache/
 backend/.venv/
 backend/data/cache/nt_history_fetched.json
 backend/data/cache/elo_overrides.json
+backend/data/cache/wc2026_live_matches.json
 *.pyc
 .env
 .env.*

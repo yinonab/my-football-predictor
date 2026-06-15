@@ -104,6 +104,9 @@ class LiveDataManager:
         self._api = ApiFootballClient()
         self._history_ratings = load_ratings()
         self._elo_overrides = load_elo_overrides()
+        self._apply_team_database()
+
+    def _apply_team_database(self) -> None:
         self.team_database: dict[str, dict[str, float]] = {}
         for name, elo in FIFA_ELO_2026.items():
             data = compute_derived_metrics(elo)
@@ -144,6 +147,15 @@ class LiveDataManager:
         }
         self.aliases.update(extra_aliases)
 
+    def reload_history(self) -> None:
+        """Reload NT ratings and Elo overrides after a live match or API fetch."""
+        from core.team_ratings import load_ratings
+        from core.elo_store import load_elo_overrides
+
+        self._history_ratings = load_ratings()
+        self._elo_overrides = load_elo_overrides()
+        self._apply_team_database()
+
     def list_teams(self) -> list[str]:
         return list(self.team_database.keys())
 
@@ -158,6 +170,10 @@ class LiveDataManager:
             payload["form"] = float(hist["form"])
             payload["matches_used"] = int(hist["matches_used"])
             payload["rating_source"] = hist.get("rating_source", "history_blend")
+            payload["goals_for_per_game"] = float(hist.get("goals_for_per_game", 0.0))
+            payload["goals_against_per_game"] = float(hist.get("goals_against_per_game", 0.0))
+        if key in self._elo_overrides:
+            payload["elo"] = self._elo_overrides[key]
         if use_live and self._api.is_available:
             payload = self._api.enrich_team_data(key, payload)
         return payload

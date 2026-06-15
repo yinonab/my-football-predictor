@@ -1,7 +1,7 @@
 """Global constants and hyperparameters — no magic numbers in core modules."""
 
-GLOBAL_XG_AVG: float = 3.0  # Calibrated on WC 2022 backtest (was 2.6)
-DEFAULT_RHO: float = -0.10  # Calibrated on WC18+22 Euro24 Copa24 bundle
+GLOBAL_XG_AVG: float = 2.6  # Calibrated on WC18–26 bundle incl. qualifiers
+DEFAULT_RHO: float = -0.15  # Calibrated on WC18+22 Euro24 Copa24+qualifiers
 DEFAULT_HOME_ADV: float = 0.0  # WC neutral default; calibrated on WC 2022
 OVERDISPERSION_ALPHA: float = 0.0  # Calibrated: Poisson core fits WC 2022 best
 

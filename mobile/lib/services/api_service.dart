@@ -40,8 +40,8 @@ class ApiService {
     }
 
     return PredictionSettings(
-      rho: prefs.getDouble('rho') ?? -0.10,
-      avgGoals: prefs.getDouble('avgGoals') ?? 3.0,
+      rho: prefs.getDouble('rho') ?? -0.15,
+      avgGoals: prefs.getDouble('avgGoals') ?? 2.6,
       homeAdvantage: prefs.getDouble('homeAdvantage') ?? 0,
       alpha: prefs.getDouble('alpha') ?? 0.0,
       altitude: prefs.getInt('altitude') ?? 0,
@@ -229,5 +229,39 @@ class ApiService {
     return (data['champion_odds'] as List<dynamic>)
         .map((e) => ChampionOdds.fromJson(e as Map<String, dynamic>))
         .toList();
+  }
+
+  Future<Map<String, dynamic>> updateElo({
+    required String baseUrl,
+    required String homeTeam,
+    required String awayTeam,
+    required int homeGoals,
+    required int awayGoals,
+    bool neutralGround = true,
+    bool recordMatch = true,
+  }) async {
+    final body = jsonEncode({
+      'home_team': homeTeam,
+      'away_team': awayTeam,
+      'home_goals': homeGoals,
+      'away_goals': awayGoals,
+      'neutral_ground': neutralGround,
+      'record_match': recordMatch,
+    });
+
+    final response = await http
+        .post(
+          Uri.parse('$baseUrl/api/elo/update'),
+          headers: {'Content-Type': 'application/json'},
+          body: body,
+        )
+        .timeout(_timeoutFor(baseUrl, seconds: 30));
+
+    if (response.statusCode != 200) {
+      final error = jsonDecode(response.body) as Map<String, dynamic>;
+      throw ApiException(error['detail']?.toString() ?? 'שגיאת עדכון Elo');
+    }
+
+    return jsonDecode(response.body) as Map<String, dynamic>;
   }
 }

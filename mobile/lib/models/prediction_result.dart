@@ -227,8 +227,8 @@ class PredictionSettings {
   final String apiBaseUrl;
 
   const PredictionSettings({
-    this.rho = -0.10,
-    this.avgGoals = 3.0,
+    this.rho = -0.15,
+    this.avgGoals = 2.6,
     this.homeAdvantage = 0,
     this.alpha = 0.0,
     this.altitude = 0,

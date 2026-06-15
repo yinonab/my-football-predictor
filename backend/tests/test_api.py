@@ -138,7 +138,11 @@ def test_predict_returns_top3_and_coverage() -> None:
     assert "h2h_summary" in data
 
 
-def test_elo_update_endpoint() -> None:
+def test_elo_update_endpoint(tmp_path, monkeypatch) -> None:
+    from core import match_store
+
+    monkeypatch.setattr(match_store, "LIVE_MATCHES_PATH", tmp_path / "live.json")
+
     response = client.post(
         "/api/elo/update",
         json={
@@ -146,11 +150,20 @@ def test_elo_update_endpoint() -> None:
             "away_team": "Curacao (קוראסאו)",
             "home_goals": 2,
             "away_goals": 1,
+            "record_match": True,
         },
     )
     assert response.status_code == 200
     data = response.json()
     assert data["home_elo_after"] != data["home_elo_before"]
+    assert data["match_recorded"] is True
+    assert data["ratings_rebuilt"] is True
+    assert data["live_match_count"] >= 1
+
+
+def test_refresh_history_without_api_key() -> None:
+    response = client.post("/api/admin/refresh-history")
+    assert response.status_code == 400
 
 
 def test_simulate_group() -> None:

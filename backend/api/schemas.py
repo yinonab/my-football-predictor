@@ -9,7 +9,7 @@ import config
 
 class HealthResponse(BaseModel):
     status: str
-    version: str = "1.8.0"
+    version: str = "1.9.0"
     live_stats_available: bool = False
 
 
@@ -105,6 +105,7 @@ class EloUpdateRequest(BaseModel):
     away_goals: int = Field(ge=0, le=20)
     neutral_ground: bool = True
     k_factor: float = Field(default=40.0, ge=10, le=80)
+    record_match: bool = True
 
 
 class EloUpdateResponse(BaseModel):
@@ -117,6 +118,16 @@ class EloUpdateResponse(BaseModel):
     home_delta: float
     away_delta: float
     expected_home_win: float
+    match_recorded: bool = False
+    ratings_rebuilt: bool = False
+    live_match_count: int = 0
+
+
+class RefreshHistoryResponse(BaseModel):
+    fetched_matches: int
+    total_matches: int
+    teams_rated: int
+    h2h_pairs: int
 
 
 class SimulateGroupRequest(BaseModel):

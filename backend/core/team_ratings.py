@@ -11,6 +11,7 @@ from typing import Any
 
 from core.elo_updater import update_elo_pair
 from core.h2h_adjustment import build_h2h_index, save_h2h_index
+from core.match_store import load_live_matches
 from data.database import FIFA_ELO_2026, compute_derived_metrics
 from data.nt_history_bundle import BUNDLED_NT_MATCHES
 from data.nt_match import NationalTeamMatch, registry_key_for_nt
@@ -205,6 +206,7 @@ def build_all_matches() -> list[NationalTeamMatch]:
     return merge_matches(
         list(BUNDLED_NT_MATCHES),
         load_fetched_matches(),
+        load_live_matches(),
     )
 
 
