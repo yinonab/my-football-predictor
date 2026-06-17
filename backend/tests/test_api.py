@@ -57,7 +57,7 @@ def test_predict_valid_match() -> None:
 
 def test_health_version() -> None:
     response = client.get("/api/health")
-    assert response.json()["version"] == "2.1.0"
+    assert response.json()["version"] == "2.1.1"
 
 
 def test_predict_custom_team_name() -> None:

@@ -53,7 +53,7 @@ from core.match_store import append_live_match, load_live_matches
 from core.blowout import apply_blowout_adjustment
 from core.context_adjustments import apply_xg_context_delta, compute_context_adjustments
 from core.match_context import MatchContextGatherer
-from core.maher import blend_maher_with_power
+from core.maher import blend_maher_with_power, floor_underdog_xg
 from core.opponent_maher import build_opponent_index, estimate_xg_opponent_aware
 from core.team_ratings import build_all_matches, build_and_save_ratings
 from core.math_engine import AdvancedDixonColesEngine
@@ -74,7 +74,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Football Predictor API",
     description="Dixon-Coles match prediction engine — WC 2026",
-    version="2.1.0",
+    version="2.1.1",
 )
 
 app.add_middleware(
@@ -252,6 +252,13 @@ def predict(request: PredictRequest) -> PredictResponse:
         away_power,
         advantage,
         global_avg=request.avg_goals,
+    )
+    home_xg, away_xg = floor_underdog_xg(
+        home_xg,
+        away_xg,
+        home_power,
+        away_power,
+        advantage,
     )
     if request.use_match_context and abs(ctx_adj.xg_total_delta) > 1e-6:
         home_xg, away_xg = apply_xg_context_delta(

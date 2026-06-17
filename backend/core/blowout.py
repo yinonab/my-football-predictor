@@ -48,10 +48,11 @@ def apply_blowout_adjustment(
     else:
         fav_xg, dog_xg = away_xg, home_xg
 
-    # Target favorite lambda up to ~4.2; allow underdog ~0.5-1.0 (5-1 not 7-0 only)
+    # Target favorite lambda up to ~4.2; underdog still scores in blowouts (5-1, 4-1)
     fav_target = 2.8 + t * 1.6
     fav_xg = fav_xg + t * max(0.0, fav_target - fav_xg)
-    dog_xg = max(0.45, dog_xg * (1.0 - 0.25 * t) + 0.15 * t)
+    dog_floor = 0.55 + 0.4 * t
+    dog_xg = max(dog_floor, dog_xg * (1.0 - 0.08 * t))
 
     if gap >= 0:
         home_adj, away_adj = fav_xg, dog_xg

@@ -9,7 +9,7 @@ import config
 
 class HealthResponse(BaseModel):
     status: str
-    version: str = "2.1.0"
+    version: str = "2.1.1"
     live_stats_available: bool = False
     odds_available: bool = False
     cloud_persist_available: bool = False

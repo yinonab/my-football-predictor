@@ -51,6 +51,24 @@ def power_based_xg(
     return round(home_xg, 2), round(away_xg, 2)
 
 
+def floor_underdog_xg(
+    home_xg: float,
+    away_xg: float,
+    home_power: float,
+    away_power: float,
+    advantage: float,
+) -> tuple[float, float]:
+    """Keep a realistic goal expectation for the weaker side on large gaps."""
+    gap = home_power - away_power + advantage
+    if gap > 100:
+        floor = min(0.8, 0.42 + gap / 650.0)
+        away_xg = max(away_xg, round(floor, 2))
+    elif gap < -100:
+        floor = min(0.8, 0.42 + abs(gap) / 650.0)
+        home_xg = max(home_xg, round(floor, 2))
+    return home_xg, away_xg
+
+
 def blend_maher_with_power(
     maher_home: float,
     maher_away: float,

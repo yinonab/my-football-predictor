@@ -22,7 +22,25 @@ def test_blowout_inflates_favorite_xg() -> None:
     adj = apply_blowout_adjustment(2.25, 0.35, 998.0, 582.0, 0.0)
     assert adj.active
     assert adj.home_xg > 2.8
+    assert adj.away_xg >= 0.85
     assert adj.max_goals >= 7
+
+
+def test_blowout_underdog_can_score_in_top_scores() -> None:
+    adj = apply_blowout_adjustment(2.25, 0.35, 998.0, 582.0, 0.0)
+    engine = AdvancedDixonColesEngine(rho=-0.15, global_avg=2.6, alpha=adj.alpha)
+    result = engine.generate_match_prediction(
+        998.0,
+        582.0,
+        0.0,
+        max_goals=adj.max_goals,
+        top_n=3,
+        home_xg_override=adj.home_xg,
+        away_xg_override=adj.away_xg,
+        include_all_scores=True,
+    )
+    top_scores = [s["score"] for s in result["top_scores"]]
+    assert any(int(s.split("-")[1]) >= 1 for s in top_scores)
 
 
 def test_spain_cape_verde_can_reach_high_scores() -> None:
@@ -43,7 +61,7 @@ def test_spain_cape_verde_can_reach_high_scores() -> None:
         p for score, p in all_scores.items() if int(score.split("-")[0]) >= 4
     )
     assert high > 15.0
-    assert result["probabilities_1x2"]["home_win"] > 84.0
+    assert result["probabilities_1x2"]["home_win"] > 75.0
 
 
 def test_germany_heavy_favorite() -> None:

@@ -32,19 +32,48 @@ class AdvancedDixonColesEngine:
         mu = max(mu, 0.01)
 
         if self.alpha <= 0:
-            return [float(poisson.pmf(k, mu)) for k in range(max_goals)]
+            probs = [float(poisson.pmf(k, mu)) for k in range(max_goals)]
+        else:
+            variance = mu + self.alpha * (mu**2)
+            if variance <= mu + 1e-9:
+                probs = [float(poisson.pmf(k, mu)) for k in range(max_goals)]
+            else:
+                p = mu / variance
+                n = (mu**2) / (variance - mu)
+                if n <= 0 or p <= 0 or p >= 1:
+                    probs = [float(poisson.pmf(k, mu)) for k in range(max_goals)]
+                else:
+                    probs = [float(nbinom.pmf(k, n, p)) for k in range(max_goals)]
 
-        variance = mu + self.alpha * (mu**2)
-        if variance <= mu + 1e-9:
-            return [float(poisson.pmf(k, mu)) for k in range(max_goals)]
+        total = sum(probs)
+        if total > 0:
+            return [p / total for p in probs]
+        return probs
 
-        p = mu / variance
-        n = (mu**2) / (variance - mu)
-
-        if n <= 0 or p <= 0 or p >= 1:
-            return [float(poisson.pmf(k, mu)) for k in range(max_goals)]
-
-        return [float(nbinom.pmf(k, n, p)) for k in range(max_goals)]
+    @staticmethod
+    def _ensure_underdog_score_in_top(
+        scores: dict[str, float],
+        top_sorted: list[tuple[str, float]],
+        top_n: int,
+        *,
+        home_is_favorite: bool,
+    ) -> list[tuple[str, float]]:
+        """If every top score is a clean sheet for the favorite, surface a 4-1 / 5-1 style line."""
+        if len(top_sorted) < 2:
+            return top_sorted
+        dog_idx = 1 if home_is_favorite else 0
+        if any(int(s.split("-")[dog_idx]) >= 1 for s, _ in top_sorted):
+            return top_sorted
+        dog_scores = [
+            (s, p) for s, p in scores.items() if int(s.split("-")[dog_idx]) >= 1
+        ]
+        if not dog_scores:
+            return top_sorted
+        best = max(dog_scores, key=lambda x: x[1])
+        if best[1] < top_sorted[-1][1] * 0.2:
+            return top_sorted
+        merged = sorted(top_sorted[:-1] + [best], key=lambda x: x[1], reverse=True)
+        return merged[:top_n]
 
     def _tau_correction(
         self, h: int, a: int, lambda_h: float, lambda_a: float
@@ -116,6 +145,13 @@ class AdvancedDixonColesEngine:
 
         top_n = max(1, min(top_n, len(scores)))
         top_sorted = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:top_n]
+        if abs(home_xg - away_xg) >= 1.0:
+            top_sorted = self._ensure_underdog_score_in_top(
+                scores,
+                top_sorted,
+                top_n,
+                home_is_favorite=home_xg >= away_xg,
+            )
 
         cumulative = 0.0
         coverage_scores: list[str] = []

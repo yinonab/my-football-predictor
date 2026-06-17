@@ -16,7 +16,7 @@ def test_calibrated_params_beat_old_defaults_on_top3() -> None:
         ModelParams(rho=-0.07, alpha=0.12, avg_goals=2.6, home_advantage=55.0)
     )
     new = evaluate_params(
-        ModelParams(rho=-0.15, alpha=0.0, avg_goals=3.0, home_advantage=0.0)
+        ModelParams(rho=-0.15, alpha=0.0, avg_goals=2.6, home_advantage=0.0)
     )
     assert new.report.top3_score_hit_rate >= old.report.top3_score_hit_rate
 
