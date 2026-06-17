@@ -9,6 +9,11 @@ def _short_name(full_name: str) -> str:
     return full_name
 
 
+def _score_label(score: str, home_label: str, away_label: str) -> str:
+    h, a = (int(x) for x in score.split("-"))
+    return f"{home_label} {h}–{a} {away_label}"
+
+
 def explain_exact_score(
     score: str,
     probability: float,
@@ -23,15 +28,16 @@ def explain_exact_score(
     home_label = _short_name(home_team)
     away_label = _short_name(away_team)
     h, a = (int(x) for x in score.split("-"))
+    score_label = _score_label(score, home_label, away_label)
     total_goals = h + a
     xg_gap = home_xg - away_xg
 
     parts: list[str] = []
 
     if rank == 1:
-        parts.append("התוצאה הסבירה ביותר לפי המודל.")
+        parts.append(f"התוצאה הסבירה ביותר: {score_label}.")
     elif rank <= 3:
-        parts.append("בין התוצאות המובילות במטריצה.")
+        parts.append(f"בין המובילות: {score_label}.")
     elif probability >= 8:
         parts.append("תרחיש סביר עם מסה הסתברותית משמעותית.")
     else:

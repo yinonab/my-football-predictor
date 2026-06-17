@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../utils/score_format.dart';
 import '../models/prediction_result.dart';
 import '../services/api_service.dart';
 import '../widgets/outcome_cards.dart';
@@ -31,7 +32,15 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    _teamAController.addListener(_onTeamsChanged);
+    _teamBController.addListener(_onTeamsChanged);
     _init();
+  }
+
+  void _onTeamsChanged() {
+    if (_result != null && mounted) {
+      setState(() => _result = null);
+    }
   }
 
   @override
@@ -245,6 +254,15 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                         textAlign: TextAlign.center,
                       ),
+                      const SizedBox(height: 8),
+                      Text(
+                        '${shortTeamName(_result!.homeTeam)} נגד ${shortTeamName(_result!.awayTeam)}',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
                       const SizedBox(height: 16),
                       OutcomeCards(
                         probabilities: _result!.probabilities,
@@ -388,8 +406,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               Text('xG צפוי', style: theme.textTheme.titleSmall),
                               const SizedBox(height: 8),
                               Text(
-                                '${_shortName(_result!.homeTeam)}: ${_result!.homeXg}  |  '
-                                '${_shortName(_result!.awayTeam)}: ${_result!.awayXg}',
+                                '${shortTeamName(_result!.homeTeam)}: ${_result!.homeXg}  |  '
+                                '${shortTeamName(_result!.awayTeam)}: ${_result!.awayXg}',
                                 style: theme.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -420,7 +438,15 @@ class _HomeScreenState extends State<HomeScreen> {
                                 children: _result!.scoreCoverage.scores
                                     .map(
                                       (s) => Chip(
-                                        label: Text(s),
+                                        label: Text(
+                                          formatNamedScore(
+                                            s,
+                                            teamAName: _result!.homeTeam,
+                                            teamBName: _result!.awayTeam,
+                                            isNeutralGround: _neutralGround,
+                                          ),
+                                          textAlign: TextAlign.right,
+                                        ),
                                         backgroundColor:
                                             theme.colorScheme.surface,
                                       ),
@@ -477,10 +503,5 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
       ),
     );
-  }
-
-  String _shortName(String full) {
-    final match = RegExp(r'\(([^)]+)\)').firstMatch(full);
-    return match?.group(1) ?? full;
   }
 }

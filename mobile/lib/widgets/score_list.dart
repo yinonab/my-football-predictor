@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../utils/score_format.dart';
 import '../models/prediction_result.dart';
 
 class ScoreList extends StatelessWidget {
@@ -17,21 +18,12 @@ class ScoreList extends StatelessWidget {
   });
 
   String _formatScore(String raw) {
-    final parts = raw.split('-');
-    if (parts.length != 2) return raw;
-
-    if (isNeutralGround) {
-      return '${parts[0]} - ${parts[1]}';
-    }
-
-    final a = teamAName != null ? _shortName(teamAName!) : 'מארחת';
-    final b = teamBName != null ? _shortName(teamBName!) : 'אורחת';
-    return '${parts[0]} ($a) - ${parts[1]} ($b)';
-  }
-
-  String _shortName(String full) {
-    final match = RegExp(r'\(([^)]+)\)').firstMatch(full);
-    return match?.group(1) ?? full;
+    return formatNamedScore(
+      raw,
+      teamAName: teamAName ?? 'נבחרת א\'',
+      teamBName: teamBName ?? 'נבחרת ב\'',
+      isNeutralGround: isNeutralGround,
+    );
   }
 
   @override

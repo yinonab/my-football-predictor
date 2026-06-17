@@ -60,10 +60,10 @@ def floor_underdog_xg(
 ) -> tuple[float, float]:
     """Keep a realistic goal expectation for the weaker side on large gaps."""
     gap = home_power - away_power + advantage
-    if gap > 100:
+    if gap > 150:
         floor = min(0.8, 0.42 + gap / 650.0)
         away_xg = max(away_xg, round(floor, 2))
-    elif gap < -100:
+    elif gap < -150:
         floor = min(0.8, 0.42 + abs(gap) / 650.0)
         home_xg = max(home_xg, round(floor, 2))
     return home_xg, away_xg

@@ -17,6 +17,12 @@ def test_floor_raises_weak_side_on_large_gap() -> None:
     assert home == 2.2
 
 
+def test_floor_inactive_on_medium_gap() -> None:
+    home, away = floor_underdog_xg(1.55, 1.05, 938.0, 829.0, 0.0)
+    assert home == 1.55
+    assert away == 1.05
+
+
 def test_floor_inactive_on_close_match() -> None:
     home, away = floor_underdog_xg(1.3, 1.2, 850.0, 840.0, 0.0)
     assert home == 1.3

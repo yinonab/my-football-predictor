@@ -74,7 +74,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Football Predictor API",
     description="Dixon-Coles match prediction engine — WC 2026",
-    version="2.1.1",
+    version="2.1.2",
 )
 
 app.add_middleware(
