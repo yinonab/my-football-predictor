@@ -53,7 +53,7 @@ from core.match_store import append_live_match, load_live_matches
 from core.blowout import apply_blowout_adjustment
 from core.context_adjustments import apply_xg_context_delta, compute_context_adjustments
 from core.match_context import MatchContextGatherer
-from core.maher import blend_maher_with_power, floor_underdog_xg
+from core.maher import blend_maher_with_power, floor_underdog_xg, mismatch_gap, scale_rho_for_gap
 from core.opponent_maher import build_opponent_index, estimate_xg_opponent_aware
 from core.team_ratings import build_all_matches, build_and_save_ratings
 from core.math_engine import AdvancedDixonColesEngine
@@ -74,7 +74,7 @@ logger = logging.getLogger(__name__)
 app = FastAPI(
     title="Football Predictor API",
     description="Dixon-Coles match prediction engine — WC 2026",
-    version="2.1.2",
+    version="2.1.3",
 )
 
 app.add_middleware(
@@ -235,6 +235,8 @@ def predict(request: PredictRequest) -> PredictResponse:
 
     home_data = _data_manager.get_team_data(home_resolved, use_live=request.use_live_stats)
     away_data = _data_manager.get_team_data(away_resolved, use_live=request.use_live_stats)
+    home_elo = float(home_data["elo"])
+    away_elo = float(away_data["elo"])
     home_xg, away_xg, maher_note = estimate_xg_opponent_aware(
         home_resolved,
         away_resolved,
@@ -252,6 +254,8 @@ def predict(request: PredictRequest) -> PredictResponse:
         away_power,
         advantage,
         global_avg=request.avg_goals,
+        home_elo=home_elo,
+        away_elo=away_elo,
     )
     home_xg, away_xg = floor_underdog_xg(
         home_xg,
@@ -259,6 +263,8 @@ def predict(request: PredictRequest) -> PredictResponse:
         home_power,
         away_power,
         advantage,
+        home_elo=home_elo,
+        away_elo=away_elo,
     )
     if request.use_match_context and abs(ctx_adj.xg_total_delta) > 1e-6:
         home_xg, away_xg = apply_xg_context_delta(
@@ -273,11 +279,20 @@ def predict(request: PredictRequest) -> PredictResponse:
         away_power,
         advantage,
         base_alpha=request.alpha,
+        home_elo=home_elo,
+        away_elo=away_elo,
     )
     home_xg, away_xg = blowout.home_xg, blowout.away_xg
 
+    gap_for_rho = mismatch_gap(
+        home_power,
+        away_power,
+        advantage,
+        home_elo=home_elo,
+        away_elo=away_elo,
+    )
     engine = AdvancedDixonColesEngine(
-        rho=request.rho,
+        rho=scale_rho_for_gap(request.rho, gap_for_rho),
         global_avg=request.avg_goals,
         alpha=blowout.alpha,
     )

@@ -42,13 +42,63 @@ def power_based_xg(
     advantage: float,
     *,
     global_avg: float = 3.0,
+    home_elo: float | None = None,
+    away_elo: float | None = None,
 ) -> tuple[float, float]:
     """Split total goals by Elo-style win probability (used when mismatch is large)."""
-    delta = home_power - away_power + advantage
+    if home_elo is not None and away_elo is not None:
+        delta = home_elo - away_elo + advantage
+    else:
+        delta = home_power - away_power + advantage
     prob_home = 1.0 / (1.0 + math.pow(10, -delta / 400))
     home_xg = prob_home * global_avg
     away_xg = (1.0 - prob_home) * global_avg
     return round(home_xg, 2), round(away_xg, 2)
+
+
+def mismatch_gap(
+    home_power: float,
+    away_power: float,
+    advantage: float,
+    *,
+    home_elo: float | None = None,
+    away_elo: float | None = None,
+) -> float:
+    """Gap for blend/blowout — Elo gap when much larger than composite power gap."""
+    power_gap = abs(home_power - away_power + advantage)
+    if home_elo is None or away_elo is None:
+        return power_gap
+    elo_gap = abs(home_elo - away_elo + advantage)
+    return max(power_gap, elo_gap)
+
+
+def signed_mismatch_gap(
+    home_power: float,
+    away_power: float,
+    advantage: float,
+    *,
+    home_elo: float | None = None,
+    away_elo: float | None = None,
+) -> float:
+    power_gap = home_power - away_power + advantage
+    if home_elo is None or away_elo is None:
+        return power_gap
+    elo_gap = home_elo - away_elo + advantage
+    if abs(elo_gap) > abs(power_gap):
+        return elo_gap
+    return power_gap
+
+
+def scale_rho_for_gap(rho: float, gap: float) -> float:
+    """Reduce Dixon-Coles draw boost on clear mismatches."""
+    g = abs(gap)
+    if g >= 220:
+        return rho * 0.25
+    if g >= 150:
+        return rho * 0.45
+    if g >= 90:
+        return rho * 0.70
+    return rho
 
 
 def floor_underdog_xg(
@@ -57,13 +107,18 @@ def floor_underdog_xg(
     home_power: float,
     away_power: float,
     advantage: float,
+    *,
+    home_elo: float | None = None,
+    away_elo: float | None = None,
 ) -> tuple[float, float]:
     """Keep a realistic goal expectation for the weaker side on large gaps."""
-    gap = home_power - away_power + advantage
-    if gap > 150:
-        floor = min(0.8, 0.42 + gap / 650.0)
+    gap = signed_mismatch_gap(
+        home_power, away_power, advantage, home_elo=home_elo, away_elo=away_elo
+    )
+    if gap > 200:
+        floor = min(0.8, 0.42 + abs(gap) / 650.0)
         away_xg = max(away_xg, round(floor, 2))
-    elif gap < -150:
+    elif gap < -200:
         floor = min(0.8, 0.42 + abs(gap) / 650.0)
         home_xg = max(home_xg, round(floor, 2))
     return home_xg, away_xg
@@ -77,24 +132,34 @@ def blend_maher_with_power(
     advantage: float,
     *,
     global_avg: float = 3.0,
+    home_elo: float | None = None,
+    away_elo: float | None = None,
 ) -> tuple[float, float]:
     """
-    Blend Maher goal rates with power-based xG.
-    Large Elo gaps (e.g. Spain vs Cape Verde) weight power more — avoids 2-0 on
-    mismatches where historical averages compress the favorite.
+    Blend Maher goal rates with Elo-based xG.
+    Uses Elo gap when composite power compresses mismatches (e.g. Portugal vs DR Congo).
     """
     power_home, power_away = power_based_xg(
-        home_power, away_power, advantage, global_avg=global_avg
+        home_power,
+        away_power,
+        advantage,
+        global_avg=global_avg,
+        home_elo=home_elo,
+        away_elo=away_elo,
     )
-    gap = abs(home_power - away_power + advantage)
-    if gap >= 200:
-        maher_w = 0.25
+    gap = mismatch_gap(
+        home_power, away_power, advantage, home_elo=home_elo, away_elo=away_elo
+    )
+    if gap >= 220:
+        maher_w = 0.12
+    elif gap >= 150:
+        maher_w = 0.22
     elif gap >= 100:
-        maher_w = 0.45
+        maher_w = 0.35
     elif gap >= 50:
-        maher_w = 0.65
+        maher_w = 0.55
     else:
-        maher_w = 0.85
+        maher_w = 0.80
 
     home = maher_home * maher_w + power_home * (1.0 - maher_w)
     away = maher_away * maher_w + power_away * (1.0 - maher_w)

@@ -15,6 +15,9 @@ class BlowoutAdjustment:
     note: str = ""
 
 
+from core.maher import signed_mismatch_gap
+
+
 def apply_blowout_adjustment(
     home_xg: float,
     away_xg: float,
@@ -25,12 +28,20 @@ def apply_blowout_adjustment(
     base_alpha: float = 0.0,
     gap_start: float = 180.0,
     gap_full: float = 450.0,
+    home_elo: float | None = None,
+    away_elo: float | None = None,
 ) -> BlowoutAdjustment:
     """
     When Elo/power gap is extreme, inflate favorite xG and variance so 4-0, 5-1,
     7-1 style scorelines get meaningful probability mass.
     """
-    gap = home_power - away_power + advantage
+    gap = signed_mismatch_gap(
+        home_power,
+        away_power,
+        advantage,
+        home_elo=home_elo,
+        away_elo=away_elo,
+    )
     abs_gap = abs(gap)
     if abs_gap < gap_start:
         return BlowoutAdjustment(

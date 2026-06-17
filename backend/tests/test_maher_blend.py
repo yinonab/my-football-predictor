@@ -48,6 +48,30 @@ def test_spain_cape_verde_favors_clearer_scoreline() -> None:
     assert h >= 2
 
 
+def test_portugal_dr_congo_favorite_clear() -> None:
+    """Elo gap ~266 must not collapse to a 1-1 top score."""
+    from fastapi.testclient import TestClient
+    from api.main import app
+
+    client = TestClient(app)
+    response = client.post(
+        "/api/predict",
+        json={
+            "home_team": "Portugal (פורטוגל)",
+            "away_team": "DR Congo (קונגו)",
+            "neutral_ground": True,
+        },
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["probabilities_1x2"]["home_win"] > 62.0
+    assert data["probabilities_1x2"]["away_win"] < 18.0
+    top = data["top_scores"][0]["score"]
+    h, a = (int(x) for x in top.split("-"))
+    assert h > a
+    assert data["home_xg"] > data["away_xg"] + 0.4
+
+
 def test_power_based_xg_splits_by_elo() -> None:
     h, a = power_based_xg(1900.0, 1300.0, 0.0, global_avg=2.6)
     assert h > 2.0
