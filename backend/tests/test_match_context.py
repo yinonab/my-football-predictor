@@ -9,8 +9,14 @@ from unittest.mock import MagicMock, patch
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND_ROOT))
 
-from core.match_context import MatchContextGatherer
+from core.match_context import MatchContextGatherer, _offline_last_match
 from core.weather import WeatherSnapshot
+
+
+def test_offline_last_match_spain() -> None:
+    info = _offline_last_match("Spain (ספרד)")
+    assert info.get("date") is not None
+    assert info.get("source") == "offline"
 
 
 def test_gather_disabled() -> None:
@@ -44,6 +50,7 @@ def test_gather_with_venue_weather_only() -> None:
     assert info.venue_city == "Miami"
     assert info.weather_temp_c == 31.0
     assert info.data_source == "weather"
+    assert info.home_rest_days is not None
 
 
 def test_gather_rest_from_api_cache() -> None:

@@ -12,7 +12,10 @@ from typing import Any
 
 import config
 from core.weather import WeatherSnapshot, fetch_match_weather
+from core.team_ratings import build_all_matches
 from data.api_football import ApiFootballClient
+from data.database import FIFA_ELO_2026
+from data.nt_match import registry_key_for_nt
 from data.wc2026_venues import lookup_coordinates
 
 logger = logging.getLogger(__name__)
@@ -104,6 +107,28 @@ def _cache_put_team(team_key: str, data: dict[str, Any]) -> None:
     _save_cache(cache)
 
 
+def _offline_last_match(team_key: str) -> dict[str, Any]:
+    """Fallback: most recent match date from bundled/fetched/live history."""
+    registry = set(FIFA_ELO_2026.keys())
+    best: str | None = None
+    for match in build_all_matches():
+        home_key = registry_key_for_nt(match.home, registry) or match.home
+        away_key = registry_key_for_nt(match.away, registry) or match.away
+        if team_key not in (home_key, away_key):
+            continue
+        if best is None or match.date > best:
+            best = match.date
+    if not best:
+        return {"date": None, "city": None, "round": None, "league": None}
+    return {
+        "date": best,
+        "city": None,
+        "round": None,
+        "league": "offline",
+        "source": "offline",
+    }
+
+
 class MatchContextGatherer:
     """Build match context from API-Football + Open-Meteo."""
 
@@ -117,21 +142,26 @@ class MatchContextGatherer:
 
         empty = {"date": None, "city": None, "round": None, "league": None}
         if not self._api.is_available:
-            return empty
+            return _offline_last_match(team_key)
 
         try:
             team = self._api.search_national_team(english_name)
             if not team:
-                return empty
+                return _offline_last_match(team_key)
             fx = self._api.fetch_last_finished_fixture(int(team["id"]))
             if not fx:
+                offline = _offline_last_match(team_key)
+                if offline.get("date"):
+                    return offline
                 return empty
             info = self._api.extract_fixture_context(fx)
+            info["source"] = "api"
             _cache_put_team(team_key, info)
             return info
         except Exception as exc:
             logger.warning("Context fetch failed for %s: %s", team_key, exc)
-            return empty
+            offline = _offline_last_match(team_key)
+            return offline if offline.get("date") else empty
 
     def _scheduled_fixture(
         self,
@@ -202,10 +232,24 @@ class MatchContextGatherer:
             source = "api"
 
         notes: list[str] = []
+        if stage:
+            notes.append(f"שלב: {stage}")
+        if venue:
+            notes.append(f"עיר: {venue}" + (f" · {ref_iso}" if ref_iso else ""))
         if home_last.get("date"):
-            notes.append(f"בית: משחק אחרון {home_last['date']}" + (f" ({home_last.get('city')})" if home_last.get("city") else ""))
+            src = " (היסטוריה)" if home_last.get("source") == "offline" else ""
+            notes.append(
+                f"בית: משחק אחרון {home_last['date']}{src}"
+                + (f" ({home_last.get('city')})" if home_last.get("city") else "")
+            )
         if away_last.get("date"):
-            notes.append(f"חוץ: משחק אחרון {away_last['date']}" + (f" ({away_last.get('city')})" if away_last.get("city") else ""))
+            src = " (היסטוריה)" if away_last.get("source") == "offline" else ""
+            notes.append(
+                f"חוץ: משחק אחרון {away_last['date']}{src}"
+                + (f" ({away_last.get('city')})" if away_last.get("city") else "")
+            )
+        if home_rest is not None and away_rest is not None:
+            notes.append(f"מנוחה: בית {home_rest} ימים · חוץ {away_rest} ימים")
 
         return MatchContextInfo(
             home_rest_days=home_rest,

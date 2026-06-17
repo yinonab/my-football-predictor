@@ -314,8 +314,26 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                   ],
                                 ),
+                                if (_result!.matchContext!.stage != null &&
+                                    _result!.matchContext!.stage!.isNotEmpty) ...[
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    'שלב: ${_result!.matchContext!.stage}',
+                                    style: theme.textTheme.bodySmall,
+                                    textAlign: TextAlign.right,
+                                  ),
+                                ],
+                                if (_result!.matchContext!.venueCity != null) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'עיר: ${_result!.matchContext!.venueCity}'
+                                    '${_result!.matchContext!.matchDate != null ? " · ${_result!.matchContext!.matchDate}" : ""}',
+                                    style: theme.textTheme.bodySmall,
+                                    textAlign: TextAlign.right,
+                                  ),
+                                ],
                                 if (_result!.matchContext!.weatherSummary != null) ...[
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: 6),
                                   Text(
                                     _result!.matchContext!.weatherSummary!,
                                     style: theme.textTheme.bodyMedium,

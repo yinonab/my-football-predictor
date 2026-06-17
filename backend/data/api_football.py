@@ -92,9 +92,13 @@ class ApiFootballClient:
         """Most recent finished match for a national team."""
         data = self._get(
             "/fixtures",
-            params={"team": team_id, "last": 1, "status": "FT"},
+            params={"team": team_id, "last": 5},
         )
         items = data.get("response") or []
+        for fx in items:
+            status = (fx.get("fixture") or {}).get("status", {}).get("short", "")
+            if status in ("FT", "AET", "PEN"):
+                return fx
         return items[0] if items else None
 
     def extract_fixture_context(self, fixture: dict[str, Any]) -> dict[str, Any]:
