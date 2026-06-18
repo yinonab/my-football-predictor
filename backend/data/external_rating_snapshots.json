@@ -1,0 +1,1103 @@
+{
+  "description": "Pre-tournament external rating snapshots (Phase 2I). fifa_points populated from repo WC/EURO/COPA FIFA_ELO constants. world_elo remains null until true World Elo (eloratings-style) data is curated. Do not mislabel FIFA points as World Elo.",
+  "wc2018": {
+    "as_of": "2018-06-13",
+    "source": "repo_pre_tournament_fifa_points",
+    "rating_type": "fifa_ranking_points",
+    "teams": {
+      "Argentina": {
+        "world_elo": null,
+        "fifa_points": 1678,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "Australia": {
+        "world_elo": null,
+        "fifa_points": 1490,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "Belgium": {
+        "world_elo": null,
+        "fifa_points": 1730,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "Brazil": {
+        "world_elo": null,
+        "fifa_points": 1742,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "Colombia": {
+        "world_elo": null,
+        "fifa_points": 1615,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "Costa Rica": {
+        "world_elo": null,
+        "fifa_points": 1560,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "Croatia": {
+        "world_elo": null,
+        "fifa_points": 1595,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "Denmark": {
+        "world_elo": null,
+        "fifa_points": 1585,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "Egypt": {
+        "world_elo": null,
+        "fifa_points": 1540,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "England": {
+        "world_elo": null,
+        "fifa_points": 1720,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "France": {
+        "world_elo": null,
+        "fifa_points": 1755,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "Germany": {
+        "world_elo": null,
+        "fifa_points": 1555,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "Iceland": {
+        "world_elo": null,
+        "fifa_points": 1570,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "Iran": {
+        "world_elo": null,
+        "fifa_points": 1520,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "Japan": {
+        "world_elo": null,
+        "fifa_points": 1480,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "Mexico": {
+        "world_elo": null,
+        "fifa_points": 1610,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "Morocco": {
+        "world_elo": null,
+        "fifa_points": 1470,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "Nigeria": {
+        "world_elo": null,
+        "fifa_points": 1500,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "Panama": {
+        "world_elo": null,
+        "fifa_points": 1440,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "Peru": {
+        "world_elo": null,
+        "fifa_points": 1625,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "Poland": {
+        "world_elo": null,
+        "fifa_points": 1635,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "Portugal": {
+        "world_elo": null,
+        "fifa_points": 1671,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "Russia": {
+        "world_elo": null,
+        "fifa_points": 1430,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "Saudi Arabia": {
+        "world_elo": null,
+        "fifa_points": 1450,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "Senegal": {
+        "world_elo": null,
+        "fifa_points": 1530,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "Serbia": {
+        "world_elo": null,
+        "fifa_points": 1510,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "South Korea": {
+        "world_elo": null,
+        "fifa_points": 1460,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "Spain": {
+        "world_elo": null,
+        "fifa_points": 1680,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "Sweden": {
+        "world_elo": null,
+        "fifa_points": 1580,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "Switzerland": {
+        "world_elo": null,
+        "fifa_points": 1660,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "Tunisia": {
+        "world_elo": null,
+        "fifa_points": 1550,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      },
+      "Uruguay": {
+        "world_elo": null,
+        "fifa_points": 1600,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2018_FIFA_ELO"
+      }
+    }
+  },
+  "wc2022": {
+    "as_of": "2022-11-19",
+    "source": "repo_pre_tournament_fifa_points",
+    "rating_type": "fifa_ranking_points",
+    "teams": {
+      "Argentina": {
+        "world_elo": null,
+        "fifa_points": 1774,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "Australia": {
+        "world_elo": null,
+        "fifa_points": 1489,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "Belgium": {
+        "world_elo": null,
+        "fifa_points": 1816,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "Brazil": {
+        "world_elo": null,
+        "fifa_points": 1841,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "Cameroon": {
+        "world_elo": null,
+        "fifa_points": 1412,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "Canada": {
+        "world_elo": null,
+        "fifa_points": 1416,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "Costa Rica": {
+        "world_elo": null,
+        "fifa_points": 1501,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "Croatia": {
+        "world_elo": null,
+        "fifa_points": 1642,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "Denmark": {
+        "world_elo": null,
+        "fifa_points": 1667,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "Ecuador": {
+        "world_elo": null,
+        "fifa_points": 1438,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "England": {
+        "world_elo": null,
+        "fifa_points": 1728,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "France": {
+        "world_elo": null,
+        "fifa_points": 1765,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "Germany": {
+        "world_elo": null,
+        "fifa_points": 1650,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "Ghana": {
+        "world_elo": null,
+        "fifa_points": 1395,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "Iran": {
+        "world_elo": null,
+        "fifa_points": 1580,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "Japan": {
+        "world_elo": null,
+        "fifa_points": 1560,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "Mexico": {
+        "world_elo": null,
+        "fifa_points": 1642,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "Morocco": {
+        "world_elo": null,
+        "fifa_points": 1562,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "Netherlands": {
+        "world_elo": null,
+        "fifa_points": 1678,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "Poland": {
+        "world_elo": null,
+        "fifa_points": 1529,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "Portugal": {
+        "world_elo": null,
+        "fifa_points": 1695,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "Qatar": {
+        "world_elo": null,
+        "fifa_points": 1394,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "Saudi Arabia": {
+        "world_elo": null,
+        "fifa_points": 1440,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "Senegal": {
+        "world_elo": null,
+        "fifa_points": 1585,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "Serbia": {
+        "world_elo": null,
+        "fifa_points": 1550,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "South Korea": {
+        "world_elo": null,
+        "fifa_points": 1530,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "Spain": {
+        "world_elo": null,
+        "fifa_points": 1715,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "Switzerland": {
+        "world_elo": null,
+        "fifa_points": 1637,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "Tunisia": {
+        "world_elo": null,
+        "fifa_points": 1528,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "USA": {
+        "world_elo": null,
+        "fifa_points": 1637,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "Uruguay": {
+        "world_elo": null,
+        "fifa_points": 1640,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      },
+      "Wales": {
+        "world_elo": null,
+        "fifa_points": 1487,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from WC2022_FIFA_ELO"
+      }
+    }
+  },
+  "euro2024": {
+    "as_of": "2024-06-13",
+    "source": "repo_pre_tournament_fifa_points",
+    "rating_type": "fifa_ranking_points",
+    "teams": {
+      "Albania": {
+        "world_elo": null,
+        "fifa_points": 1440,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from EURO2024_FIFA_ELO"
+      },
+      "Austria": {
+        "world_elo": null,
+        "fifa_points": 1600,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from EURO2024_FIFA_ELO"
+      },
+      "Belgium": {
+        "world_elo": null,
+        "fifa_points": 1690,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from EURO2024_FIFA_ELO"
+      },
+      "Croatia": {
+        "world_elo": null,
+        "fifa_points": 1620,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from EURO2024_FIFA_ELO"
+      },
+      "Czechia": {
+        "world_elo": null,
+        "fifa_points": 1510,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from EURO2024_FIFA_ELO"
+      },
+      "Denmark": {
+        "world_elo": null,
+        "fifa_points": 1570,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from EURO2024_FIFA_ELO"
+      },
+      "England": {
+        "world_elo": null,
+        "fifa_points": 1790,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from EURO2024_FIFA_ELO"
+      },
+      "France": {
+        "world_elo": null,
+        "fifa_points": 1850,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from EURO2024_FIFA_ELO"
+      },
+      "Georgia": {
+        "world_elo": null,
+        "fifa_points": 1420,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from EURO2024_FIFA_ELO"
+      },
+      "Germany": {
+        "world_elo": null,
+        "fifa_points": 1680,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from EURO2024_FIFA_ELO"
+      },
+      "Hungary": {
+        "world_elo": null,
+        "fifa_points": 1490,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from EURO2024_FIFA_ELO"
+      },
+      "Italy": {
+        "world_elo": null,
+        "fifa_points": 1640,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from EURO2024_FIFA_ELO"
+      },
+      "Netherlands": {
+        "world_elo": null,
+        "fifa_points": 1700,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from EURO2024_FIFA_ELO"
+      },
+      "Poland": {
+        "world_elo": null,
+        "fifa_points": null,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "missing from repo FIFA constant"
+      },
+      "Portugal": {
+        "world_elo": null,
+        "fifa_points": 1740,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from EURO2024_FIFA_ELO"
+      },
+      "Romania": {
+        "world_elo": null,
+        "fifa_points": 1520,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from EURO2024_FIFA_ELO"
+      },
+      "Scotland": {
+        "world_elo": null,
+        "fifa_points": 1500,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from EURO2024_FIFA_ELO"
+      },
+      "Serbia": {
+        "world_elo": null,
+        "fifa_points": 1550,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from EURO2024_FIFA_ELO"
+      },
+      "Slovakia": {
+        "world_elo": null,
+        "fifa_points": 1470,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from EURO2024_FIFA_ELO"
+      },
+      "Slovenia": {
+        "world_elo": null,
+        "fifa_points": 1460,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from EURO2024_FIFA_ELO"
+      },
+      "Spain": {
+        "world_elo": null,
+        "fifa_points": 1760,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from EURO2024_FIFA_ELO"
+      },
+      "Switzerland": {
+        "world_elo": null,
+        "fifa_points": 1650,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from EURO2024_FIFA_ELO"
+      },
+      "Turkey": {
+        "world_elo": null,
+        "fifa_points": 1580,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from EURO2024_FIFA_ELO"
+      },
+      "Ukraine": {
+        "world_elo": null,
+        "fifa_points": 1540,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from EURO2024_FIFA_ELO"
+      }
+    }
+  },
+  "copa2024": {
+    "as_of": "2024-06-19",
+    "source": "repo_pre_tournament_fifa_points",
+    "rating_type": "fifa_ranking_points",
+    "teams": {
+      "Argentina": {
+        "world_elo": null,
+        "fifa_points": 1880,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from COPA2024_FIFA_ELO"
+      },
+      "Bolivia": {
+        "world_elo": null,
+        "fifa_points": 1400,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from COPA2024_FIFA_ELO"
+      },
+      "Brazil": {
+        "world_elo": null,
+        "fifa_points": 1820,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from COPA2024_FIFA_ELO"
+      },
+      "Canada": {
+        "world_elo": null,
+        "fifa_points": 1480,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from COPA2024_FIFA_ELO"
+      },
+      "Chile": {
+        "world_elo": null,
+        "fifa_points": 1470,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from COPA2024_FIFA_ELO"
+      },
+      "Colombia": {
+        "world_elo": null,
+        "fifa_points": 1700,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from COPA2024_FIFA_ELO"
+      },
+      "Costa Rica": {
+        "world_elo": null,
+        "fifa_points": 1440,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from COPA2024_FIFA_ELO"
+      },
+      "Ecuador": {
+        "world_elo": null,
+        "fifa_points": 1620,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from COPA2024_FIFA_ELO"
+      },
+      "Jamaica": {
+        "world_elo": null,
+        "fifa_points": 1380,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from COPA2024_FIFA_ELO"
+      },
+      "Mexico": {
+        "world_elo": null,
+        "fifa_points": 1600,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from COPA2024_FIFA_ELO"
+      },
+      "Panama": {
+        "world_elo": null,
+        "fifa_points": 1520,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from COPA2024_FIFA_ELO"
+      },
+      "Paraguay": {
+        "world_elo": null,
+        "fifa_points": 1550,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from COPA2024_FIFA_ELO"
+      },
+      "Peru": {
+        "world_elo": null,
+        "fifa_points": 1460,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from COPA2024_FIFA_ELO"
+      },
+      "USA": {
+        "world_elo": null,
+        "fifa_points": 1650,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from COPA2024_FIFA_ELO"
+      },
+      "Uruguay": {
+        "world_elo": null,
+        "fifa_points": 1680,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from COPA2024_FIFA_ELO"
+      },
+      "Venezuela": {
+        "world_elo": null,
+        "fifa_points": 1500,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from COPA2024_FIFA_ELO"
+      }
+    }
+  },
+  "wc2026_current": {
+    "as_of": "",
+    "as_of_label": "June 2026 (approximate, per FIFA_ELO_2026 repo comment)",
+    "source": "repo_FIFA_ELO_2026",
+    "rating_type": "fifa_ranking_points_current",
+    "teams": {
+      "Algeria": {
+        "world_elo": null,
+        "fifa_points": 1588,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Argentina": {
+        "world_elo": null,
+        "fifa_points": 1877,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Australia": {
+        "world_elo": null,
+        "fifa_points": 1595,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Austria": {
+        "world_elo": null,
+        "fifa_points": 1620,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Belgium": {
+        "world_elo": null,
+        "fifa_points": 1742,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Bosnia": {
+        "world_elo": null,
+        "fifa_points": 1350,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Brazil": {
+        "world_elo": null,
+        "fifa_points": 1765,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Canada": {
+        "world_elo": null,
+        "fifa_points": 1572,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Cape Verde": {
+        "world_elo": null,
+        "fifa_points": 1330,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Colombia": {
+        "world_elo": null,
+        "fifa_points": 1705,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Croatia": {
+        "world_elo": null,
+        "fifa_points": 1720,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Curacao": {
+        "world_elo": null,
+        "fifa_points": 1270,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Czechia": {
+        "world_elo": null,
+        "fifa_points": 1495,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "DR Congo": {
+        "world_elo": null,
+        "fifa_points": 1460,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Ecuador": {
+        "world_elo": null,
+        "fifa_points": 1628,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Egypt": {
+        "world_elo": null,
+        "fifa_points": 1580,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "England": {
+        "world_elo": null,
+        "fifa_points": 1828,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "France": {
+        "world_elo": null,
+        "fifa_points": 1870,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Germany": {
+        "world_elo": null,
+        "fifa_points": 1735,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Ghana": {
+        "world_elo": null,
+        "fifa_points": 1305,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Haiti": {
+        "world_elo": null,
+        "fifa_points": 1265,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Iran": {
+        "world_elo": null,
+        "fifa_points": 1650,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Iraq": {
+        "world_elo": null,
+        "fifa_points": 1395,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Ivory Coast": {
+        "world_elo": null,
+        "fifa_points": 1543,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Japan": {
+        "world_elo": null,
+        "fifa_points": 1665,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Jordan": {
+        "world_elo": null,
+        "fifa_points": 1360,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Mexico": {
+        "world_elo": null,
+        "fifa_points": 1695,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Morocco": {
+        "world_elo": null,
+        "fifa_points": 1755,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Netherlands": {
+        "world_elo": null,
+        "fifa_points": 1753,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "New Zealand": {
+        "world_elo": null,
+        "fifa_points": 1255,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Norway": {
+        "world_elo": null,
+        "fifa_points": 1565,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Panama": {
+        "world_elo": null,
+        "fifa_points": 1550,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Paraguay": {
+        "world_elo": null,
+        "fifa_points": 1500,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Portugal": {
+        "world_elo": null,
+        "fifa_points": 1767,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Qatar": {
+        "world_elo": null,
+        "fifa_points": 1400,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Saudi Arabia": {
+        "world_elo": null,
+        "fifa_points": 1370,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Scotland": {
+        "world_elo": null,
+        "fifa_points": 1480,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Senegal": {
+        "world_elo": null,
+        "fifa_points": 1688,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "South Africa": {
+        "world_elo": null,
+        "fifa_points": 1375,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "South Korea": {
+        "world_elo": null,
+        "fifa_points": 1612,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Spain": {
+        "world_elo": null,
+        "fifa_points": 1874,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Sweden": {
+        "world_elo": null,
+        "fifa_points": 1515,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Switzerland": {
+        "world_elo": null,
+        "fifa_points": 1658,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Tunisia": {
+        "world_elo": null,
+        "fifa_points": 1475,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Turkey": {
+        "world_elo": null,
+        "fifa_points": 1635,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "USA": {
+        "world_elo": null,
+        "fifa_points": 1673,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Uruguay": {
+        "world_elo": null,
+        "fifa_points": 1680,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      },
+      "Uzbekistan": {
+        "world_elo": null,
+        "fifa_points": 1435,
+        "external_rank": null,
+        "confidence": 0.85,
+        "notes": "from FIFA_ELO_2026"
+      }
+    }
+  }
+}

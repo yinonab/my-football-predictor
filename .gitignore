@@ -5,6 +5,9 @@ backend/.venv/
 backend/data/cache/nt_history_fetched.json
 backend/data/cache/elo_overrides.json
 backend/data/cache/wc2026_live_matches.json
+backend/data/cache/nt_ratings.json
+backend/reports/
+reports/
 *.pyc
 .env
 .env.*

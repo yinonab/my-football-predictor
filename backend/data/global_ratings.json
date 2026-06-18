@@ -1,0 +1,86 @@
+{
+  "Portugal": {
+    "world_elo": 1989,
+    "fifa_points": null,
+    "fifa_rank": null,
+    "rating_confidence": 0.9,
+    "notes": "manual seed — top-tier NT"
+  },
+  "DR Congo": {
+    "world_elo": 1652,
+    "fifa_points": null,
+    "fifa_rank": null,
+    "rating_confidence": 0.55,
+    "notes": "manual seed — form may inflate vs weak qualifiers"
+  },
+  "Spain": {
+    "world_elo": 2075,
+    "fifa_points": null,
+    "fifa_rank": null,
+    "rating_confidence": 0.92,
+    "notes": "manual seed — Euro 2024 champion"
+  },
+  "Cape Verde": {
+    "world_elo": 1420,
+    "fifa_points": null,
+    "fifa_rank": null,
+    "rating_confidence": 0.5,
+    "notes": "manual seed — minnow"
+  },
+  "Argentina": {
+    "world_elo": 2105,
+    "fifa_points": null,
+    "fifa_rank": null,
+    "rating_confidence": 0.95,
+    "notes": "manual seed"
+  },
+  "France": {
+    "world_elo": 2055,
+    "fifa_points": null,
+    "fifa_rank": null,
+    "rating_confidence": 0.93,
+    "notes": "manual seed"
+  },
+  "Brazil": {
+    "world_elo": 2040,
+    "fifa_points": null,
+    "fifa_rank": null,
+    "rating_confidence": 0.92,
+    "notes": "manual seed"
+  },
+  "Morocco": {
+    "world_elo": 1785,
+    "fifa_points": null,
+    "fifa_rank": null,
+    "rating_confidence": 0.78,
+    "notes": "manual seed"
+  },
+  "England": {
+    "world_elo": 2035,
+    "fifa_points": null,
+    "fifa_rank": null,
+    "rating_confidence": 0.9,
+    "notes": "manual seed"
+  },
+  "USA": {
+    "world_elo": 1745,
+    "fifa_points": null,
+    "fifa_rank": null,
+    "rating_confidence": 0.72,
+    "notes": "manual seed"
+  },
+  "Germany": {
+    "world_elo": 1995,
+    "fifa_points": null,
+    "fifa_rank": null,
+    "rating_confidence": 0.88,
+    "notes": "manual seed"
+  },
+  "Haiti": {
+    "world_elo": 1280,
+    "fifa_points": null,
+    "fifa_rank": null,
+    "rating_confidence": 0.45,
+    "notes": "manual seed — low external anchor"
+  }
+}

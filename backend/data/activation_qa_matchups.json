@@ -1,0 +1,67 @@
+{
+  "description": "Phase 3C local QA matchups for controlled FIFA-points candidate enablement review",
+  "skipped": [
+    {
+      "home": "Serbia",
+      "away": "Switzerland",
+      "reason": "Serbia not in FIFA_ELO_2026 production team list"
+    }
+  ],
+  "categories": [
+    {
+      "id": "elite_vs_elite",
+      "label": "Elite vs elite",
+      "matchups": [
+        {"home": "Argentina", "away": "France"},
+        {"home": "Brazil", "away": "France"},
+        {"home": "Spain", "away": "England"},
+        {"home": "Portugal", "away": "Germany"}
+      ]
+    },
+    {
+      "id": "favorite_vs_mid_tier",
+      "label": "Favorite vs mid-tier",
+      "matchups": [
+        {"home": "Brazil", "away": "Morocco"},
+        {"home": "Portugal", "away": "USA"},
+        {"home": "England", "away": "Japan"},
+        {"home": "Germany", "away": "Mexico"}
+      ]
+    },
+    {
+      "id": "favorite_vs_underdog",
+      "label": "Favorite vs underdog",
+      "matchups": [
+        {"home": "Spain", "away": "Cape Verde"},
+        {"home": "Germany", "away": "Haiti"},
+        {"home": "Portugal", "away": "DR Congo"},
+        {"home": "Argentina", "away": "Jordan"}
+      ]
+    },
+    {
+      "id": "similar_strength_tricky",
+      "label": "Similar-strength / tricky matches",
+      "matchups": [
+        {"home": "USA", "away": "Mexico"},
+        {"home": "Morocco", "away": "USA"},
+        {"home": "Norway", "away": "Algeria"},
+        {"home": "Japan", "away": "South Africa"},
+        {"home": "Croatia", "away": "Switzerland"}
+      ]
+    },
+    {
+      "id": "known_diagnostics",
+      "label": "Known diagnostics",
+      "matchups": [
+        {"home": "Brazil", "away": "Morocco", "note": "Phase 3B sample / internal-world-elo divergence"},
+        {"home": "Portugal", "away": "DR Congo", "note": "Phase 3B sample / favorite compression"},
+        {"home": "Germany", "away": "Haiti", "note": "Phase 3B sample / large elo gap"},
+        {"home": "Spain", "away": "Cape Verde", "note": "Phase 3B sample / large elo gap"},
+        {"home": "England", "away": "USA", "note": "Phase 3B sample / moderate gap"},
+        {"home": "Argentina", "away": "France", "note": "Phase 3B sample / balanced top teams"},
+        {"home": "Norway", "away": "Algeria", "note": "Phase 3B sample / moderate gap"},
+        {"home": "Japan", "away": "South Africa", "note": "Phase 3B sample / moderate gap"}
+      ]
+    }
+  ]
+}

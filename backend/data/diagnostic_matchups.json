@@ -1,0 +1,57 @@
+{
+  "description": "Qualitative regression suite — known problematic matchups (Phase 2C)",
+  "default_candidate": {
+    "power_variant": "effective_elo_current_formula",
+    "elo_strategy": "blended_confidence_weighted"
+  },
+  "matchups": [
+    {
+      "home": "Brazil (ברזיל)",
+      "away": "Morocco (מרוקו)",
+      "issue": "internal_world_elo_divergence",
+      "expect": "candidate_should_increase_brazil_home_win_vs_baseline"
+    },
+    {
+      "home": "Portugal (פורטוגל)",
+      "away": "DR Congo (קונגו)",
+      "issue": "strong_favorite_compression",
+      "expect": "candidate_should_keep_portugal_strong_favorite"
+    },
+    {
+      "home": "Germany (גרמניה)",
+      "away": "Haiti (האיטי)",
+      "issue": "large_elo_gap",
+      "expect": "candidate_should_not_under_rate_germany"
+    },
+    {
+      "home": "Spain (ספרד)",
+      "away": "Cape Verde (כף ורד)",
+      "issue": "large_elo_gap",
+      "expect": "candidate_should_keep_spain_favorite"
+    },
+    {
+      "home": "England (אנגליה)",
+      "away": "USA (ארצות הברית)",
+      "issue": "moderate_gap",
+      "expect": "candidate_should_not_reverse_favorite"
+    },
+    {
+      "home": "Argentina (ארגנטינה)",
+      "away": "France (צרפת)",
+      "issue": "balanced_top_teams",
+      "expect": "candidate_should_remain_balanced_no_large_shift"
+    },
+    {
+      "home": "Norway (נורווג)",
+      "away": "Algeria (אלג׳יריה)",
+      "issue": "moderate_gap",
+      "expect": "candidate_should_not_create_extreme_shift"
+    },
+    {
+      "home": "Japan (יפן)",
+      "away": "South Africa (דרום אפריקה)",
+      "issue": "moderate_gap",
+      "expect": "candidate_should_not_create_extreme_shift"
+    }
+  ]
+}

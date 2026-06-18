@@ -21,12 +21,22 @@ from api.schemas import (
     ChampionOddsRow,
     EloUpdateRequest,
     EloUpdateResponse,
+    GlobalRatingDebugResponse,
+    GlobalRatingDiagnosticsResponse,
+    GlobalRatingGapsResponse,
+    GlobalRatingTeamDiagnosticsResponse,
+    PowerComponentDiagnosticsResponse,
+    PowerComponentGapBreakdownResponse,
+    PowerComponentTeamResponse,
+    PowerShadowCalibrationResponse,
+    WarningDetailResponse,
     GroupStandingRow,
     GroupTeam,
     GroupsResponse,
     HealthResponse,
     OutcomeExplanations,
     MatchContextResponse,
+    ModelDiagnosticsResponse,
     PredictRequest,
     PredictResponse,
     RefreshHistoryResponse,
@@ -51,6 +61,10 @@ from core.explanations import (
 from core.h2h_adjustment import H2HStore, apply_h2h_adjustment, load_h2h_index
 from core.match_store import append_live_match, load_live_matches
 from core.blowout import apply_blowout_adjustment
+from core.global_ratings import (
+    apply_experimental_power_nudge,
+    build_match_diagnostics,
+)
 from core.context_adjustments import apply_xg_context_delta, compute_context_adjustments
 from core.match_context import MatchContextGatherer
 from core.maher import blend_maher_with_power, floor_underdog_xg, mismatch_gap, scale_rho_for_gap
@@ -118,6 +132,35 @@ def _team_breakdown(team_input: str, *, use_live: bool) -> TeamBreakdown:
     bd = _power_evaluator.get_team_breakdown(resolved, use_live=use_live)
     group = _data_manager.get_group(resolved)
     return TeamBreakdown(**bd, group=group)
+
+
+def _global_rating_response(
+    diag,
+) -> GlobalRatingDiagnosticsResponse:
+    power_diag = None
+    if diag.power_component_diagnostics is not None:
+        pcd = diag.power_component_diagnostics
+        power_diag = PowerComponentDiagnosticsResponse(
+            home=PowerComponentTeamResponse(**pcd["home"]),
+            away=PowerComponentTeamResponse(**pcd["away"]),
+            gap_breakdown=PowerComponentGapBreakdownResponse(**pcd["gap_breakdown"]),
+        )
+    return GlobalRatingDiagnosticsResponse(
+        home=GlobalRatingTeamDiagnosticsResponse(**diag.home.to_dict()),
+        away=GlobalRatingTeamDiagnosticsResponse(**diag.away.to_dict()),
+        gaps=GlobalRatingGapsResponse(**diag.gaps.to_dict()),
+        warnings=diag.warnings,
+        warning_details=[
+            WarningDetailResponse(**w.to_dict()) for w in diag.warning_details
+        ],
+        experimental_adjustment_applied=diag.experimental_adjustment_applied,
+        power_component_diagnostics=power_diag,
+        power_shadow_calibration=(
+            PowerShadowCalibrationResponse(**diag.power_shadow_calibration)
+            if diag.power_shadow_calibration is not None
+            else None
+        ),
+    )
 
 
 @app.get("/api/health", response_model=HealthResponse)
@@ -237,6 +280,49 @@ def predict(request: PredictRequest) -> PredictResponse:
     away_data = _data_manager.get_team_data(away_resolved, use_live=request.use_live_stats)
     home_elo = float(home_data["elo"])
     away_elo = float(away_data["elo"])
+    home_raw_form = float(home_data.get("form", 0.5))
+    away_raw_form = float(away_data.get("form", 0.5))
+
+    from core.active_model_activation import (
+        build_model_diagnostics,
+        try_apply_active_candidate_powers,
+    )
+
+    active_power = try_apply_active_candidate_powers(
+        home_resolved,
+        away_resolved,
+        baseline_home_power=home_power,
+        baseline_away_power=away_power,
+        baseline_home_elo=home_elo,
+        baseline_away_elo=away_elo,
+        data_manager=_data_manager,
+    )
+    model_diag_payload = build_model_diagnostics(
+        activation_applied=active_power.applied,
+        fallback_reasons=active_power.fallback_reasons,
+    )
+    if active_power.applied:
+        home_power = active_power.home_power
+        away_power = active_power.away_power
+        home_elo = active_power.home_elo
+        away_elo = active_power.away_elo
+
+    experimental_global_diag = None
+    if config.GLOBAL_RATINGS_ENABLED and config.GLOBAL_RATINGS_AFFECT_PREDICTION:
+        pre_diag = build_match_diagnostics(
+            home_resolved,
+            away_resolved,
+            home_power=home_power,
+            away_power=away_power,
+            home_internal_elo=home_elo,
+            away_internal_elo=away_elo,
+            home_raw_form=home_raw_form,
+            away_raw_form=away_raw_form,
+        )
+        home_power, away_power, experimental_global_diag = apply_experimental_power_nudge(
+            home_power, away_power, pre_diag
+        )
+
     home_xg, away_xg, maher_note = estimate_xg_opponent_aware(
         home_resolved,
         away_resolved,
@@ -305,6 +391,8 @@ def predict(request: PredictRequest) -> PredictResponse:
         home_xg_override=home_xg,
         away_xg_override=away_xg,
     )
+
+    model_probs_raw = dict(result["probabilities_1x2"])
 
     market_odds = _odds_client.fetch_match_odds(
         home_name := request.home_team.strip(),
@@ -412,6 +500,159 @@ def predict(request: PredictRequest) -> PredictResponse:
         ),
         h2h_summary=h2h_note,
         match_context=match_context,
+        global_rating_diagnostics=_build_global_diagnostics_for_response(
+            home_resolved=home_resolved,
+            away_resolved=away_resolved,
+            home_power=home_power,
+            away_power=away_power,
+            home_elo=home_elo,
+            away_elo=away_elo,
+            home_raw_form=home_raw_form,
+            away_raw_form=away_raw_form,
+            model_probs_raw=model_probs_raw,
+            market_odds=market_odds,
+            experimental_global_diag=experimental_global_diag,
+            h2h_summary=h2h_summary,
+            home_context_mult=ctx_adj.home_power_mult if request.use_match_context else 1.0,
+            away_context_mult=ctx_adj.away_power_mult if request.use_match_context else 1.0,
+            home_altitude=request.altitude,
+            away_altitude=request.altitude,
+            home_star_absent=request.star_absent,
+            away_star_absent=request.away_star_absent,
+            use_live=request.use_live_stats,
+        ),
+        model_diagnostics=ModelDiagnosticsResponse(**model_diag_payload.to_dict()),
+    )
+
+
+def _build_global_diagnostics_for_response(
+    *,
+    home_resolved: str,
+    away_resolved: str,
+    home_power: float,
+    away_power: float,
+    home_elo: float,
+    away_elo: float,
+    home_raw_form: float,
+    away_raw_form: float,
+    model_probs_raw: dict[str, float],
+    market_odds: dict[str, float] | None,
+    experimental_global_diag,
+    h2h_summary=None,
+    home_context_mult: float = 1.0,
+    away_context_mult: float = 1.0,
+    home_altitude: int = 0,
+    away_altitude: int = 0,
+    home_star_absent: bool = False,
+    away_star_absent: bool = False,
+    use_live: bool = False,
+) -> GlobalRatingDiagnosticsResponse | None:
+    if not config.GLOBAL_RATINGS_ENABLED:
+        return None
+    diag = build_match_diagnostics(
+        home_resolved,
+        away_resolved,
+        home_power=home_power,
+        away_power=away_power,
+        home_internal_elo=home_elo,
+        away_internal_elo=away_elo,
+        home_raw_form=home_raw_form,
+        away_raw_form=away_raw_form,
+        model_probs=model_probs_raw,
+        market_probs=market_odds,
+    )
+    if config.POWER_COMPONENT_DIAGNOSTICS_ENABLED:
+        from core.power_component_audit import (
+            build_power_component_warnings,
+            build_power_path_diagnostics,
+        )
+
+        power_path = build_power_path_diagnostics(
+            home_resolved,
+            away_resolved,
+            _power_evaluator,
+            h2h_summary=h2h_summary,
+            home_context_mult=home_context_mult,
+            away_context_mult=away_context_mult,
+            home_altitude=home_altitude,
+            away_altitude=away_altitude,
+            home_star_absent=home_star_absent,
+            away_star_absent=away_star_absent,
+            use_live=use_live,
+        )
+        diag.power_component_diagnostics = power_path
+        power_warnings = build_power_component_warnings(
+            gap_breakdown=power_path["gap_breakdown"],
+            internal_elo_gap=diag.gaps.internal_elo_gap,
+            world_elo_gap=diag.gaps.world_elo_gap,
+            home_team_diag=power_path["home"],
+            away_team_diag=power_path["away"],
+        )
+        for pw in power_warnings:
+            if pw.code not in diag.warnings:
+                diag.warnings.append(pw.code)
+            diag.warning_details.append(pw)
+    if config.POWER_SHADOW_CALIBRATION_ENABLED:
+        from core.power_shadow_calibration import build_matchup_shadow_comparison
+
+        diag.power_shadow_calibration = build_matchup_shadow_comparison(
+            home_resolved,
+            away_resolved,
+            data_manager=_data_manager,
+            opponent_index=_opponent_index,
+            include_xg=True,
+        )
+        from core.power_effective_elo import build_effective_elo_anchor_matchup
+
+        diag.power_shadow_calibration["effective_elo_anchor"] = (
+            build_effective_elo_anchor_matchup(
+                home_resolved,
+                away_resolved,
+                data_manager=_data_manager,
+                opponent_index=_opponent_index,
+                api_mode=True,
+            )
+        )
+        from core.model_activation_gate import activation_diagnostic_fields
+
+        diag.power_shadow_calibration.update(activation_diagnostic_fields())
+    if experimental_global_diag and experimental_global_diag.experimental_adjustment_applied:
+        merged_warnings = list(experimental_global_diag.warnings)
+        for w in diag.warnings:
+            if w not in merged_warnings:
+                merged_warnings.append(w)
+        diag.warnings = merged_warnings
+        diag.experimental_adjustment_applied = True
+    return _global_rating_response(diag)
+
+
+@app.get("/api/debug/global-ratings", response_model=GlobalRatingDebugResponse)
+def debug_global_ratings(home_team: str, away_team: str) -> GlobalRatingDebugResponse:
+    """Rating-stack diagnostics only — no Dixon-Coles / xG engine."""
+    if not home_team.strip() or not away_team.strip():
+        raise HTTPException(status_code=400, detail="יש להזין שם לשתי הנבחרות")
+
+    home_resolved, home_data = _data_manager.resolve_team(home_team.strip())
+    away_resolved, away_data = _data_manager.resolve_team(away_team.strip())
+
+    home_power = _power_evaluator.calculate_composite_power(home_resolved)
+    away_power = _power_evaluator.calculate_composite_power(away_resolved)
+
+    diag = build_match_diagnostics(
+        home_resolved,
+        away_resolved,
+        home_power=home_power,
+        away_power=away_power,
+        home_internal_elo=float(home_data["elo"]),
+        away_internal_elo=float(away_data["elo"]),
+        home_raw_form=float(home_data.get("form", 0.5)),
+        away_raw_form=float(away_data.get("form", 0.5)),
+    )
+
+    return GlobalRatingDebugResponse(
+        home_team=home_resolved,
+        away_team=away_resolved,
+        global_rating_diagnostics=_global_rating_response(diag),
     )
 
 

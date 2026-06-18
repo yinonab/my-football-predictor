@@ -1,0 +1,447 @@
+{
+  "description": "Pre-tournament Elo priors from FIFA_ELO constants in repository modules. Not walk-forward historical Elo — label source in each block.",
+  "wc2018": {
+    "as_of": "2018-06-13",
+    "source": "data/wc2018.py WC2018_FIFA_ELO (pre-tournament repo snapshot)",
+    "quality_note": "repo_static_fifa_elo_pre_tournament",
+    "teams": {
+      "Argentina": {
+        "elo": 1678,
+        "confidence": 0.85
+      },
+      "Australia": {
+        "elo": 1490,
+        "confidence": 0.85
+      },
+      "Belgium": {
+        "elo": 1730,
+        "confidence": 0.85
+      },
+      "Brazil": {
+        "elo": 1742,
+        "confidence": 0.85
+      },
+      "Chile": {
+        "elo": 1635,
+        "confidence": 0.85
+      },
+      "Colombia": {
+        "elo": 1615,
+        "confidence": 0.85
+      },
+      "Costa Rica": {
+        "elo": 1560,
+        "confidence": 0.85
+      },
+      "Croatia": {
+        "elo": 1595,
+        "confidence": 0.85
+      },
+      "Denmark": {
+        "elo": 1585,
+        "confidence": 0.85
+      },
+      "Egypt": {
+        "elo": 1540,
+        "confidence": 0.85
+      },
+      "England": {
+        "elo": 1720,
+        "confidence": 0.85
+      },
+      "France": {
+        "elo": 1755,
+        "confidence": 0.85
+      },
+      "Germany": {
+        "elo": 1555,
+        "confidence": 0.85
+      },
+      "Iceland": {
+        "elo": 1570,
+        "confidence": 0.85
+      },
+      "Iran": {
+        "elo": 1520,
+        "confidence": 0.85
+      },
+      "Japan": {
+        "elo": 1480,
+        "confidence": 0.85
+      },
+      "Mexico": {
+        "elo": 1610,
+        "confidence": 0.85
+      },
+      "Morocco": {
+        "elo": 1470,
+        "confidence": 0.85
+      },
+      "Nigeria": {
+        "elo": 1500,
+        "confidence": 0.85
+      },
+      "Panama": {
+        "elo": 1440,
+        "confidence": 0.85
+      },
+      "Peru": {
+        "elo": 1625,
+        "confidence": 0.85
+      },
+      "Poland": {
+        "elo": 1635,
+        "confidence": 0.85
+      },
+      "Portugal": {
+        "elo": 1671,
+        "confidence": 0.85
+      },
+      "Russia": {
+        "elo": 1430,
+        "confidence": 0.85
+      },
+      "Saudi Arabia": {
+        "elo": 1450,
+        "confidence": 0.85
+      },
+      "Senegal": {
+        "elo": 1530,
+        "confidence": 0.85
+      },
+      "Serbia": {
+        "elo": 1510,
+        "confidence": 0.85
+      },
+      "South Korea": {
+        "elo": 1460,
+        "confidence": 0.85
+      },
+      "Spain": {
+        "elo": 1680,
+        "confidence": 0.85
+      },
+      "Sweden": {
+        "elo": 1580,
+        "confidence": 0.85
+      },
+      "Switzerland": {
+        "elo": 1660,
+        "confidence": 0.85
+      },
+      "Tunisia": {
+        "elo": 1550,
+        "confidence": 0.85
+      },
+      "Uruguay": {
+        "elo": 1600,
+        "confidence": 0.85
+      }
+    }
+  },
+  "wc2022": {
+    "as_of": "2022-11-19",
+    "source": "data/wc2022.py WC2022_FIFA_ELO (October 2022 pre-tournament)",
+    "quality_note": "repo_static_fifa_elo_pre_tournament",
+    "teams": {
+      "Argentina": {
+        "elo": 1774,
+        "confidence": 0.85
+      },
+      "Australia": {
+        "elo": 1489,
+        "confidence": 0.85
+      },
+      "Belgium": {
+        "elo": 1816,
+        "confidence": 0.85
+      },
+      "Brazil": {
+        "elo": 1841,
+        "confidence": 0.85
+      },
+      "Cameroon": {
+        "elo": 1412,
+        "confidence": 0.85
+      },
+      "Canada": {
+        "elo": 1416,
+        "confidence": 0.85
+      },
+      "Costa Rica": {
+        "elo": 1501,
+        "confidence": 0.85
+      },
+      "Croatia": {
+        "elo": 1642,
+        "confidence": 0.85
+      },
+      "Denmark": {
+        "elo": 1667,
+        "confidence": 0.85
+      },
+      "Ecuador": {
+        "elo": 1438,
+        "confidence": 0.85
+      },
+      "England": {
+        "elo": 1728,
+        "confidence": 0.85
+      },
+      "France": {
+        "elo": 1765,
+        "confidence": 0.85
+      },
+      "Germany": {
+        "elo": 1650,
+        "confidence": 0.85
+      },
+      "Ghana": {
+        "elo": 1395,
+        "confidence": 0.85
+      },
+      "Iran": {
+        "elo": 1580,
+        "confidence": 0.85
+      },
+      "Japan": {
+        "elo": 1560,
+        "confidence": 0.85
+      },
+      "Mexico": {
+        "elo": 1642,
+        "confidence": 0.85
+      },
+      "Morocco": {
+        "elo": 1562,
+        "confidence": 0.85
+      },
+      "Netherlands": {
+        "elo": 1678,
+        "confidence": 0.85
+      },
+      "Poland": {
+        "elo": 1529,
+        "confidence": 0.85
+      },
+      "Portugal": {
+        "elo": 1695,
+        "confidence": 0.85
+      },
+      "Qatar": {
+        "elo": 1394,
+        "confidence": 0.85
+      },
+      "Saudi Arabia": {
+        "elo": 1440,
+        "confidence": 0.85
+      },
+      "Senegal": {
+        "elo": 1585,
+        "confidence": 0.85
+      },
+      "Serbia": {
+        "elo": 1550,
+        "confidence": 0.85
+      },
+      "South Korea": {
+        "elo": 1530,
+        "confidence": 0.85
+      },
+      "Spain": {
+        "elo": 1715,
+        "confidence": 0.85
+      },
+      "Switzerland": {
+        "elo": 1637,
+        "confidence": 0.85
+      },
+      "Tunisia": {
+        "elo": 1528,
+        "confidence": 0.85
+      },
+      "USA": {
+        "elo": 1637,
+        "confidence": 0.85
+      },
+      "Uruguay": {
+        "elo": 1640,
+        "confidence": 0.85
+      },
+      "Wales": {
+        "elo": 1487,
+        "confidence": 0.85
+      }
+    }
+  },
+  "euro2024": {
+    "as_of": "2024-06-13",
+    "source": "data/euro2024.py EURO2024_FIFA_ELO (pre-tournament repo snapshot)",
+    "quality_note": "repo_static_fifa_elo_pre_tournament",
+    "teams": {
+      "Albania": {
+        "elo": 1440,
+        "confidence": 0.85
+      },
+      "Austria": {
+        "elo": 1600,
+        "confidence": 0.85
+      },
+      "Belgium": {
+        "elo": 1690,
+        "confidence": 0.85
+      },
+      "Croatia": {
+        "elo": 1620,
+        "confidence": 0.85
+      },
+      "Czechia": {
+        "elo": 1510,
+        "confidence": 0.85
+      },
+      "Denmark": {
+        "elo": 1570,
+        "confidence": 0.85
+      },
+      "England": {
+        "elo": 1790,
+        "confidence": 0.85
+      },
+      "France": {
+        "elo": 1850,
+        "confidence": 0.85
+      },
+      "Georgia": {
+        "elo": 1420,
+        "confidence": 0.85
+      },
+      "Germany": {
+        "elo": 1680,
+        "confidence": 0.85
+      },
+      "Hungary": {
+        "elo": 1490,
+        "confidence": 0.85
+      },
+      "Italy": {
+        "elo": 1640,
+        "confidence": 0.85
+      },
+      "Netherlands": {
+        "elo": 1700,
+        "confidence": 0.85
+      },
+      "Portugal": {
+        "elo": 1740,
+        "confidence": 0.85
+      },
+      "Romania": {
+        "elo": 1520,
+        "confidence": 0.85
+      },
+      "Scotland": {
+        "elo": 1500,
+        "confidence": 0.85
+      },
+      "Serbia": {
+        "elo": 1550,
+        "confidence": 0.85
+      },
+      "Slovakia": {
+        "elo": 1470,
+        "confidence": 0.85
+      },
+      "Slovenia": {
+        "elo": 1460,
+        "confidence": 0.85
+      },
+      "Spain": {
+        "elo": 1760,
+        "confidence": 0.85
+      },
+      "Switzerland": {
+        "elo": 1650,
+        "confidence": 0.85
+      },
+      "Turkey": {
+        "elo": 1580,
+        "confidence": 0.85
+      },
+      "Ukraine": {
+        "elo": 1540,
+        "confidence": 0.85
+      }
+    }
+  },
+  "copa2024": {
+    "as_of": "2024-06-19",
+    "source": "data/copa2024.py COPA2024_FIFA_ELO (pre-tournament repo snapshot)",
+    "quality_note": "repo_static_fifa_elo_pre_tournament",
+    "teams": {
+      "Argentina": {
+        "elo": 1880,
+        "confidence": 0.85
+      },
+      "Bolivia": {
+        "elo": 1400,
+        "confidence": 0.85
+      },
+      "Brazil": {
+        "elo": 1820,
+        "confidence": 0.85
+      },
+      "Canada": {
+        "elo": 1480,
+        "confidence": 0.85
+      },
+      "Chile": {
+        "elo": 1470,
+        "confidence": 0.85
+      },
+      "Colombia": {
+        "elo": 1700,
+        "confidence": 0.85
+      },
+      "Costa Rica": {
+        "elo": 1440,
+        "confidence": 0.85
+      },
+      "Ecuador": {
+        "elo": 1620,
+        "confidence": 0.85
+      },
+      "Jamaica": {
+        "elo": 1380,
+        "confidence": 0.85
+      },
+      "Mexico": {
+        "elo": 1600,
+        "confidence": 0.85
+      },
+      "Panama": {
+        "elo": 1520,
+        "confidence": 0.85
+      },
+      "Paraguay": {
+        "elo": 1550,
+        "confidence": 0.85
+      },
+      "Peru": {
+        "elo": 1460,
+        "confidence": 0.85
+      },
+      "USA": {
+        "elo": 1650,
+        "confidence": 0.85
+      },
+      "Uruguay": {
+        "elo": 1680,
+        "confidence": 0.85
+      },
+      "Venezuela": {
+        "elo": 1500,
+        "confidence": 0.85
+      }
+    }
+  }
+}

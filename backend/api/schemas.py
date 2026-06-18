@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 import config
@@ -93,6 +95,106 @@ class TeamBreakdown(BaseModel):
     group: str | None = None
 
 
+class GlobalRatingGapsResponse(BaseModel):
+    internal_elo_gap: float
+    world_elo_gap: float
+    power_gap: float
+    global_strength_gap: float
+    power_vs_global_gap_delta: float
+    global_strength_gap_raw: float
+    global_strength_gap_label: str
+    power_compression_ratio: float
+    world_power_compression_ratio: float
+    power_vs_elo_gap_delta: float
+    power_vs_world_gap_delta: float
+
+
+class WarningDetailResponse(BaseModel):
+    code: str
+    severity: str
+    message: str
+    metrics: dict[str, float | int | str | list[str] | None] = Field(default_factory=dict)
+
+
+class GlobalRatingTeamDiagnosticsResponse(BaseModel):
+    team: str
+    internal_elo: float
+    world_elo: float
+    fifa_points: float | None = None
+    fifa_rank: int | None = None
+    raw_form: float
+    opponent_adjusted_form: float
+    rating_confidence: float
+    global_strength_score: float
+    internal_external_elo_delta: float
+    avg_opponent_elo: float | None = None
+    opponent_history_matches: int = 0
+    external_source: str = "fallback"
+
+
+class PowerComponentGapBreakdownResponse(BaseModel):
+    total_power_gap: float
+    elo_component_gap: float
+    form_component_gap: float
+    attack_component_gap: float
+    defense_component_gap: float
+    context_component_gap: float
+    h2h_component_gap: float
+    modifier_component_gap: float
+    top_compression_driver: str
+
+
+class PowerComponentTeamResponse(BaseModel):
+    team: str
+    total_power: float
+    internal_elo: float
+    components: dict[str, float | None]
+    raw_inputs: dict[str, float | int | None]
+    weights: dict[str, float]
+
+
+class PowerComponentDiagnosticsResponse(BaseModel):
+    home: PowerComponentTeamResponse
+    away: PowerComponentTeamResponse
+    gap_breakdown: PowerComponentGapBreakdownResponse
+
+
+class PowerShadowCalibrationResponse(BaseModel):
+    enabled: bool = True
+    affects_prediction: bool = False
+    variants: dict[str, Any] = Field(default_factory=dict)
+    matchup_comparison: dict[str, Any] = Field(default_factory=dict)
+    effective_elo_anchor: dict[str, Any] | None = None
+    activation_candidate_status: str = "not_evaluated"
+    activation_overall_status: str = "not_evaluated"
+    temporal_data_status: str = "not_evaluated"
+    model_candidate_status: str = "not_evaluated"
+
+
+class GlobalRatingDiagnosticsResponse(BaseModel):
+    home: GlobalRatingTeamDiagnosticsResponse
+    away: GlobalRatingTeamDiagnosticsResponse
+    gaps: GlobalRatingGapsResponse
+    warnings: list[str] = Field(default_factory=list)
+    warning_details: list[WarningDetailResponse] = Field(default_factory=list)
+    experimental_adjustment_applied: bool = False
+    power_component_diagnostics: PowerComponentDiagnosticsResponse | None = None
+    power_shadow_calibration: PowerShadowCalibrationResponse | None = None
+
+
+class ModelDiagnosticsResponse(BaseModel):
+    model_version: str = config.BASELINE_MODEL_VERSION
+    baseline_model_version: str = config.BASELINE_MODEL_VERSION
+    activation_enabled: bool = False
+    active_candidate: str | None = None
+    active_external_rating_mode: str | None = None
+    active_external_rating_strategy: str | None = None
+    fallback_to_baseline: bool = False
+    fallback_reasons: list[str] = Field(default_factory=list)
+    candidate_metrics_source: str = "phase2j_walk_forward"
+    candidate_gate_status: str = "MODEL_ACTIVATION_PASS"
+
+
 class PredictResponse(BaseModel):
     home_team: str
     away_team: str
@@ -109,6 +211,14 @@ class PredictResponse(BaseModel):
     match_summary: str = ""
     h2h_summary: str = ""
     match_context: MatchContextResponse | None = None
+    global_rating_diagnostics: GlobalRatingDiagnosticsResponse | None = None
+    model_diagnostics: ModelDiagnosticsResponse | None = None
+
+
+class GlobalRatingDebugResponse(BaseModel):
+    home_team: str
+    away_team: str
+    global_rating_diagnostics: GlobalRatingDiagnosticsResponse
 
 
 class TeamsResponse(BaseModel):

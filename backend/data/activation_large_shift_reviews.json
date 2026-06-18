@@ -1,0 +1,14 @@
+{
+  "description": "Phase 3D large shift review records",
+  "reviews": {
+    "Germany|Haiti": {
+      "home": "Germany",
+      "away": "Haiti",
+      "status": "accepted",
+      "explainability": "expected_correction",
+      "home_win_delta_pp": 17.6,
+      "shift_size": "large_shift",
+      "notes": "Germany vs Haiti - activation shift explanation"
+    }
+  }
+}
