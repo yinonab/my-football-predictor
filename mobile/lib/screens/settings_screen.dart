@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../config/api_config.dart';
 import '../models/prediction_result.dart';
+import '../models/venue_mode.dart';
 import '../services/api_service.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -84,7 +85,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       altitude: _altitude,
       starAbsent: _starAbsent,
       awayStarAbsent: _awayStarAbsent,
-      neutralGround: _neutralGround,
+      venueMode: venueModeFromNeutralGround(_neutralGround),
       useLiveStats: _useLiveStats,
       apiBaseUrl: _apiUrlController.text.trim(),
     );

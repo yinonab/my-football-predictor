@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import '../utils/prediction_ui_copy.dart';
 import '../utils/score_format.dart';
 import '../models/prediction_result.dart';
+import '../models/venue_mode.dart';
 import '../services/api_service.dart';
 import '../widgets/outcome_cards.dart';
 import '../widgets/prediction_insight_sections.dart';
 import '../widgets/score_list.dart';
 import '../widgets/team_text_field.dart';
+import '../widgets/venue_mode_selector.dart';
 import 'settings_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -24,7 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   PredictionSettings _settings = const PredictionSettings();
   List<String> _teams = [];
-  bool _neutralGround = true;
+  VenueMode _venueMode = VenueMode.neutral;
   PredictionResult? _result;
   bool _serverOnline = false;
   bool _checking = true;
@@ -54,7 +56,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _init() async {
     _settings = await _apiService.loadSettings();
-    _neutralGround = _settings.neutralGround;
+    _venueMode = _settings.venueMode;
     await _checkServer();
     if (_serverOnline) {
       await _loadTeams();
@@ -107,7 +109,7 @@ class _HomeScreenState extends State<HomeScreen> {
         baseUrl: _settings.apiBaseUrl,
         homeTeam: teamA,
         awayTeam: teamB,
-        settings: _settings.copyWith(neutralGround: _neutralGround),
+        settings: _settings.copyWith(venueMode: _venueMode),
       );
       if (!mounted) return;
       setState(() {
@@ -142,7 +144,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (updated != null) {
       setState(() {
         _settings = updated;
-        _neutralGround = updated.neutralGround;
+        _venueMode = updated.venueMode;
       });
       await _checkServer();
       if (_serverOnline) await _loadTeams();
@@ -152,8 +154,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final teamALabel = _neutralGround ? 'נבחרת א\'' : 'נבחרת מארחת';
-    final teamBLabel = _neutralGround ? 'נבחרת ב\'' : 'נבחרת אורחת';
+    final useHostAwayLabels = _venueMode == VenueMode.firstTeamHome;
+    final teamALabel = useHostAwayLabels ? 'נבחרת מארחת' : 'נבחרת א\'';
+    final teamBLabel = useHostAwayLabels ? 'נבחרת אורחת' : 'נבחרת ב\'';
+    const scoreLabelsNeutral = true;
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -219,25 +223,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       textAlign: TextAlign.right,
                     ),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text(
-                        neutralToggleSubtitle(
-                          neutralGround: _neutralGround,
-                          homeTeam: _teamAController.text.trim().isEmpty
-                              ? 'הנבחרת הראשונה'
-                              : _teamAController.text.trim(),
-                        ),
-                      ),
-                      value: _neutralGround,
-                      onChanged: (v) => setState(() => _neutralGround = v),
-                    ),
-                    Text(
-                      'כאשר המשחק אינו ניטרלי, יתרון הביתיות ניתן לנבחרת הראשונה.',
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                      textAlign: TextAlign.right,
+                    VenueModeSelector(
+                      value: _venueMode,
+                      team1: _teamAController.text.trim(),
+                      team2: _teamBController.text.trim(),
+                      onChanged: (mode) => setState(() => _venueMode = mode),
                     ),
                     if (_result != null) ...[
                       Builder(
@@ -313,7 +303,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         explanations: _result!.outcomeExplanations,
                         teamALabel: _result!.homeTeam,
                         teamBLabel: _result!.awayTeam,
-                        isNeutralGround: _neutralGround,
+                        isNeutralGround: scoreLabelsNeutral,
                       ),
                       const SizedBox(height: 12),
                       PredictionStatusBanner(result: _result!),
@@ -321,13 +311,13 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 8),
                       PredictionPrimaryScoreCard(
                         result: _result!,
-                        isNeutralGround: _neutralGround,
+                        isNeutralGround: scoreLabelsNeutral,
                       ),
                       if (_result!.scorelineDecision != null) ...[
                         const SizedBox(height: 8),
                         PredictionWhyCard(
                           result: _result!,
-                          isNeutralGround: _neutralGround,
+                          requestedVenueMode: _venueMode,
                         ),
                       ] else if (_result!.matchSummary.isNotEmpty) ...[
                         const SizedBox(height: 8),
@@ -411,7 +401,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                             s,
                                             teamAName: _result!.homeTeam,
                                             teamBName: _result!.awayTeam,
-                                            isNeutralGround: _neutralGround,
+                                            isNeutralGround: scoreLabelsNeutral,
                                           ),
                                           textAlign: TextAlign.right,
                                         ),
@@ -448,12 +438,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         scores: _result!.topScores,
                         teamAName: _result!.homeTeam,
                         teamBName: _result!.awayTeam,
-                        isNeutralGround: _neutralGround,
+                        isNeutralGround: scoreLabelsNeutral,
                       ),
                       const SizedBox(height: 12),
                       PredictionContextCard(
                         result: _result!,
-                        isNeutralGround: _neutralGround,
+                        requestedVenueMode: _venueMode,
                       ),
                       const SizedBox(height: 8),
                       PredictionTechnicalDetails(result: _result!),

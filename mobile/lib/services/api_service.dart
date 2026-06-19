@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../config/api_config.dart';
 import '../models/prediction_result.dart';
+import '../models/venue_mode.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -39,6 +40,15 @@ class ApiService {
       apiUrl = await _resolveWorkingUrl(apiUrl);
     }
 
+    final venueModeStr = prefs.getString('venueMode');
+    VenueMode venueMode;
+    if (venueModeStr != null) {
+      venueMode = VenueModeApi.fromApi(venueModeStr) ?? VenueMode.neutral;
+    } else {
+      final neutralGround = prefs.getBool('neutralGround') ?? true;
+      venueMode = venueModeFromNeutralGround(neutralGround);
+    }
+
     return PredictionSettings(
       rho: prefs.getDouble('rho') ?? -0.15,
       avgGoals: prefs.getDouble('avgGoals') ?? 2.6,
@@ -47,7 +57,7 @@ class ApiService {
       altitude: prefs.getInt('altitude') ?? 0,
       starAbsent: prefs.getBool('starAbsent') ?? false,
       awayStarAbsent: prefs.getBool('awayStarAbsent') ?? false,
-      neutralGround: prefs.getBool('neutralGround') ?? true,
+      venueMode: venueMode,
       useLiveStats: prefs.getBool('useLiveStats') ?? false,
       apiBaseUrl: apiUrl,
     );
@@ -62,6 +72,7 @@ class ApiService {
     await prefs.setInt('altitude', settings.altitude);
     await prefs.setBool('starAbsent', settings.starAbsent);
     await prefs.setBool('awayStarAbsent', settings.awayStarAbsent);
+    await prefs.setString('venueMode', settings.venueMode.apiValue);
     await prefs.setBool('neutralGround', settings.neutralGround);
     await prefs.setBool('useLiveStats', settings.useLiveStats);
     await prefs.setString('apiBaseUrl', settings.apiBaseUrl);
@@ -144,21 +155,21 @@ class ApiService {
     required String awayTeam,
     required PredictionSettings settings,
   }) async {
-    final body = jsonEncode({
-      'home_team': homeTeam,
-      'away_team': awayTeam,
-      'neutral_ground': settings.neutralGround,
-      'rho': settings.rho,
-      'avg_goals': settings.avgGoals,
-      'home_advantage': settings.homeAdvantage,
-      'alpha': settings.alpha,
-      'altitude': settings.altitude,
-      'star_absent': settings.starAbsent,
-      'away_star_absent': settings.awayStarAbsent,
-      'use_live_stats': settings.useLiveStats,
-      'use_match_context': true,
-      'top_n': 3,
-    });
+    final body = jsonEncode(
+      buildPredictRequestBody(
+        homeTeam: homeTeam,
+        awayTeam: awayTeam,
+        venueMode: settings.venueMode,
+        rho: settings.rho,
+        avgGoals: settings.avgGoals,
+        homeAdvantage: settings.homeAdvantage,
+        alpha: settings.alpha,
+        altitude: settings.altitude,
+        starAbsent: settings.starAbsent,
+        awayStarAbsent: settings.awayStarAbsent,
+        useLiveStats: settings.useLiveStats,
+      ),
+    );
 
     final response = await http
         .post(

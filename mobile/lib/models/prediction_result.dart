@@ -1,4 +1,5 @@
 import '../config/api_config.dart';
+import 'venue_mode.dart';
 
 class ScoreProbability {
   final String score;
@@ -287,9 +288,14 @@ class MatchContextDiagnostics {
   final ActualScore? actualScore;
   final bool fixtureSourceAvailable;
   final bool venueContextAvailable;
+  final String? venueMode;
+  final String? homeAdvantageTeam;
   final bool neutralGroundRequested;
+  final bool hostCountryMatch;
+  final String? hostAdvantageCandidateTeam;
   final bool hostAdvantageApplied;
   final double homeAdvantageValue;
+  final double homeAdvantagePowerDelta;
   final List<String> warnings;
 
   const MatchContextDiagnostics({
@@ -299,9 +305,14 @@ class MatchContextDiagnostics {
     this.actualScore,
     this.fixtureSourceAvailable = false,
     this.venueContextAvailable = false,
+    this.venueMode,
+    this.homeAdvantageTeam,
     this.neutralGroundRequested = true,
+    this.hostCountryMatch = false,
+    this.hostAdvantageCandidateTeam,
     this.hostAdvantageApplied = false,
     this.homeAdvantageValue = 0,
+    this.homeAdvantagePowerDelta = 0,
     this.warnings = const [],
   });
 
@@ -316,11 +327,21 @@ class MatchContextDiagnostics {
       fixtureSourceAvailable:
           json['fixture_source_available'] as bool? ?? false,
       venueContextAvailable: json['venue_context_available'] as bool? ?? false,
+      venueMode: json['venue_mode'] as String?,
+      homeAdvantageTeam: json['home_advantage_team'] as String?,
       neutralGroundRequested:
           json['neutral_ground_requested'] as bool? ?? true,
-      hostAdvantageApplied: json['host_advantage_applied'] as bool? ?? false,
+      hostCountryMatch: json['host_country_match'] as bool? ?? false,
+      hostAdvantageCandidateTeam:
+          json['host_advantage_candidate_team'] as String?,
+      hostAdvantageApplied:
+          json['host_advantage_applied'] as bool? ??
+          json['home_advantage_applied'] as bool? ??
+          false,
       homeAdvantageValue:
           (json['home_advantage_value'] as num?)?.toDouble() ?? 0,
+      homeAdvantagePowerDelta:
+          (json['home_advantage_power_delta'] as num?)?.toDouble() ?? 0,
       warnings: List<String>.from(json['warnings'] as List<dynamic>? ?? []),
     );
   }
@@ -460,7 +481,7 @@ class PredictionSettings {
   final int altitude;
   final bool starAbsent;
   final bool awayStarAbsent;
-  final bool neutralGround;
+  final VenueMode venueMode;
   final bool useLiveStats;
   final String apiBaseUrl;
 
@@ -472,10 +493,12 @@ class PredictionSettings {
     this.altitude = 0,
     this.starAbsent = false,
     this.awayStarAbsent = false,
-    this.neutralGround = true,
+    this.venueMode = VenueMode.neutral,
     this.useLiveStats = false,
     this.apiBaseUrl = productionApiUrl,
   });
+
+  bool get neutralGround => venueMode.isNeutralGround;
 
   PredictionSettings copyWith({
     double? rho,
@@ -485,10 +508,15 @@ class PredictionSettings {
     int? altitude,
     bool? starAbsent,
     bool? awayStarAbsent,
+    VenueMode? venueMode,
     bool? neutralGround,
     bool? useLiveStats,
     String? apiBaseUrl,
   }) {
+    VenueMode resolved = venueMode ?? this.venueMode;
+    if (neutralGround != null) {
+      resolved = venueModeFromNeutralGround(neutralGround);
+    }
     return PredictionSettings(
       rho: rho ?? this.rho,
       avgGoals: avgGoals ?? this.avgGoals,
@@ -497,7 +525,7 @@ class PredictionSettings {
       altitude: altitude ?? this.altitude,
       starAbsent: starAbsent ?? this.starAbsent,
       awayStarAbsent: awayStarAbsent ?? this.awayStarAbsent,
-      neutralGround: neutralGround ?? this.neutralGround,
+      venueMode: resolved,
       useLiveStats: useLiveStats ?? this.useLiveStats,
       apiBaseUrl: apiBaseUrl ?? this.apiBaseUrl,
     );

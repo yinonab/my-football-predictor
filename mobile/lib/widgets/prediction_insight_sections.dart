@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/prediction_result.dart';
+import '../models/venue_mode.dart';
 import '../utils/prediction_ui_copy.dart';
 import '../utils/score_format.dart';
 
@@ -168,12 +169,12 @@ class PredictionPrimaryScoreCard extends StatelessWidget {
 
 class PredictionWhyCard extends StatelessWidget {
   final PredictionResult result;
-  final bool isNeutralGround;
+  final VenueMode? requestedVenueMode;
 
   const PredictionWhyCard({
     super.key,
     required this.result,
-    required this.isNeutralGround,
+    this.requestedVenueMode,
   });
 
   @override
@@ -181,7 +182,7 @@ class PredictionWhyCard extends StatelessWidget {
     final theme = Theme.of(context);
     final bullets = buildWhyPredictionBullets(
       result,
-      neutralGround: isNeutralGround,
+      requestedVenueMode: requestedVenueMode,
     );
     if (bullets.isEmpty) return const SizedBox.shrink();
 
@@ -219,12 +220,12 @@ class PredictionWhyCard extends StatelessWidget {
 
 class PredictionContextCard extends StatelessWidget {
   final PredictionResult result;
-  final bool isNeutralGround;
+  final VenueMode? requestedVenueMode;
 
   const PredictionContextCard({
     super.key,
     required this.result,
-    required this.isNeutralGround,
+    this.requestedVenueMode,
   });
 
   @override
@@ -233,6 +234,13 @@ class PredictionContextCard extends StatelessWidget {
     final diag = result.matchContextDiagnostics;
     final ctx = result.matchContext;
     final reliable = isFixtureContextReliable(diag);
+    final venueLine = venueContextSummaryLine(
+      diag: diag,
+      homeTeam: result.homeTeam,
+      awayTeam: result.awayTeam,
+      requestedVenueMode: requestedVenueMode,
+    );
+    final powerLine = homeAdvantagePowerDeltaLine(diag);
 
     return Card(
       color: theme.colorScheme.tertiaryContainer.withValues(alpha: 0.45),
@@ -258,6 +266,24 @@ class PredictionContextCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 8),
+            if (venueLine != null) ...[
+              Text(
+                venueLine,
+                style: theme.textTheme.bodyMedium,
+                textAlign: TextAlign.right,
+              ),
+              if (powerLine != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  powerLine,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.right,
+                ),
+              ],
+              const SizedBox(height: 8),
+            ],
             if (!reliable) ...[
               Text(
                 'נתוני מועד, אצטדיון והקשר משחק אינם זמינים כרגע.',
@@ -273,12 +299,6 @@ class PredictionContextCard extends StatelessWidget {
                 textAlign: TextAlign.right,
               ),
             ] else ...[
-              Text(
-                'מיקום: ${isNeutralGround ? 'ניטרלי' : 'ביתי (נבחרת ראשונה מארחת)'}',
-                style: theme.textTheme.bodyMedium,
-                textAlign: TextAlign.right,
-              ),
-              const SizedBox(height: 4),
               Text(
                 'ביתיות: ${diag?.hostAdvantageApplied == true ? 'הופעלה' : 'לא הופעלה'}',
                 style: theme.textTheme.bodyMedium,

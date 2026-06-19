@@ -77,9 +77,11 @@ void main() {
         'prediction_mode': 'unknown',
         'fixture_source_available': false,
         'venue_context_available': false,
+        'venue_mode': 'neutral',
         'neutral_ground_requested': true,
         'host_advantage_applied': false,
         'home_advantage_value': 0,
+        'home_advantage_power_delta': 0,
         'warnings': ['FIXTURE_STATE_UNAVAILABLE'],
       },
     });
@@ -89,6 +91,8 @@ void main() {
     expect(result.scorelineDecision!.topExactScoreDiffersFromPrimary, isTrue);
     expect(result.matchContextDiagnostics?.fixtureStatus, 'unknown');
     expect(result.matchContextDiagnostics?.predictionValid, isTrue);
+    expect(result.matchContextDiagnostics?.venueMode, 'neutral');
+    expect(result.matchContextDiagnostics?.homeAdvantagePowerDelta, 0);
   });
 
   test('PredictionResult works without scoreline_decision', () {

@@ -1,4 +1,5 @@
 import '../models/prediction_result.dart';
+import '../models/venue_mode.dart';
 import 'score_format.dart';
 
 /// Rest-day values from API without a known fixture are misleading (e.g. 713 days).
@@ -80,7 +81,7 @@ String formatScorelineCandidate(
 
 List<String> buildWhyPredictionBullets(
   PredictionResult result, {
-  required bool neutralGround,
+  VenueMode? requestedVenueMode,
 }) {
   final sd = result.scorelineDecision;
   if (sd != null && sd.primaryScoreReason.trim().isNotEmpty) {
@@ -95,6 +96,8 @@ List<String> buildWhyPredictionBullets(
   final probs = result.probabilities;
   final home = shortTeamName(result.homeTeam);
   final away = shortTeamName(result.awayTeam);
+  final diag = result.matchContextDiagnostics;
+  final venueNote = homeAdvantageExplanation(diag, requestedVenueMode);
 
   if (probs.homeWin >= probs.draw && probs.homeWin >= probs.awayWin) {
     bullets.add('$home היא הפייבוריטית לפי המודל (${probs.homeWin.toStringAsFixed(1)}%).');
@@ -110,10 +113,8 @@ List<String> buildWhyPredictionBullets(
     bullets.add('המודל נותן ל$away יתרון צפוי בשערים (xG).');
   }
 
-  if (neutralGround) {
-    bullets.add('המשחק מוגדר כניטרלי, לכן לא נוסף יתרון ביתיות.');
-  } else {
-    bullets.add('הקבוצה הראשונה מארחת — יתרון ביתיות מופעל בהגדרות.');
+  if (venueNote != null) {
+    bullets.add(venueNote);
   }
 
   if (hasContextLimitedWarning(result) || hasLiveFixtureUnavailableWarning(result)) {
@@ -140,22 +141,107 @@ List<String> buildUserWarningLines(PredictionResult result) {
   return lines;
 }
 
-String neutralToggleSubtitle({
-  required bool neutralGround,
-  required String homeTeam,
-}) {
-  if (neutralGround) {
-    return 'מגרש ניטרלי — אין יתרון ביתיות';
+String effectiveVenueModeApi(
+  MatchContextDiagnostics? diag,
+  VenueMode? requested,
+) {
+  final fromBackend = VenueModeApi.fromApi(diag?.venueMode);
+  if (fromBackend != null) return fromBackend.apiValue;
+  if (requested != null) return requested.apiValue;
+  if (diag != null && !diag.neutralGroundRequested) {
+    return VenueMode.firstTeamHome.apiValue;
   }
-  return 'הקבוצה הראשונה מארחת — ${shortTeamName(homeTeam)} מקבלת יתרון ביתיות';
+  return VenueMode.neutral.apiValue;
+}
+
+String? venueContextSummaryLine({
+  required MatchContextDiagnostics? diag,
+  required String homeTeam,
+  required String awayTeam,
+  VenueMode? requestedVenueMode,
+}) {
+  if (diag == null && requestedVenueMode == null) return null;
+
+  final mode = effectiveVenueModeApi(diag, requestedVenueMode);
+  final home = shortTeamName(homeTeam);
+  final away = shortTeamName(awayTeam);
+
+  switch (mode) {
+    case 'neutral':
+      return 'מיקום המשחק: מגרש ניטרלי — לא נוסף יתרון ביתיות.';
+    case 'first_team_home':
+      if (diag?.hostAdvantageApplied == true) {
+        return 'מיקום המשחק: $home מארחת — נוסף יתרון ביתיות.';
+      }
+      return 'מיקום המשחק: $home מארחת.';
+    case 'second_team_home':
+      if (diag?.hostAdvantageApplied == true) {
+        return 'מיקום המשחק: $away מארחת — נוסף יתרון ביתיות.';
+      }
+      return 'מיקום המשחק: $away מארחת.';
+    case 'host_country_auto':
+      if (diag?.hostAdvantageApplied == true) {
+        final team = _advantageTeamLabel(diag!, homeTeam, awayTeam);
+        return 'זוהתה מדינה מארחת — נוסף יתרון ביתיות ל־$team.';
+      }
+      return 'לא זוהתה מדינה מארחת מתאימה — לא נוסף יתרון ביתיות.';
+    default:
+      return null;
+  }
+}
+
+String? homeAdvantagePowerDeltaLine(MatchContextDiagnostics? diag) {
+  if (diag == null || !diag.hostAdvantageApplied) return null;
+  final delta = diag.homeAdvantagePowerDelta;
+  if (delta <= 0) return null;
+  return 'השפעת ביתיות: +${delta.round()} נקודות כוח';
+}
+
+String? homeAdvantageExplanation(
+  MatchContextDiagnostics? diag,
+  VenueMode? requestedVenueMode,
+) {
+  if (diag == null) {
+    if (requestedVenueMode == VenueMode.neutral) {
+      return 'המשחק מוגדר כניטרלי.';
+    }
+    return null;
+  }
+
+  if (diag.hostAdvantageApplied) {
+    return 'יתרון ביתיות נכלל בחישוב.';
+  }
+
+  final mode = effectiveVenueModeApi(diag, requestedVenueMode);
+  if (mode == 'neutral') {
+    return 'המשחק מוגדר כניטרלי.';
+  }
+  if (mode == 'host_country_auto') {
+    return 'נתוני מיקום/מדינה מארחת לא היו זמינים — לא נוסף יתרון ביתיות.';
+  }
+
+  if (diag.warnings.contains('HOST_ADVANTAGE_DETECTED_BUT_VALUE_ZERO')) {
+    return 'יתרון ביתיות לא נוסף בפועל במודל הנוכחי.';
+  }
+
+  return null;
 }
 
 String? hostAdvantageNote(MatchContextDiagnostics? diag) {
-  if (diag == null) return null;
-  final warnings = diag.warnings;
-  if (warnings.contains('HOST_ADVANTAGE_DETECTED_BUT_VALUE_ZERO') ||
-      (!diag.hostAdvantageApplied && diag.homeAdvantageValue <= 0)) {
-    return 'יתרון ביתיות לא נוסף בפועל במודל הנוכחי.';
+  return homeAdvantageExplanation(diag, null);
+}
+
+String _advantageTeamLabel(
+  MatchContextDiagnostics diag,
+  String homeTeam,
+  String awayTeam,
+) {
+  final teamKey = diag.homeAdvantageTeam ?? diag.hostAdvantageCandidateTeam;
+  if (teamKey == 'away') return shortTeamName(awayTeam);
+  if (teamKey == 'home') return shortTeamName(homeTeam);
+  if (diag.hostAdvantageCandidateTeam != null &&
+      diag.hostAdvantageCandidateTeam!.isNotEmpty) {
+    return shortTeamName(diag.hostAdvantageCandidateTeam!);
   }
-  return null;
+  return shortTeamName(homeTeam);
 }
