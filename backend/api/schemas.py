@@ -245,6 +245,37 @@ class ModelDiagnosticsResponse(BaseModel):
     gap_delta: float | None = None
 
 
+class ScorelineCandidateResponse(BaseModel):
+    home_goals: int
+    away_goals: int
+    probability: float
+    outcome: str
+
+
+class ScoreGroupsResponse(BaseModel):
+    home_win: list[ScorelineCandidateResponse] = Field(default_factory=list)
+    draw: list[ScorelineCandidateResponse] = Field(default_factory=list)
+    away_win: list[ScorelineCandidateResponse] = Field(default_factory=list)
+
+
+class ScorelineDecisionResponse(BaseModel):
+    """Phase 4M — user-facing primary exact score (additive; top_scores unchanged)."""
+
+    favorite_outcome: str
+    favorite_outcome_probability: float
+    second_outcome: str
+    second_outcome_probability: float
+    outcome_margin: float
+    confidence_label: str
+    primary_predicted_score: ScorelineCandidateResponse | None = None
+    primary_score_reason: str = ""
+    top_exact_score_overall: ScorelineCandidateResponse | None = None
+    top_exact_score_differs_from_primary: bool = False
+    favorite_outcome_top_scores: list[ScorelineCandidateResponse] = Field(default_factory=list)
+    score_groups: ScoreGroupsResponse = Field(default_factory=ScoreGroupsResponse)
+    warnings: list[str] = Field(default_factory=list)
+
+
 class ProbabilityCoherenceResponse(BaseModel):
     passed: bool
     warnings: list[str] = Field(default_factory=list)
@@ -297,6 +328,7 @@ class PredictResponse(BaseModel):
     probability_diagnostics: ProbabilityDiagnosticsResponse | None = None
     probability_coherence: ProbabilityCoherenceResponse | None = None
     match_context_diagnostics: MatchContextDiagnosticsResponse | None = None
+    scoreline_decision: ScorelineDecisionResponse | None = None
 
 
 class GlobalRatingDebugResponse(BaseModel):

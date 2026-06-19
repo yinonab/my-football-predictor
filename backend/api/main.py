@@ -52,6 +52,9 @@ from api.schemas import (
     SimulateChampionResponse,
     SimulateGroupRequest,
     SimulateGroupResponse,
+    ScorelineDecisionResponse,
+    ScorelineCandidateResponse,
+    ScoreGroupsResponse,
     TeamBreakdown,
     TeamInfoResponse,
     TeamsResponse,
@@ -84,6 +87,7 @@ from core.math_engine import AdvancedDixonColesEngine
 from core.odds_ensemble import OddsClient
 from core.probability_coherence import favorite_from_1x2
 from core.probability_pipeline import finalize_probability_pipeline
+from core.scoreline_decision import build_scoreline_decision
 from core.cloud_persist import is_configured as cloud_persist_configured, pull_all as cloud_pull_all
 from core.elo_store import load_elo_overrides, save_elo_overrides
 from core.team_power import TeamPowerEvaluator
@@ -162,6 +166,27 @@ def _team_breakdown(
         elo=float(bd["elo"]),
         breakdown=breakdown_text,
         group=group,
+    )
+
+
+def _scoreline_decision_response(decision) -> ScorelineDecisionResponse:
+    payload = decision.to_dict()
+    groups = ScoreGroupsResponse(**payload.pop("score_groups"))
+    primary = payload.pop("primary_predicted_score")
+    top_exact = payload.pop("top_exact_score_overall")
+    favorite_top = payload.pop("favorite_outcome_top_scores")
+    return ScorelineDecisionResponse(
+        **payload,
+        primary_predicted_score=(
+            ScorelineCandidateResponse(**primary) if primary else None
+        ),
+        top_exact_score_overall=(
+            ScorelineCandidateResponse(**top_exact) if top_exact else None
+        ),
+        favorite_outcome_top_scores=[
+            ScorelineCandidateResponse(**row) for row in favorite_top
+        ],
+        score_groups=groups,
     )
 
 
@@ -499,6 +524,7 @@ def predict(request: PredictRequest) -> PredictResponse:
         max_goals=blowout.max_goals,
         home_xg_override=home_xg,
         away_xg_override=away_xg,
+        include_all_scores=True,
     )
 
     model_probs_raw = dict(result["probabilities_1x2"])
@@ -564,6 +590,18 @@ def predict(request: PredictRequest) -> PredictResponse:
         explanation=explain_score_coverage(
             coverage["scores"], coverage["achieved_percent"]
         ),
+    )
+
+    scoreline_decision = build_scoreline_decision(
+        final_probabilities_1x2=probs,
+        top_scores=result["top_scores"],
+        all_scores=result.get("all_scores"),
+        home_xg=result["home_xg"],
+        away_xg=result["away_xg"],
+        home_team=home_name,
+        away_team=away_name,
+        strength=strength,
+        match_context_diagnostics=match_context_diagnostics,
     )
 
     return PredictResponse(
@@ -674,6 +712,7 @@ def predict(request: PredictRequest) -> PredictResponse:
         match_context_diagnostics=_match_context_diagnostics_response(
             match_context_diagnostics
         ),
+        scoreline_decision=_scoreline_decision_response(scoreline_decision),
     )
 
 

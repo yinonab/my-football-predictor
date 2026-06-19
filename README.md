@@ -555,6 +555,32 @@ Config flags (local `.env` only — do not change Render without explicit approv
 - `PROBABILITY_CALIBRATION_METHOD=temperature`
 - `PROBABILITY_CALIBRATION_TEMPERATURE=1.35`
 
+## Phase 4M Scoreline Decision Engine
+
+Phase 4K showed `top_scores[0]` can be a draw while the 1X2 favorite is a win — mathematically valid but product-confusing. This phase adds a **decision/display layer** without changing prediction math.
+
+Additive `/api/predict` field: `scoreline_decision`
+
+| Field | Meaning |
+|-------|---------|
+| `favorite_outcome` | Leading 1X2 outcome (`home_win` / `draw` / `away_win`) |
+| `top_exact_score_overall` | Highest single matrix cell (same story as `top_scores[0]`) |
+| `primary_predicted_score` | User-facing central exact score (aligned with favorite when clear) |
+| `top_exact_score_differs_from_primary` | `true` when primary ≠ top exact cell |
+| `primary_score_reason` | Hebrew explanation |
+| `confidence_label` | `low` / `medium` / `high` |
+| `score_groups` | Top 3 scorelines per outcome bucket |
+| `warnings` | e.g. `BALANCED_MATCH_LOW_CONFIDENCE`, `CONTEXT_LIMITED`, `PREDICTION_NOT_VALID` |
+
+`top_scores` are unchanged. API-Football may be unavailable — Scoreline Decision works with fixture/context warnings.
+
+```powershell
+cd backend
+python -m pytest tests/test_scoreline_decision_phase4m.py -q
+python -m pytest tests/ -q
+python scripts/audit_scoreline_decision.py --markdown reports/scoreline_decision_audit.md --csv reports/scoreline_decision_audit.csv
+```
+
 ## Phase 4L Fixture State + Match Context Engine
 
 Phase 4K showed calibration cannot fix missing fixture/context. This phase adds fixture-state awareness and host/venue diagnostics without changing prediction math.

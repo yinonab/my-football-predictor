@@ -645,25 +645,37 @@ Default: `ODDS_AFFECT_PREDICTION=false`, `PROBABILITY_CALIBRATION_ENABLED=false`
 - Completed matches: `prediction_valid=false`, `MATCH_ALREADY_COMPLETED` — prediction fields retained for backward compatibility
 - **No xG/Maher/calibration tuning** in this phase
 
-### Phase 4M — Calibration activation behind default-off flag
+### Phase 4M — Scoreline Decision Engine
 
-- Only after fixture/context foundation and coherence audit
+- **Display/decision layer only** — no change to Maher, xG, Dixon-Coles, power candidate, calibration, or odds math
+- `top_scores` remain the highest-probability individual cells from the score matrix (backward compatible)
+- New additive field: `scoreline_decision.primary_predicted_score` — user-facing central exact score
+- `top_exact_score_overall` may differ from `primary_predicted_score` when the 1X2 favorite is home/away win but the single most likely cell is a draw (e.g. Canada vs Qatar)
+- Algorithm: favorite from final 1X2 → group matrix cells by outcome → clear favorite picks highest cell within favorite bucket; balanced match uses top exact overall with `BALANCED_MATCH_LOW_CONFIDENCE`
+- Uses full score matrix internally (`include_all_scores=True` in predict pipeline); matrix not exposed on public API
+- Completed / invalid fixtures: warnings `MATCH_ALREADY_COMPLETED`, `PREDICTION_NOT_VALID`; confidence forced low
+- Module: `backend/core/scoreline_decision.py`
+- Audit: `backend/scripts/audit_scoreline_decision.py` → `backend/reports/scoreline_decision_audit.{md,csv}`
+
+### Phase 4N — Calibration activation behind default-off flag
+
+- Only after fixture/context foundation and scoreline UX
 - `temperature(T=1.35)` from Phase 4G validation
 
-### Phase 4N — Live tournament updates
+### Phase 4O — Live tournament updates
 
 - Finished-match ingest (API-Football or admin)
 - Capped Elo update, persistence, rollback
 - `LIVE_TOURNAMENT_UPDATES_ENABLED=false` default
 
-### Phase 4O — ML shadow candidate
+### Phase 4P — ML shadow candidate
 
 - **Only after MatchFeatures parity**
 - Logistic regression on feature vector first
 - Walk-forward gate required
 - `ML_CANDIDATE_ENABLED=false` default
 
-### Phase 4P — Mobile confidence / explainability UI
+### Phase 4Q — Mobile confidence / explainability UI
 
 - Parse `model_diagnostics`, `probability_coherence`, `match_context_diagnostics`, `confidence_diagnostics`
 - Show model version, fallback badge, coherence warnings, completed-match state
@@ -691,10 +703,10 @@ Default: `ODDS_AFFECT_PREDICTION=false`, `PROBABILITY_CALIBRATION_ENABLED=false`
 
 Explicitly **out of scope** until later phases:
 
-- ❌ No ML implementation (Phase 4M)
-- ❌ No production calibrator affecting live 1X2 (Phase 4M+ after fixture/context foundation)
+- ❌ No ML implementation (Phase 4P)
+- ❌ No production calibrator affecting live 1X2 (Phase 4N+ after scoreline UX)
 - ❌ No odds matrix blending (Phase 4D+ planning only)
-- ❌ No automatic live WC2026 result updates (Phase 4N)
+- ❌ No automatic live WC2026 result updates (Phase 4O)
 - ❌ No Maher, Dixon-Coles, xG, rho, floor, blowout, Power weight, or defense sign tuning
 - ❌ No prediction behavior change in Phase 4A
 - ❌ No Render env var changes as part of architecture work
