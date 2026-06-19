@@ -180,6 +180,152 @@ class MatchContextInfo {
   }
 }
 
+class ScorelineCandidate {
+  final int homeGoals;
+  final int awayGoals;
+  final double probability;
+  final String outcome;
+
+  const ScorelineCandidate({
+    required this.homeGoals,
+    required this.awayGoals,
+    required this.probability,
+    required this.outcome,
+  });
+
+  factory ScorelineCandidate.fromJson(Map<String, dynamic> json) {
+    return ScorelineCandidate(
+      homeGoals: json['home_goals'] as int,
+      awayGoals: json['away_goals'] as int,
+      probability: (json['probability'] as num).toDouble(),
+      outcome: json['outcome'] as String,
+    );
+  }
+}
+
+class ScorelineDecision {
+  final String favoriteOutcome;
+  final double favoriteOutcomeProbability;
+  final String secondOutcome;
+  final double secondOutcomeProbability;
+  final double outcomeMargin;
+  final String confidenceLabel;
+  final ScorelineCandidate? primaryPredictedScore;
+  final String primaryScoreReason;
+  final ScorelineCandidate? topExactScoreOverall;
+  final bool topExactScoreDiffersFromPrimary;
+  final List<ScorelineCandidate> favoriteOutcomeTopScores;
+  final List<String> warnings;
+
+  const ScorelineDecision({
+    required this.favoriteOutcome,
+    required this.favoriteOutcomeProbability,
+    required this.secondOutcome,
+    required this.secondOutcomeProbability,
+    required this.outcomeMargin,
+    required this.confidenceLabel,
+    this.primaryPredictedScore,
+    this.primaryScoreReason = '',
+    this.topExactScoreOverall,
+    this.topExactScoreDiffersFromPrimary = false,
+    this.favoriteOutcomeTopScores = const [],
+    this.warnings = const [],
+  });
+
+  factory ScorelineDecision.fromJson(Map<String, dynamic> json) {
+    return ScorelineDecision(
+      favoriteOutcome: json['favorite_outcome'] as String,
+      favoriteOutcomeProbability:
+          (json['favorite_outcome_probability'] as num).toDouble(),
+      secondOutcome: json['second_outcome'] as String,
+      secondOutcomeProbability:
+          (json['second_outcome_probability'] as num).toDouble(),
+      outcomeMargin: (json['outcome_margin'] as num).toDouble(),
+      confidenceLabel: json['confidence_label'] as String? ?? 'medium',
+      primaryPredictedScore: json['primary_predicted_score'] != null
+          ? ScorelineCandidate.fromJson(
+              json['primary_predicted_score'] as Map<String, dynamic>,
+            )
+          : null,
+      primaryScoreReason: json['primary_score_reason'] as String? ?? '',
+      topExactScoreOverall: json['top_exact_score_overall'] != null
+          ? ScorelineCandidate.fromJson(
+              json['top_exact_score_overall'] as Map<String, dynamic>,
+            )
+          : null,
+      topExactScoreDiffersFromPrimary:
+          json['top_exact_score_differs_from_primary'] as bool? ?? false,
+      favoriteOutcomeTopScores:
+          (json['favorite_outcome_top_scores'] as List<dynamic>? ?? [])
+              .map(
+                (e) => ScorelineCandidate.fromJson(e as Map<String, dynamic>),
+              )
+              .toList(),
+      warnings: List<String>.from(json['warnings'] as List<dynamic>? ?? []),
+    );
+  }
+}
+
+class ActualScore {
+  final int home;
+  final int away;
+
+  const ActualScore({required this.home, required this.away});
+
+  factory ActualScore.fromJson(Map<String, dynamic> json) {
+    return ActualScore(
+      home: json['home'] as int,
+      away: json['away'] as int,
+    );
+  }
+}
+
+class MatchContextDiagnostics {
+  final String fixtureStatus;
+  final bool predictionValid;
+  final String predictionMode;
+  final ActualScore? actualScore;
+  final bool fixtureSourceAvailable;
+  final bool venueContextAvailable;
+  final bool neutralGroundRequested;
+  final bool hostAdvantageApplied;
+  final double homeAdvantageValue;
+  final List<String> warnings;
+
+  const MatchContextDiagnostics({
+    this.fixtureStatus = 'unknown',
+    this.predictionValid = true,
+    this.predictionMode = 'unknown',
+    this.actualScore,
+    this.fixtureSourceAvailable = false,
+    this.venueContextAvailable = false,
+    this.neutralGroundRequested = true,
+    this.hostAdvantageApplied = false,
+    this.homeAdvantageValue = 0,
+    this.warnings = const [],
+  });
+
+  factory MatchContextDiagnostics.fromJson(Map<String, dynamic> json) {
+    return MatchContextDiagnostics(
+      fixtureStatus: json['fixture_status'] as String? ?? 'unknown',
+      predictionValid: json['prediction_valid'] as bool? ?? true,
+      predictionMode: json['prediction_mode'] as String? ?? 'unknown',
+      actualScore: json['actual_score'] != null
+          ? ActualScore.fromJson(json['actual_score'] as Map<String, dynamic>)
+          : null,
+      fixtureSourceAvailable:
+          json['fixture_source_available'] as bool? ?? false,
+      venueContextAvailable: json['venue_context_available'] as bool? ?? false,
+      neutralGroundRequested:
+          json['neutral_ground_requested'] as bool? ?? true,
+      hostAdvantageApplied: json['host_advantage_applied'] as bool? ?? false,
+      homeAdvantageValue:
+          (json['home_advantage_value'] as num?)?.toDouble() ?? 0,
+      warnings: List<String>.from(json['warnings'] as List<dynamic>? ?? []),
+    );
+  }
+}
+
 class PredictionResult {
   final String homeTeam;
   final String awayTeam;
@@ -196,6 +342,8 @@ class PredictionResult {
   final String matchSummary;
   final String h2hSummary;
   final MatchContextInfo? matchContext;
+  final ScorelineDecision? scorelineDecision;
+  final MatchContextDiagnostics? matchContextDiagnostics;
 
   const PredictionResult({
     required this.homeTeam,
@@ -213,6 +361,8 @@ class PredictionResult {
     this.matchSummary = '',
     this.h2hSummary = '',
     this.matchContext,
+    this.scorelineDecision,
+    this.matchContextDiagnostics,
   });
 
   factory PredictionResult.fromJson(Map<String, dynamic> json) {
@@ -246,6 +396,16 @@ class PredictionResult {
       matchContext: json['match_context'] != null
           ? MatchContextInfo.fromJson(
               json['match_context'] as Map<String, dynamic>,
+            )
+          : null,
+      scorelineDecision: json['scoreline_decision'] != null
+          ? ScorelineDecision.fromJson(
+              json['scoreline_decision'] as Map<String, dynamic>,
+            )
+          : null,
+      matchContextDiagnostics: json['match_context_diagnostics'] != null
+          ? MatchContextDiagnostics.fromJson(
+              json['match_context_diagnostics'] as Map<String, dynamic>,
             )
           : null,
     );

@@ -7,6 +7,6 @@ void main() {
     await tester.pumpWidget(const FootballPredictorApp());
     await tester.pump();
 
-    expect(find.text('מנבא כדורגל'), findsOneWidget);
+    expect(find.text('חיזוי משחק'), findsOneWidget);
   });
 }

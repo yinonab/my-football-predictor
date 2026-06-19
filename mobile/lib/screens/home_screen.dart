@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
+import '../utils/prediction_ui_copy.dart';
 import '../utils/score_format.dart';
 import '../models/prediction_result.dart';
 import '../services/api_service.dart';
 import '../widgets/outcome_cards.dart';
+import '../widgets/prediction_insight_sections.dart';
 import '../widgets/score_list.dart';
 import '../widgets/team_text_field.dart';
 import 'settings_screen.dart';
@@ -210,12 +212,54 @@ class _HomeScreenState extends State<HomeScreen> {
                       groupBadge: _result?.awayBreakdown.group,
                     ),
                     const SizedBox(height: 12),
+                    Text(
+                      'מיקום המשחק',
+                      style: theme.textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('משחק במגרש ניטרלי'),
+                      title: Text(
+                        neutralToggleSubtitle(
+                          neutralGround: _neutralGround,
+                          homeTeam: _teamAController.text.trim().isEmpty
+                              ? 'הנבחרת הראשונה'
+                              : _teamAController.text.trim(),
+                        ),
+                      ),
                       value: _neutralGround,
                       onChanged: (v) => setState(() => _neutralGround = v),
                     ),
+                    Text(
+                      'כאשר המשחק אינו ניטרלי, יתרון הביתיות ניתן לנבחרת הראשונה.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                    if (_result != null) ...[
+                      Builder(
+                        builder: (context) {
+                          final note = hostAdvantageNote(
+                            _result!.matchContextDiagnostics,
+                          );
+                          if (note == null) return const SizedBox.shrink();
+                          return Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              note,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                                fontStyle: FontStyle.italic,
+                              ),
+                              textAlign: TextAlign.right,
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                     const SizedBox(height: 12),
                     SizedBox(
                       width: double.infinity,
@@ -271,8 +315,22 @@ class _HomeScreenState extends State<HomeScreen> {
                         teamBLabel: _result!.awayTeam,
                         isNeutralGround: _neutralGround,
                       ),
-                      if (_result!.matchSummary.isNotEmpty) ...[
-                        const SizedBox(height: 12),
+                      const SizedBox(height: 12),
+                      PredictionStatusBanner(result: _result!),
+                      PredictionWarningChips(result: _result!),
+                      const SizedBox(height: 8),
+                      PredictionPrimaryScoreCard(
+                        result: _result!,
+                        isNeutralGround: _neutralGround,
+                      ),
+                      if (_result!.scorelineDecision != null) ...[
+                        const SizedBox(height: 8),
+                        PredictionWhyCard(
+                          result: _result!,
+                          isNeutralGround: _neutralGround,
+                        ),
+                      ] else if (_result!.matchSummary.isNotEmpty) ...[
+                        const SizedBox(height: 8),
                         Card(
                           color: theme.colorScheme.surfaceContainerHighest,
                           child: Padding(
@@ -307,97 +365,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                         ),
                       ],
-                      if (_result!.matchContext?.hasDetails == true) ...[
-                        const SizedBox(height: 8),
-                        Card(
-                          color: theme.colorScheme.tertiaryContainer.withValues(alpha: 0.45),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.wb_sunny_outlined,
-                                      size: 20,
-                                      color: theme.colorScheme.tertiary,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'הקשר משחק',
-                                      style: theme.textTheme.titleSmall?.copyWith(
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                if (_result!.matchContext!.stage != null &&
-                                    _result!.matchContext!.stage!.isNotEmpty) ...[
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    'שלב: ${_result!.matchContext!.stage}',
-                                    style: theme.textTheme.bodySmall,
-                                    textAlign: TextAlign.right,
-                                  ),
-                                ],
-                                if (_result!.matchContext!.venueCity != null) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'עיר: ${_result!.matchContext!.venueCity}'
-                                    '${_result!.matchContext!.matchDate != null ? " · ${_result!.matchContext!.matchDate}" : ""}',
-                                    style: theme.textTheme.bodySmall,
-                                    textAlign: TextAlign.right,
-                                  ),
-                                ],
-                                if (_result!.matchContext!.weatherSummary != null) ...[
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    _result!.matchContext!.weatherSummary!,
-                                    style: theme.textTheme.bodyMedium,
-                                    textAlign: TextAlign.right,
-                                  ),
-                                ],
-                                if (_result!.matchContext!.homeRestDays != null ||
-                                    _result!.matchContext!.awayRestDays != null) ...[
-                                  const SizedBox(height: 6),
-                                  Text(
-                                    'מנוחה: בית ${_result!.matchContext!.homeRestDays ?? "—"} ימים · '
-                                    'חוץ ${_result!.matchContext!.awayRestDays ?? "—"} ימים',
-                                    style: theme.textTheme.bodySmall,
-                                    textAlign: TextAlign.right,
-                                  ),
-                                ],
-                                if (_result!.matchContext!.awayTravelKm != null &&
-                                    _result!.matchContext!.awayTravelKm! >= 2000) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'נסיעת חוץ: ${_result!.matchContext!.awayTravelKm!.toStringAsFixed(0)} ק"מ',
-                                    style: theme.textTheme.bodySmall,
-                                    textAlign: TextAlign.right,
-                                  ),
-                                ],
-                                if (_result!.matchContext!.notes.isNotEmpty) ...[
-                                  const SizedBox(height: 8),
-                                  ..._result!.matchContext!.notes.map(
-                                    (n) => Padding(
-                                      padding: const EdgeInsets.only(bottom: 4),
-                                      child: Text(
-                                        '• $n',
-                                        style: theme.textTheme.bodySmall?.copyWith(
-                                          color: theme.colorScheme.onSurfaceVariant,
-                                        ),
-                                        textAlign: TextAlign.right,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       Card(
                         child: Padding(
                           padding: const EdgeInsets.all(16),
@@ -469,7 +437,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'תחזית מדויקת — 3 האפשרויות המובילות',
+                        _result!.scorelineDecision != null
+                            ? 'התוצאות הבודדות המובילות במטריצה'
+                            : 'תחזית מדויקת — 3 האפשרויות המובילות',
                         style: theme.textTheme.titleMedium,
                         textAlign: TextAlign.right,
                       ),
@@ -480,7 +450,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         teamBName: _result!.awayTeam,
                         isNeutralGround: _neutralGround,
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
+                      PredictionContextCard(
+                        result: _result!,
+                        isNeutralGround: _neutralGround,
+                      ),
+                      const SizedBox(height: 8),
+                      PredictionTechnicalDetails(result: _result!),
+                      const SizedBox(height: 8),
                       ExpansionTile(
                         title: const Text('פירוט כוח נבחרות'),
                         children: [
