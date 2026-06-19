@@ -188,12 +188,18 @@ def test_activation_qa_report_cli_runs() -> None:
 
 
 def test_smoke_predict_active_candidate_cli_runs() -> None:
+    import os
+
+    env = os.environ.copy()
+    env["API_FOOTBALL_KEY"] = ""
+    env["THE_ODDS_API_KEY"] = ""
     proc = subprocess.run(
         [PYTHON, "scripts/smoke_predict_active_candidate.py"],
         cwd=BACKEND_ROOT,
         capture_output=True,
         text=True,
         timeout=180,
+        env=env,
     )
     assert proc.returncode == 0, proc.stdout + proc.stderr
     assert "PASS" in proc.stdout

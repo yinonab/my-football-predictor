@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
 if str(BACKEND_ROOT) not in sys.path:
@@ -13,6 +13,25 @@ if str(BACKEND_ROOT) not in sys.path:
 
 import config
 from core.activation_qa import load_activation_qa_matchups
+
+
+def _force_offline_external_services() -> None:
+    """
+    Smoke runs must not depend on API-Football / odds providers.
+    Phase 4L fixture-state resolution adds per-predict API lookups; without this,
+    a suspended key causes multi-minute hangs across QA matchups.
+    """
+    from api import main as api_main
+    from core.fixture_state_resolver import FixtureStateResolver
+    from core.match_context import MatchContextGatherer
+    from core.odds_ensemble import OddsClient
+
+    offline_api = MagicMock()
+    offline_api.is_available = False
+    api_main._api_client = offline_api
+    api_main._fixture_state_resolver = FixtureStateResolver(offline_api)
+    api_main._context_gatherer = MatchContextGatherer(offline_api)
+    api_main._odds_client = OddsClient(api_key="")
 
 
 def _client():
@@ -28,6 +47,7 @@ def _predict_payload(home: str, away: str) -> dict:
 
 
 def main() -> int:
+    _force_offline_external_services()
     matchups, skipped = load_activation_qa_matchups()
     client = _client()
     errors: list[str] = []

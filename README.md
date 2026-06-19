@@ -555,6 +555,28 @@ Config flags (local `.env` only — do not change Render without explicit approv
 - `PROBABILITY_CALIBRATION_METHOD=temperature`
 - `PROBABILITY_CALIBRATION_TEMPERATURE=1.35`
 
+## Phase 4L Fixture State + Match Context Engine
+
+Phase 4K showed calibration cannot fix missing fixture/context. This phase adds fixture-state awareness and host/venue diagnostics without changing prediction math.
+
+Additive `/api/predict` field: `match_context_diagnostics`
+
+| Field | Meaning |
+|-------|---------|
+| `fixture_status` | `scheduled` \| `live` \| `completed` \| `unknown` |
+| `prediction_valid` | `false` when match already completed |
+| `prediction_mode` | `pre_match` \| `live` \| `historical` \| `unknown` |
+| `actual_score` | `{home, away}` when known |
+| `warnings` | e.g. `MATCH_ALREADY_COMPLETED`, `FIXTURE_STATE_UNAVAILABLE`, `API_FOOTBALL_ACCOUNT_SUSPENDED`, `HOST_ADVANTAGE_DETECTED_BUT_VALUE_ZERO` |
+
+Manual overrides (verified results only): `backend/data/fixture_state_overrides.json`
+
+```powershell
+cd backend
+python -m pytest tests/test_fixture_state_phase4l.py -q
+python -m pytest tests/ -q
+```
+
 ## Phase 4I Coherent Probability Pipeline
 
 Completes the coherent probability pipeline: single final 1X2 state shared by API output, diagnostics, match_summary, and explanations. Adds `probability_coherence` diagnostics. Calibration remains default-off and blocked when coherence fails.

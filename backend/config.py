@@ -168,6 +168,7 @@ TEMPORAL_WORLD_ELO_SNAPSHOT_PATH: str = "data/world_elo_historical_snapshot.json
 TEMPORAL_DEFAULT_WORLD_ELO_MODE: str = "none"
 TEMPORAL_MATCH_DATES_OVERRIDES_PATH: str = "data/match_dates_overrides.json"
 TEMPORAL_RATING_PRIORS_PATH: str = "data/rating_priors.json"
+FIXTURE_STATE_OVERRIDES_PATH: str = "data/fixture_state_overrides.json"
 TEMPORAL_DEFAULT_PRIOR_MODE: str = "default_internal"
 
 # Phase 2H — Historical external rating snapshots (manual, no scraping)

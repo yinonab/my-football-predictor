@@ -71,6 +71,39 @@ class MatchContextResponse(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+class VenueDiagnosticsResponse(BaseModel):
+    name: str | None = None
+    city: str | None = None
+    country: str | None = None
+    altitude_meters: int | None = None
+
+
+class ActualScoreResponse(BaseModel):
+    home: int
+    away: int
+
+
+class MatchContextDiagnosticsResponse(BaseModel):
+    """Phase 4L — fixture state, host/venue visibility (additive; does not alter prediction math)."""
+
+    fixture_status: str = "unknown"
+    prediction_valid: bool = True
+    prediction_mode: str = "unknown"
+    actual_score: ActualScoreResponse | None = None
+    kickoff_time_utc: str | None = None
+    fixture_source: str = "unavailable"
+    fixture_source_available: bool = False
+    venue: VenueDiagnosticsResponse = Field(default_factory=VenueDiagnosticsResponse)
+    neutral_ground_requested: bool = True
+    host_country_match: bool = False
+    host_advantage_candidate_team: str | None = None
+    host_advantage_applied: bool = False
+    home_advantage_value: float = 0.0
+    venue_context_available: bool = False
+    altitude_applied: bool = False
+    warnings: list[str] = Field(default_factory=list)
+
+
 class ScoreProbability(BaseModel):
     score: str
     probability: float
@@ -263,6 +296,7 @@ class PredictResponse(BaseModel):
     model_diagnostics: ModelDiagnosticsResponse | None = None
     probability_diagnostics: ProbabilityDiagnosticsResponse | None = None
     probability_coherence: ProbabilityCoherenceResponse | None = None
+    match_context_diagnostics: MatchContextDiagnosticsResponse | None = None
 
 
 class GlobalRatingDebugResponse(BaseModel):

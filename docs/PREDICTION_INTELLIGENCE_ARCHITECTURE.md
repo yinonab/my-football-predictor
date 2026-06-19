@@ -628,28 +628,45 @@ Default: `ODDS_AFFECT_PREDICTION=false`, `PROBABILITY_CALIBRATION_ENABLED=false`
 - Post-deploy coherence audit on Render
 - Not live tournament updates yet
 
-### Phase 4K — Calibration activation behind default-off flag
+### Phase 4K — Prediction quality root-cause audit
 
-- Only after deployed coherence audit passes
+- Audit-only phase: xG/Maher gaps, `top_scores` semantics, missing fixture state, host advantage diagnostics
+- **Outcome:** calibration activation deferred until fixture/context foundation exists
+- Canada vs Qatar: moderate power gap, 1–1 top score mathematically valid but product-confusing; completed matches not detected
+
+### Phase 4L — Fixture State + Match Context Engine
+
+- `FixtureState` model: `scheduled` | `live` | `completed` | `unknown`
+- Resolver order: manual override → curated metadata → API-Football → unknown
+- Additive `match_context_diagnostics` on `/api/predict`:
+  - `prediction_valid`, `prediction_mode`, `actual_score`, fixture source warnings
+  - Host-country detection (Canada/USA/Mexico) with `HOST_ADVANTAGE_DETECTED_BUT_VALUE_ZERO` when `DEFAULT_HOME_ADV=0`
+  - API-Football failure codes: `EXTERNAL_FIXTURE_SOURCE_UNAVAILABLE`, `API_FOOTBALL_ACCOUNT_SUSPENDED`
+- Completed matches: `prediction_valid=false`, `MATCH_ALREADY_COMPLETED` — prediction fields retained for backward compatibility
+- **No xG/Maher/calibration tuning** in this phase
+
+### Phase 4M — Calibration activation behind default-off flag
+
+- Only after fixture/context foundation and coherence audit
 - `temperature(T=1.35)` from Phase 4G validation
 
-### Phase 4L — Live tournament updates
+### Phase 4N — Live tournament updates
 
 - Finished-match ingest (API-Football or admin)
 - Capped Elo update, persistence, rollback
 - `LIVE_TOURNAMENT_UPDATES_ENABLED=false` default
 
-### Phase 4M — ML shadow candidate
+### Phase 4O — ML shadow candidate
 
 - **Only after MatchFeatures parity**
 - Logistic regression on feature vector first
 - Walk-forward gate required
 - `ML_CANDIDATE_ENABLED=false` default
 
-### Phase 4N — Mobile confidence / explainability UI
+### Phase 4P — Mobile confidence / explainability UI
 
-- Parse `model_diagnostics`, `probability_coherence`, `confidence_diagnostics`
-- Show model version, fallback badge, coherence warnings
+- Parse `model_diagnostics`, `probability_coherence`, `match_context_diagnostics`, `confidence_diagnostics`
+- Show model version, fallback badge, coherence warnings, completed-match state
 - **No prediction logic change** — mobile display only
 
 ---
@@ -675,9 +692,9 @@ Default: `ODDS_AFFECT_PREDICTION=false`, `PROBABILITY_CALIBRATION_ENABLED=false`
 Explicitly **out of scope** until later phases:
 
 - ❌ No ML implementation (Phase 4M)
-- ❌ No production calibrator affecting live 1X2 (Phase 4K+ after deploy coherence audit)
+- ❌ No production calibrator affecting live 1X2 (Phase 4M+ after fixture/context foundation)
 - ❌ No odds matrix blending (Phase 4D+ planning only)
-- ❌ No automatic live WC2026 result updates (Phase 4L)
+- ❌ No automatic live WC2026 result updates (Phase 4N)
 - ❌ No Maher, Dixon-Coles, xG, rho, floor, blowout, Power weight, or defense sign tuning
 - ❌ No prediction behavior change in Phase 4A
 - ❌ No Render env var changes as part of architecture work

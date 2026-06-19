@@ -1,0 +1,4 @@
+{
+  "description": "Manual fixture-state overrides for tests and curated live fixtures. Do not invent rows — only add verified match state.",
+  "fixtures": []
+}

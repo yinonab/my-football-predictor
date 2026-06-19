@@ -132,6 +132,20 @@ class ApiFootballClient:
         )
         return self.extract_fixture_context(items_sorted[0])
 
+    def find_h2h_fixtures(
+        self,
+        team_a_id: int,
+        team_b_id: int,
+    ) -> list[dict[str, Any]]:
+        """Head-to-head fixtures (any status) for fixture-state resolution."""
+        if not self.is_available:
+            return []
+        data = self._get(
+            "/fixtures/headtohead",
+            params={"h2h": f"{team_a_id}-{team_b_id}"},
+        )
+        return list(data.get("response") or [])
+
     def fetch_team_fixtures(
         self,
         team_id: int,

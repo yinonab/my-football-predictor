@@ -36,6 +36,9 @@ from api.schemas import (
     HealthResponse,
     OutcomeExplanations,
     MatchContextResponse,
+    MatchContextDiagnosticsResponse,
+    ActualScoreResponse,
+    VenueDiagnosticsResponse,
     ModelDiagnosticsResponse,
     PredictRequest,
     PredictResponse,
@@ -70,6 +73,8 @@ from core.global_ratings import (
 )
 from core.context_adjustments import apply_xg_context_delta, compute_context_adjustments
 from core.match_context import MatchContextGatherer
+from core.match_context_diagnostics import build_match_context_diagnostics
+from core.fixture_state_resolver import FixtureStateResolver
 from core.match_features import build_match_features
 from core.strength_result import StrengthResult, build_strength_result
 from core.maher import blend_maher_with_power, floor_underdog_xg, mismatch_gap, scale_rho_for_gap
@@ -115,6 +120,7 @@ _api_client = ApiFootballClient()
 _h2h_store = H2HStore()
 _odds_client = OddsClient()
 _context_gatherer = MatchContextGatherer(_api_client)
+_fixture_state_resolver = FixtureStateResolver(_api_client)
 
 _opponent_index = build_opponent_index(
     build_all_matches(),
@@ -156,6 +162,33 @@ def _team_breakdown(
         elo=float(bd["elo"]),
         breakdown=breakdown_text,
         group=group,
+    )
+
+
+def _match_context_diagnostics_response(
+    diag,
+) -> MatchContextDiagnosticsResponse:
+    actual = None
+    if diag.actual_score is not None:
+        actual = ActualScoreResponse(**diag.actual_score)
+    venue = VenueDiagnosticsResponse(**diag.venue.to_dict())
+    return MatchContextDiagnosticsResponse(
+        fixture_status=diag.fixture_status,
+        prediction_valid=diag.prediction_valid,
+        prediction_mode=diag.prediction_mode,
+        actual_score=actual,
+        kickoff_time_utc=diag.kickoff_time_utc,
+        fixture_source=diag.fixture_source,
+        fixture_source_available=diag.fixture_source_available,
+        venue=venue,
+        neutral_ground_requested=diag.neutral_ground_requested,
+        host_country_match=diag.host_country_match,
+        host_advantage_candidate_team=diag.host_advantage_candidate_team,
+        host_advantage_applied=diag.host_advantage_applied,
+        home_advantage_value=diag.home_advantage_value,
+        venue_context_available=diag.venue_context_available,
+        altitude_applied=diag.altitude_applied,
+        warnings=list(diag.warnings),
     )
 
 
@@ -256,6 +289,12 @@ def predict(request: PredictRequest) -> PredictResponse:
     home_resolved = match_features.resolved_home_team
     away_resolved = match_features.resolved_away_team
 
+    fixture_state = _fixture_state_resolver.resolve(
+        home_resolved,
+        away_resolved,
+        match_date=request.match_date,
+    )
+
     home_power = _power_evaluator.calculate_composite_power(
         home_resolved, use_live=request.use_live_stats
     )
@@ -327,6 +366,14 @@ def predict(request: PredictRequest) -> PredictResponse:
     )
 
     advantage = 0.0 if request.neutral_ground else request.home_advantage
+
+    match_context_diagnostics = build_match_context_diagnostics(
+        fixture_state=fixture_state,
+        neutral_ground_requested=request.neutral_ground,
+        home_advantage_value=request.home_advantage,
+        request_venue_city=request.venue_city or ctx_info.venue_city,
+        request_altitude=request.altitude,
+    )
 
     home_data = match_features.home_team_data
     away_data = match_features.away_team_data
@@ -623,6 +670,9 @@ def predict(request: PredictRequest) -> PredictResponse:
         ),
         probability_coherence=ProbabilityCoherenceResponse(
             **pipeline.to_probability_coherence_dict()
+        ),
+        match_context_diagnostics=_match_context_diagnostics_response(
+            match_context_diagnostics
         ),
     )
 
