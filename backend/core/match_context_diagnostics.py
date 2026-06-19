@@ -1,4 +1,4 @@
-"""Phase 4L — Match context diagnostics (fixture state + host/venue visibility)."""
+"""Phase 4L/4O — Match context diagnostics (fixture state + venue/home advantage)."""
 
 from __future__ import annotations
 
@@ -6,39 +6,10 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import config
-from core.fixture_state import (
-    HOST_ADVANTAGE_DETECTED_BUT_VALUE_ZERO,
-    FixtureState,
-)
+from core.fixture_state import FixtureState
 from core.global_ratings import english_name
-from data.wc2026_venues import lookup_coordinates, normalize_city
-
-WC2026_HOST_NATIONS: frozenset[str] = frozenset(
-    {
-        "Canada",
-        "USA",
-        "United States",
-        "Mexico",
-        "מקסיקו",
-    }
-)
-
-_CANADA_CITIES = frozenset({"toronto", "vancouver"})
-_MEXICO_CITIES = frozenset({"guadalajara", "mexico city", "monterrey"})
-
-
-def venue_country_from_city(city: str | None) -> str | None:
-    """Map WC2026 venue city to host country when known in repo metadata."""
-    if not city:
-        return None
-    key = normalize_city(city)
-    if key in _CANADA_CITIES:
-        return "Canada"
-    if key in _MEXICO_CITIES:
-        return "Mexico"
-    if lookup_coordinates(city) is not None:
-        return "USA"
-    return None
+from core.venue_advantage import VenueAdvantageContext
+from core.venue_geo import WC2026_HOST_NATIONS, venue_country_from_city
 
 
 def _is_host_nation(team_en: str) -> bool:
@@ -56,8 +27,9 @@ def detect_host_country_match(
 ) -> tuple[bool, str | None]:
     """
     True when the home side is a WC2026 co-host playing in that host country.
-    Does not apply advantage — diagnostics only.
+    Diagnostics only — advantage application is via venue_mode (Phase 4O).
     """
+    del away_team, neutral_ground_requested
     home_en = english_name(home_team) or home_team.split(" (")[0].strip()
     if not _is_host_nation(home_en):
         return False, None
@@ -98,11 +70,14 @@ class MatchContextDiagnostics:
     fixture_source: str
     fixture_source_available: bool
     venue: VenueDiagnostics
+    venue_mode: str
     neutral_ground_requested: bool
+    home_advantage_team: str
     host_country_match: bool
     host_advantage_candidate_team: str | None
     host_advantage_applied: bool
     home_advantage_value: float
+    home_advantage_power_delta: float
     venue_context_available: bool
     altitude_applied: bool
     warnings: list[str] = field(default_factory=list)
@@ -117,11 +92,14 @@ class MatchContextDiagnostics:
             "fixture_source": self.fixture_source,
             "fixture_source_available": self.fixture_source_available,
             "venue": self.venue.to_dict(),
+            "venue_mode": self.venue_mode,
             "neutral_ground_requested": self.neutral_ground_requested,
+            "home_advantage_team": self.home_advantage_team,
             "host_country_match": self.host_country_match,
             "host_advantage_candidate_team": self.host_advantage_candidate_team,
             "host_advantage_applied": self.host_advantage_applied,
             "home_advantage_value": self.home_advantage_value,
+            "home_advantage_power_delta": self.home_advantage_power_delta,
             "venue_context_available": self.venue_context_available,
             "altitude_applied": self.altitude_applied,
             "warnings": list(self.warnings),
@@ -132,7 +110,7 @@ def build_match_context_diagnostics(
     *,
     fixture_state: FixtureState,
     neutral_ground_requested: bool,
-    home_advantage_value: float,
+    venue_advantage: VenueAdvantageContext,
     request_venue_city: str | None,
     request_altitude: int,
     extra_warnings: list[str] | None = None,
@@ -146,29 +124,11 @@ def build_match_context_diagnostics(
         altitude_meters=request_altitude if request_altitude > 0 else None,
     )
 
-    host_match, host_candidate = detect_host_country_match(
-        home_team=fixture_state.home_team,
-        away_team=fixture_state.away_team,
-        venue_city=venue_city,
-        venue_country=venue_country,
-        neutral_ground_requested=neutral_ground_requested,
-    )
-
-    if neutral_ground_requested:
-        advantage_applied = False
-        effective_adv = 0.0
-    else:
-        effective_adv = float(home_advantage_value)
-        advantage_applied = effective_adv > 0.0
-
     warnings = list(fixture_state.warnings)
+    warnings.extend(venue_advantage.warnings)
     if extra_warnings:
         warnings.extend(extra_warnings)
     warnings = list(dict.fromkeys(warnings))
-
-    if host_match and host_candidate and effective_adv <= 0.0:
-        if HOST_ADVANTAGE_DETECTED_BUT_VALUE_ZERO not in warnings:
-            warnings.append(HOST_ADVANTAGE_DETECTED_BUT_VALUE_ZERO)
 
     actual_score = None
     if fixture_state.actual_score_available:
@@ -177,9 +137,6 @@ def build_match_context_diagnostics(
             "away": int(fixture_state.actual_away_goals or 0),
         }
 
-    venue_context_available = bool(
-        venue.city or venue.country or venue.name or request_venue_city
-    )
     altitude_applied = request_altitude > config.ALTITUDE_THRESHOLD_M
 
     return MatchContextDiagnostics(
@@ -191,12 +148,15 @@ def build_match_context_diagnostics(
         fixture_source=fixture_state.source,
         fixture_source_available=fixture_state.source_available,
         venue=venue,
+        venue_mode=venue_advantage.venue_mode,
         neutral_ground_requested=neutral_ground_requested,
-        host_country_match=host_match,
-        host_advantage_candidate_team=host_candidate,
-        host_advantage_applied=advantage_applied,
-        home_advantage_value=effective_adv,
-        venue_context_available=venue_context_available,
+        home_advantage_team=venue_advantage.home_advantage_team,
+        host_country_match=venue_advantage.host_country_match,
+        host_advantage_candidate_team=venue_advantage.host_advantage_candidate_team,
+        host_advantage_applied=venue_advantage.home_advantage_applied,
+        home_advantage_value=venue_advantage.home_advantage_value,
+        home_advantage_power_delta=venue_advantage.home_advantage_power_delta,
+        venue_context_available=venue_advantage.venue_context_available,
         altitude_applied=altitude_applied,
         warnings=warnings,
     )

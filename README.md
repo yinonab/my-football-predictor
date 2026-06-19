@@ -593,7 +593,7 @@ Additive `/api/predict` field: `match_context_diagnostics`
 | `prediction_valid` | `false` when match already completed |
 | `prediction_mode` | `pre_match` \| `live` \| `historical` \| `unknown` |
 | `actual_score` | `{home, away}` when known |
-| `warnings` | e.g. `MATCH_ALREADY_COMPLETED`, `FIXTURE_STATE_UNAVAILABLE`, `API_FOOTBALL_ACCOUNT_SUSPENDED`, `HOST_ADVANTAGE_DETECTED_BUT_VALUE_ZERO` |
+| `warnings` | e.g. `MATCH_ALREADY_COMPLETED`, `FIXTURE_STATE_UNAVAILABLE`, `HOST_COUNTRY_AUTO_UNAVAILABLE` |
 
 Manual overrides (verified results only): `backend/data/fixture_state_overrides.json`
 
@@ -622,6 +622,29 @@ When `FOOTBALL_DATA_API_KEY` is set, World Cup 2026 fixture status, kickoff time
 ```powershell
 cd backend
 python -m pytest tests/test_football_data_phase4x.py -q
+```
+
+## Phase 4O Home Advantage Engine + Venue Mode
+
+Home advantage is a first-class prediction input: it adjusts **composite team power** before xG, score matrix, 1X2, and `scoreline_decision`.
+
+Optional request field `venue_mode`:
+
+| Value | Effect |
+|-------|--------|
+| `neutral` | No home advantage (default when `neutral_ground=true`) |
+| `first_team_home` | Boost first/home team power (`neutral_ground=false` maps here) |
+| `second_team_home` | Boost second/away team power (labels unchanged) |
+| `host_country_auto` | USA/Canada/Mexico host advantage when venue country is known |
+
+`venue_mode` takes precedence over `neutral_ground`. `neutral_ground` remains for backward compatibility.
+
+Config: `HOME_ADVANTAGE_POWER_POINTS` (default **35** on composite power scale ~700–900; conservative ~4% boost).
+
+```powershell
+cd backend
+python -m pytest tests/test_home_advantage_phase4o.py -q
+python scripts/audit_home_advantage.py --markdown reports/home_advantage_audit.md --csv reports/home_advantage_audit.csv
 ```
 
 ## Phase 4I Coherent Probability Pipeline

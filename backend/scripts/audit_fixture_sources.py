@@ -14,6 +14,7 @@ if str(BACKEND) not in sys.path:
 
 from core.fixture_state_resolver import FixtureStateResolver
 from core.match_context_diagnostics import build_match_context_diagnostics
+from core.venue_advantage import resolve_venue_advantage
 from data.api_football import ApiFootballClient
 from data.football_data import FootballDataClient
 
@@ -42,10 +43,20 @@ def run_audit() -> list[dict[str, str]]:
     rows: list[dict[str, str]] = []
     for home, away in REGRESSION_MATCHUPS:
         state = resolver.resolve(home, away)
+        venue_adv = resolve_venue_advantage(
+            home_team=state.home_team,
+            away_team=state.away_team,
+            fixture_state=state,
+            venue_mode=None,
+            neutral_ground=True,
+            request_home_advantage=0.0,
+            request_venue_city=None,
+            request_altitude=0,
+        )
         diag = build_match_context_diagnostics(
             fixture_state=state,
             neutral_ground_requested=True,
-            home_advantage_value=0.0,
+            venue_advantage=venue_adv,
             request_venue_city=None,
             request_altitude=0,
         ).to_dict()

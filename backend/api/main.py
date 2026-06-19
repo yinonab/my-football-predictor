@@ -77,6 +77,11 @@ from core.global_ratings import (
 from core.context_adjustments import apply_xg_context_delta, compute_context_adjustments
 from core.match_context import MatchContextGatherer
 from core.match_context_diagnostics import build_match_context_diagnostics
+from core.venue_advantage import (
+    apply_home_advantage_to_powers,
+    elo_advantage_for_pipeline,
+    resolve_venue_advantage,
+)
 from core.fixture_state_resolver import FixtureStateResolver
 from core.match_features import build_match_features
 from core.strength_result import StrengthResult, build_strength_result
@@ -206,11 +211,14 @@ def _match_context_diagnostics_response(
         fixture_source=diag.fixture_source,
         fixture_source_available=diag.fixture_source_available,
         venue=venue,
+        venue_mode=diag.venue_mode,
         neutral_ground_requested=diag.neutral_ground_requested,
+        home_advantage_team=diag.home_advantage_team,
         host_country_match=diag.host_country_match,
         host_advantage_candidate_team=diag.host_advantage_candidate_team,
         host_advantage_applied=diag.host_advantage_applied,
         home_advantage_value=diag.home_advantage_value,
+        home_advantage_power_delta=diag.home_advantage_power_delta,
         venue_context_available=diag.venue_context_available,
         altitude_applied=diag.altitude_applied,
         warnings=list(diag.warnings),
@@ -320,6 +328,17 @@ def predict(request: PredictRequest) -> PredictResponse:
         match_date=request.match_date,
     )
 
+    venue_advantage = resolve_venue_advantage(
+        home_team=home_resolved,
+        away_team=away_resolved,
+        fixture_state=fixture_state,
+        venue_mode=request.venue_mode,
+        neutral_ground=request.neutral_ground,
+        request_home_advantage=request.home_advantage,
+        request_venue_city=request.venue_city,
+        request_altitude=request.altitude,
+    )
+
     home_power = _power_evaluator.calculate_composite_power(
         home_resolved, use_live=request.use_live_stats
     )
@@ -390,12 +409,10 @@ def predict(request: PredictRequest) -> PredictResponse:
         notes=ctx_notes,
     )
 
-    advantage = 0.0 if request.neutral_ground else request.home_advantage
-
     match_context_diagnostics = build_match_context_diagnostics(
         fixture_state=fixture_state,
         neutral_ground_requested=request.neutral_ground,
-        home_advantage_value=request.home_advantage,
+        venue_advantage=venue_advantage,
         request_venue_city=request.venue_city or ctx_info.venue_city,
         request_altitude=request.altitude,
     )
@@ -415,8 +432,8 @@ def predict(request: PredictRequest) -> PredictResponse:
     active_power = try_apply_active_candidate_powers(
         home_resolved,
         away_resolved,
-        baseline_home_power=home_power,
-        baseline_away_power=away_power,
+        baseline_home_power=baseline_home_power,
+        baseline_away_power=baseline_away_power,
         baseline_home_elo=home_elo,
         baseline_away_elo=away_elo,
         data_manager=_data_manager,
@@ -446,6 +463,15 @@ def predict(request: PredictRequest) -> PredictResponse:
         home_power, away_power, experimental_global_diag = apply_experimental_power_nudge(
             home_power, away_power, pre_diag
         )
+
+    home_power, away_power = apply_home_advantage_to_powers(
+        home_power, away_power, venue_advantage
+    )
+    advantage = elo_advantage_for_pipeline(
+        venue_advantage,
+        home_elo=home_elo,
+        away_elo=away_elo,
+    )
 
     strength = build_strength_result(
         match_features=match_features,

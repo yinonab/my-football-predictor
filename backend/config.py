@@ -12,7 +12,11 @@ def _env_bool(name: str, default: bool) -> bool:
 
 GLOBAL_XG_AVG: float = 2.6  # Calibrated on WC18–26 bundle incl. qualifiers
 DEFAULT_RHO: float = -0.15  # Calibrated on WC18+22 Euro24 Copa24+qualifiers
-DEFAULT_HOME_ADV: float = 0.0  # WC neutral default; calibrated on WC 2022
+DEFAULT_HOME_ADV: float = 0.0  # Legacy Dixon-Coles advantage param; Phase 4O uses power points
+# Phase 4O — home advantage on composite power scale (~Elo-weighted, typical values ~700–900)
+HOME_ADVANTAGE_POWER_POINTS: float = float(
+    os.getenv("HOME_ADVANTAGE_POWER_POINTS", "35")
+)
 OVERDISPERSION_ALPHA: float = 0.0  # Calibrated: Poisson core fits WC 2022 best
 
 # Power decomposition weights

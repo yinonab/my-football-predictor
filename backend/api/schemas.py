@@ -30,6 +30,13 @@ class PredictRequest(BaseModel):
     home_team: str
     away_team: str
     neutral_ground: bool = True
+    venue_mode: str | None = Field(
+        default=None,
+        description=(
+            "Venue context: neutral | first_team_home | second_team_home | "
+            "host_country_auto. Takes precedence over neutral_ground when set."
+        ),
+    )
     use_live_stats: bool = False
     rho: float = Field(default=config.DEFAULT_RHO, ge=-0.15, le=0.0)
     avg_goals: float = Field(default=config.GLOBAL_XG_AVG, ge=1.0, le=4.0)
@@ -94,11 +101,14 @@ class MatchContextDiagnosticsResponse(BaseModel):
     fixture_source: str = "unavailable"
     fixture_source_available: bool = False
     venue: VenueDiagnosticsResponse = Field(default_factory=VenueDiagnosticsResponse)
+    venue_mode: str = "neutral"
     neutral_ground_requested: bool = True
+    home_advantage_team: str = "none"
     host_country_match: bool = False
     host_advantage_candidate_team: str | None = None
     host_advantage_applied: bool = False
     home_advantage_value: float = 0.0
+    home_advantage_power_delta: float = 0.0
     venue_context_available: bool = False
     altitude_applied: bool = False
     warnings: list[str] = Field(default_factory=list)

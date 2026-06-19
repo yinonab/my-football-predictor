@@ -17,6 +17,7 @@ from core.fixture_state import MATCH_ALREADY_COMPLETED, FixtureState, apply_fixt
 from core.fixture_state_resolver import FixtureStateResolver
 from data.football_data import FootballDataClient
 from core.match_context_diagnostics import build_match_context_diagnostics
+from core.venue_advantage import resolve_venue_advantage
 from core.scoreline_decision import (
     BALANCED_MATCH_LOW_CONFIDENCE,
     CONTEXT_LIMITED,
@@ -201,7 +202,16 @@ def test_completed_fixture_warning_and_low_confidence() -> None:
     ctx = build_match_context_diagnostics(
         fixture_state=state,
         neutral_ground_requested=True,
-        home_advantage_value=0.0,
+        venue_advantage=resolve_venue_advantage(
+            home_team=state.home_team,
+            away_team=state.away_team,
+            fixture_state=state,
+            venue_mode=None,
+            neutral_ground=True,
+            request_home_advantage=0.0,
+            request_venue_city=None,
+            request_altitude=0,
+        ),
         request_venue_city=None,
         request_altitude=0,
     )

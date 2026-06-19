@@ -673,7 +673,17 @@ Default: `ODDS_AFFECT_PREDICTION=false`, `PROBABILITY_CALIBRATION_ENABLED=false`
 - Only after fixture/context foundation and scoreline UX
 - `temperature(T=1.35)` from Phase 4G validation
 
-### Phase 4O — Live tournament updates
+### Phase 4O — Home Advantage Engine + Venue Mode
+
+- `venue_mode` on `/api/predict`: `neutral` | `first_team_home` | `second_team_home` | `host_country_auto`
+- Backward compatible: `neutral_ground=true` → neutral; `neutral_ground=false` → first_team_home
+- `HOME_ADVANTAGE_POWER_POINTS` (default 35) added to benefiting team's composite power; mirrored on Elo gap for Maher/xG when internal Elo is available
+- Dixon-Coles `advantage` param stays 0 in predict path (no double-counting)
+- Diagnostics: `venue_mode`, `home_advantage_team`, `home_advantage_power_delta`, `host_advantage_applied`
+- `host_country_auto` uses fixture/request venue country for USA/Canada/Mexico; warns `HOST_COUNTRY_AUTO_UNAVAILABLE` when unknown
+- Module: `backend/core/venue_advantage.py`; audit: `backend/scripts/audit_home_advantage.py`
+
+### Phase 4O.1 — Live tournament updates
 
 - Finished-match ingest (API-Football or admin)
 - Capped Elo update, persistence, rollback

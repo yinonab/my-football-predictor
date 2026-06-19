@@ -16,7 +16,7 @@ sys.path.insert(0, str(BACKEND_ROOT))
 from api import main as api_main
 from core.fixture_state import (
     FIXTURE_STATE_UNAVAILABLE,
-    HOST_ADVANTAGE_DETECTED_BUT_VALUE_ZERO,
+    HOST_COUNTRY_AUTO_UNAVAILABLE,
     MATCH_ALREADY_COMPLETED,
     API_FOOTBALL_ACCOUNT_SUSPENDED,
     EXTERNAL_FIXTURE_SOURCE_UNAVAILABLE,
@@ -29,7 +29,21 @@ from core.match_context_diagnostics import (
     detect_host_country_match,
     venue_country_from_city,
 )
+from core.venue_advantage import resolve_venue_advantage
 from data.football_data import FootballDataClient
+
+
+def _venue_ctx(state: FixtureState, **kwargs):
+    return resolve_venue_advantage(
+        home_team=state.home_team,
+        away_team=state.away_team,
+        fixture_state=state,
+        venue_mode=kwargs.get("venue_mode"),
+        neutral_ground=kwargs.get("neutral_ground", True),
+        request_home_advantage=float(kwargs.get("request_home_advantage", 0.0)),
+        request_venue_city=kwargs.get("request_venue_city"),
+        request_altitude=int(kwargs.get("request_altitude", 0)),
+    )
 
 
 def _no_football_data() -> FootballDataClient:
@@ -148,7 +162,9 @@ def test_host_country_detection_canada_toronto() -> None:
     assert candidate == "Canada"
 
 
-def test_host_advantage_zero_warning() -> None:
+def test_first_team_home_applies_advantage_toronto() -> None:
+    import config
+
     state = FixtureState(
         home_team="Canada (קנדה)",
         away_team="Qatar (קטר)",
@@ -158,17 +174,23 @@ def test_host_advantage_zero_warning() -> None:
         venue_city="Toronto",
         venue_country="Canada",
     )
+    venue_adv = _venue_ctx(
+        state,
+        neutral_ground=False,
+        request_venue_city="Toronto",
+    )
     diag = build_match_context_diagnostics(
         fixture_state=state,
         neutral_ground_requested=False,
-        home_advantage_value=0.0,
+        venue_advantage=venue_adv,
         request_venue_city="Toronto",
         request_altitude=0,
     )
     assert diag.host_country_match is True
     assert diag.host_advantage_candidate_team == "Canada"
-    assert diag.host_advantage_applied is False
-    assert HOST_ADVANTAGE_DETECTED_BUT_VALUE_ZERO in diag.warnings
+    assert diag.host_advantage_applied is True
+    assert diag.home_advantage_power_delta == config.HOME_ADVANTAGE_POWER_POINTS
+    assert diag.venue_mode == "first_team_home"
 
 
 def test_venue_country_from_city() -> None:
@@ -280,7 +302,8 @@ def test_canada_host_country_toronto_warning(client: TestClient, tmp_path: Path)
     diag = resp.json()["match_context_diagnostics"]
     assert diag["host_country_match"] is True
     assert diag["host_advantage_candidate_team"] == "Canada"
-    assert HOST_ADVANTAGE_DETECTED_BUT_VALUE_ZERO in diag["warnings"]
+    assert diag["host_advantage_applied"] is True
+    assert diag["home_advantage_power_delta"] > 0
 
 
 def test_api_failure_predict_still_returns(client: TestClient) -> None:
