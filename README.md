@@ -475,6 +475,103 @@ python -m pytest tests/ -q
 
 `/api/predict` adds optional `model_diagnostics` (Phase 3A). The Flutter mobile client parses only existing prediction fields (`probabilities_1x2`, `top_scores`, `home_xg`, etc.) and **ignores** `model_diagnostics` — no UI or schema break.
 
+## Phase 4A Prediction Intelligence Architecture
+
+Target layered architecture for smarter predictions (feature layer, strength, probability coherence, calibration, confidence, explainability). Planning doc only — no prediction behavior change in 4A:
+
+**[docs/PREDICTION_INTELLIGENCE_ARCHITECTURE.md](docs/PREDICTION_INTELLIGENCE_ARCHITECTURE.md)**
+
+## Phase 4B MatchFeatures Skeleton
+
+Unified match input layer — `backend/core/match_features.py` (`MatchFeatures`, `build_match_features()`). Wired into `/api/predict` for team resolution and team data lookup only; **no prediction output change**.
+
+```powershell
+cd backend
+python -m pytest tests/test_match_features.py -q
+```
+
+## Phase 4C StrengthResult Cleanup
+
+Explicit baseline vs active vs final power — `backend/core/strength_result.py`. `/api/predict` uses `final_*` for engine (unchanged numerically); `model_diagnostics` adds `baseline_*`, `active_*`, `final_*`, `gap_delta`. Breakdown `power_score` now matches displayed power.
+
+```powershell
+cd backend
+python -m pytest tests/test_strength_result.py -q
+```
+
+## Phase 4D ProbabilityResult + Odds Coherence Diagnostics
+
+Structured probability layer — `backend/core/probability_result.py`, `backend/core/probability_coherence.py`. Additive `probability_diagnostics` on `/api/predict` tracks raw vs final 1X2 and coherence warnings. Odds blend unchanged.
+
+```powershell
+cd backend
+python -m pytest tests/test_probability_result.py tests/test_probability_coherence.py -q
+```
+
+## Phase 4E Probability Quality Reports
+
+Walk-forward calibration metrics (ECE, reliability buckets, Brier, log-loss) — `backend/core/probability_quality.py`. Reports only; no live prediction change. Generated reports are gitignored.
+
+```powershell
+cd backend
+python scripts/evaluate_probability_quality.py --candidate both --markdown reports/probability_quality_report.md --csv reports/probability_quality_report.csv
+python -m pytest tests/test_probability_quality.py -q
+```
+
+## Phase 4F Shadow Probability Calibration
+
+Shadow calibrator evaluation (Temperature, FavoriteShrink) on walk-forward rows — `backend/core/probability_calibration.py`. No live prediction change; no `PROBABILITY_CALIBRATION_ENABLED` wiring yet.
+
+```powershell
+cd backend
+python scripts/evaluate_probability_calibrators.py --candidate active --markdown reports/probability_calibrators_report.md --csv reports/probability_calibrators_report.csv
+python -m pytest tests/test_probability_calibration.py -q
+```
+
+## Phase 4G Nested / Holdout Calibration Validation
+
+Out-of-sample validation for Phase 4F candidates (leave-one-dataset-out + fixed T=1.35). Reports only — no live prediction change, no activation wiring.
+
+```powershell
+cd backend
+python scripts/validate_probability_calibrators.py --candidate active --mode both --markdown reports/probability_calibration_validation.md --csv reports/probability_calibration_validation.csv
+python -m pytest tests/test_probability_calibration_validation.py -q
+```
+
+## Phase 4H General Probability Coherence Audit + Gate
+
+Screenshots suggested 1X2 vs xG/top_scores inconsistency (often odds-blend related). This phase audits coherence across outputs, adds a conservative gate, and makes odds diagnostics-only by default (`ODDS_AFFECT_PREDICTION=false`). Calibration config is added but remains default-off.
+
+```powershell
+cd backend
+python scripts/audit_probability_coherence.py --markdown reports/probability_coherence_audit.md --csv reports/probability_coherence_audit.csv
+python -m pytest tests/test_probability_coherence_phase4h.py tests/test_probability_coherence.py tests/test_probability_result.py -q
+```
+
+Config flags (local `.env` only — do not change Render without explicit approval):
+
+- `ODDS_AFFECT_PREDICTION=false` — odds fetched for diagnostics; do not change `probabilities_1x2`
+- `PROBABILITY_CALIBRATION_ENABLED=false` — no live calibration transform
+- `PROBABILITY_CALIBRATION_METHOD=temperature`
+- `PROBABILITY_CALIBRATION_TEMPERATURE=1.35`
+
+## Phase 4I Coherent Probability Pipeline
+
+Completes the coherent probability pipeline: single final 1X2 state shared by API output, diagnostics, match_summary, and explanations. Adds `probability_coherence` diagnostics. Calibration remains default-off and blocked when coherence fails.
+
+```powershell
+cd backend
+python scripts/audit_probability_coherence.py --markdown reports/probability_coherence_audit.md --csv reports/probability_coherence_audit.csv
+python -m pytest tests/test_probability_coherence.py tests/test_probability_result.py tests/test_probability_coherence_phase4h.py tests/test_probability_calibration_runtime.py tests/test_probability_calibration_validation.py -q
+```
+
+Config flags (local `.env` only):
+
+- `ODDS_AFFECT_PREDICTION=false` — odds diagnostics-only; final 1X2 = score matrix
+- `PROBABILITY_CALIBRATION_ENABLED=false` — no live calibration transform
+- `PROBABILITY_CALIBRATION_METHOD=temperature`
+- `PROBABILITY_CALIBRATION_TEMPERATURE=1.35`
+
 ## Phase 3F Staging Enablement Runbook
 
 Step-by-step local/staging enablement, verification, and rollback: **[docs/STAGING_MODEL_ACTIVATION.md](docs/STAGING_MODEL_ACTIVATION.md)**

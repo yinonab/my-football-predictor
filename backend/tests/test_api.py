@@ -60,6 +60,27 @@ def test_health_version() -> None:
     assert response.json()["version"] == "2.1.3"
 
 
+def test_health_model_visibility() -> None:
+    response = client.get("/api/health")
+    assert response.status_code == 200
+    data = response.json()
+    assert data["app_version"] == "2.1.3"
+    assert data["baseline_model_version"] == "v2.1.3-baseline"
+    assert "active_model_version" in data
+    assert "activation_enabled" in data
+    assert "power_candidate_affects_prediction" in data
+    assert data["active_model_version"] in (
+        "v2.1.3-baseline",
+        "v2.2.0-fifa-points-anchor",
+    )
+    if data["activation_enabled"]:
+        assert data["active_model_version"] == "v2.2.0-fifa-points-anchor"
+        assert data["active_candidate"] == "effective_external_current_formula"
+    else:
+        assert data["active_model_version"] == "v2.1.3-baseline"
+        assert data["active_candidate"] is None
+
+
 def test_predict_custom_team_name() -> None:
     response = client.post(
         "/api/predict",

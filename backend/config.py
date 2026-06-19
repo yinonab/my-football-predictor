@@ -189,6 +189,16 @@ ACTIVE_FIFA_SNAPSHOT_DATASET: str = "wc2026_current"
 # Phase 3D — Large shift review records (local/staging enablement)
 ACTIVATION_LARGE_SHIFT_REVIEWS_PATH: str = "data/activation_large_shift_reviews.json"
 
+# Phase 4H — Probability coherence + odds safety (default: odds diagnostics-only)
+ODDS_AFFECT_PREDICTION: bool = _env_bool("ODDS_AFFECT_PREDICTION", False)
+
+# Phase 4H — Calibration readiness (default off; no live transform until enabled)
+PROBABILITY_CALIBRATION_ENABLED: bool = _env_bool("PROBABILITY_CALIBRATION_ENABLED", False)
+PROBABILITY_CALIBRATION_METHOD: str = os.getenv("PROBABILITY_CALIBRATION_METHOD", "temperature")
+PROBABILITY_CALIBRATION_TEMPERATURE: float = float(
+    os.getenv("PROBABILITY_CALIBRATION_TEMPERATURE", "1.35")
+)
+
 # API
 API_HOST: str = "0.0.0.0"
 API_PORT: int = 8000

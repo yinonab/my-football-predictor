@@ -39,6 +39,8 @@ from api.schemas import (
     ModelDiagnosticsResponse,
     PredictRequest,
     PredictResponse,
+    ProbabilityCoherenceResponse,
+    ProbabilityDiagnosticsResponse,
     RefreshHistoryResponse,
     Probabilities1X2,
     ScoreCoverage,
@@ -53,6 +55,7 @@ from api.schemas import (
 )
 from core.elo_updater import update_elo_pair
 from core.explanations import (
+    ExplanationContext,
     build_match_summary,
     explain_exact_score,
     explain_outcome_1x2,
@@ -67,11 +70,15 @@ from core.global_ratings import (
 )
 from core.context_adjustments import apply_xg_context_delta, compute_context_adjustments
 from core.match_context import MatchContextGatherer
+from core.match_features import build_match_features
+from core.strength_result import StrengthResult, build_strength_result
 from core.maher import blend_maher_with_power, floor_underdog_xg, mismatch_gap, scale_rho_for_gap
 from core.opponent_maher import build_opponent_index, estimate_xg_opponent_aware
 from core.team_ratings import build_all_matches, build_and_save_ratings
 from core.math_engine import AdvancedDixonColesEngine
-from core.odds_ensemble import OddsClient, blend_1x2
+from core.odds_ensemble import OddsClient
+from core.probability_coherence import favorite_from_1x2
+from core.probability_pipeline import finalize_probability_pipeline
 from core.cloud_persist import is_configured as cloud_persist_configured, pull_all as cloud_pull_all
 from core.elo_store import load_elo_overrides, save_elo_overrides
 from core.team_power import TeamPowerEvaluator
@@ -127,11 +134,29 @@ def _refresh_model_data() -> None:
     )
 
 
-def _team_breakdown(team_input: str, *, use_live: bool) -> TeamBreakdown:
+def _team_breakdown(
+    team_input: str,
+    *,
+    use_live: bool,
+    strength: StrengthResult | None = None,
+    side: str = "home",
+) -> TeamBreakdown:
     resolved, _ = _data_manager.resolve_team(team_input)
     bd = _power_evaluator.get_team_breakdown(resolved, use_live=use_live)
     group = _data_manager.get_group(resolved)
-    return TeamBreakdown(**bd, group=group)
+    breakdown_text = str(bd["breakdown"])
+    if strength is not None:
+        breakdown_text = strength.enrich_breakdown_text(side, breakdown_text)
+        power_score = strength.final_power_for(side)
+    else:
+        power_score = float(bd["power_score"])
+    return TeamBreakdown(
+        name=str(bd["name"]),
+        power_score=round(power_score, 2),
+        elo=float(bd["elo"]),
+        breakdown=breakdown_text,
+        group=group,
+    )
 
 
 def _global_rating_response(
@@ -165,11 +190,28 @@ def _global_rating_response(
 
 @app.get("/api/health", response_model=HealthResponse)
 def health() -> HealthResponse:
+    from core.active_model_activation import model_activation_should_apply
+
+    activation_enabled = model_activation_should_apply()
     return HealthResponse(
         status="ok",
         live_stats_available=_api_client.is_available,
         odds_available=_odds_client.is_available,
         cloud_persist_available=cloud_persist_configured(),
+        app_version="2.1.3",
+        active_model_version=(
+            config.ACTIVE_MODEL_VERSION
+            if activation_enabled
+            else config.BASELINE_MODEL_VERSION
+        ),
+        baseline_model_version=config.BASELINE_MODEL_VERSION,
+        activation_enabled=activation_enabled,
+        active_candidate=(
+            config.ACTIVE_POWER_CANDIDATE if activation_enabled else None
+        ),
+        power_candidate_affects_prediction=config.POWER_CANDIDATE_AFFECTS_PREDICTION,
+        odds_affect_prediction=config.ODDS_AFFECT_PREDICTION,
+        probability_calibration_enabled=config.PROBABILITY_CALIBRATION_ENABLED,
     )
 
 
@@ -204,8 +246,15 @@ def predict(request: PredictRequest) -> PredictResponse:
     if not request.home_team.strip() or not request.away_team.strip():
         raise HTTPException(status_code=400, detail="יש להזין שם לשתי הנבחרות")
 
-    home_resolved, _ = _data_manager.resolve_team(request.home_team)
-    away_resolved, _ = _data_manager.resolve_team(request.away_team)
+    match_features = build_match_features(
+        home_team=request.home_team.strip(),
+        away_team=request.away_team.strip(),
+        neutral_ground=request.neutral_ground,
+        use_live_stats=request.use_live_stats,
+        data_manager=_data_manager,
+    )
+    home_resolved = match_features.resolved_home_team
+    away_resolved = match_features.resolved_away_team
 
     home_power = _power_evaluator.calculate_composite_power(
         home_resolved, use_live=request.use_live_stats
@@ -252,6 +301,9 @@ def predict(request: PredictRequest) -> PredictResponse:
         home_power *= ctx_adj.home_power_mult
         away_power *= ctx_adj.away_power_mult
 
+    baseline_home_power = home_power
+    baseline_away_power = away_power
+
     ctx_notes = list(ctx_info.notes or []) + list(ctx_adj.notes)
     match_context = MatchContextResponse(
         enabled=request.use_match_context,
@@ -276,12 +328,12 @@ def predict(request: PredictRequest) -> PredictResponse:
 
     advantage = 0.0 if request.neutral_ground else request.home_advantage
 
-    home_data = _data_manager.get_team_data(home_resolved, use_live=request.use_live_stats)
-    away_data = _data_manager.get_team_data(away_resolved, use_live=request.use_live_stats)
-    home_elo = float(home_data["elo"])
-    away_elo = float(away_data["elo"])
-    home_raw_form = float(home_data.get("form", 0.5))
-    away_raw_form = float(away_data.get("form", 0.5))
+    home_data = match_features.home_team_data
+    away_data = match_features.away_team_data
+    home_elo = match_features.home_internal_elo
+    away_elo = match_features.away_internal_elo
+    home_raw_form = match_features.home_raw_form
+    away_raw_form = match_features.away_raw_form
 
     from core.active_model_activation import (
         build_model_diagnostics,
@@ -322,6 +374,16 @@ def predict(request: PredictRequest) -> PredictResponse:
         home_power, away_power, experimental_global_diag = apply_experimental_power_nudge(
             home_power, away_power, pre_diag
         )
+
+    strength = build_strength_result(
+        match_features=match_features,
+        baseline_home_power=baseline_home_power,
+        baseline_away_power=baseline_away_power,
+        active_power=active_power,
+        model_diag=model_diag_payload,
+        final_home_power=home_power,
+        final_away_power=away_power,
+    )
 
     home_xg, away_xg, maher_note = estimate_xg_opponent_aware(
         home_resolved,
@@ -398,8 +460,28 @@ def predict(request: PredictRequest) -> PredictResponse:
         home_name := request.home_team.strip(),
         away_name := request.away_team.strip(),
     )
-    probs = blend_1x2(result["probabilities_1x2"], market_odds)
+
+    pipeline = finalize_probability_pipeline(
+        home_team=home_name,
+        away_team=away_name,
+        home_xg=result["home_xg"],
+        away_xg=result["away_xg"],
+        raw_probabilities_1x2=model_probs_raw,
+        top_scores=result["top_scores"],
+        score_coverage=result["score_coverage"],
+        market_odds=market_odds,
+    )
+    probs = pipeline.final_probabilities_1x2
     result["probabilities_1x2"] = probs
+
+    explanation_context = ExplanationContext(
+        odds_blend_applied=pipeline.probability_result.odds_blend_applied,
+        calibration_applied=pipeline.calibration_applied,
+        matrix_favorite=favorite_from_1x2(pipeline.raw_probabilities_1x2),
+        final_favorite=pipeline.probability_result.favorite_from_final_1x2,
+    )
+    display_home_power = strength.final_home_power
+    display_away_power = strength.final_away_power
 
     logger.info(
         "Prediction: %s vs %s | 1X2: %s | Maher xG %.2f-%.2f",
@@ -440,10 +522,20 @@ def predict(request: PredictRequest) -> PredictResponse:
     return PredictResponse(
         home_team=home_name,
         away_team=away_name,
-        home_power=round(home_power, 2),
-        away_power=round(away_power, 2),
-        home_breakdown=_team_breakdown(home_name, use_live=request.use_live_stats),
-        away_breakdown=_team_breakdown(away_name, use_live=request.use_live_stats),
+        home_power=round(strength.final_home_power, 2),
+        away_power=round(strength.final_away_power, 2),
+        home_breakdown=_team_breakdown(
+            home_name,
+            use_live=request.use_live_stats,
+            strength=strength,
+            side="home",
+        ),
+        away_breakdown=_team_breakdown(
+            away_name,
+            use_live=request.use_live_stats,
+            strength=strength,
+            side="away",
+        ),
         home_xg=result["home_xg"],
         away_xg=result["away_xg"],
         probabilities_1x2=Probabilities1X2(**probs),
@@ -451,32 +543,35 @@ def predict(request: PredictRequest) -> PredictResponse:
             home_win=explain_outcome_1x2(
                 "home",
                 probs["home_win"],
-                home_power=home_power,
-                away_power=away_power,
+                home_power=display_home_power,
+                away_power=display_away_power,
                 home_xg=result["home_xg"],
                 away_xg=result["away_xg"],
                 home_team=home_name,
                 away_team=away_name,
+                explanation_context=explanation_context,
             ),
             draw=explain_outcome_1x2(
                 "draw",
                 probs["draw"],
-                home_power=home_power,
-                away_power=away_power,
+                home_power=display_home_power,
+                away_power=display_away_power,
                 home_xg=result["home_xg"],
                 away_xg=result["away_xg"],
                 home_team=home_name,
                 away_team=away_name,
+                explanation_context=explanation_context,
             ),
             away_win=explain_outcome_1x2(
                 "away",
                 probs["away_win"],
-                home_power=home_power,
-                away_power=away_power,
+                home_power=display_home_power,
+                away_power=display_away_power,
                 home_xg=result["home_xg"],
                 away_xg=result["away_xg"],
                 home_team=home_name,
                 away_team=away_name,
+                explanation_context=explanation_context,
             ),
         ),
         top_scores=top_with_expl,
@@ -484,11 +579,12 @@ def predict(request: PredictRequest) -> PredictResponse:
         match_summary=build_match_summary(
             home_team=home_name,
             away_team=away_name,
-            home_power=home_power,
-            away_power=away_power,
+            home_power=display_home_power,
+            away_power=display_away_power,
             home_xg=result["home_xg"],
             away_xg=result["away_xg"],
             probs=probs,
+            explanation_context=explanation_context,
         )
         + (f"\n{h2h_note}" if h2h_note else "")
         + (f"\n{maher_note}" if maher_note else "")
@@ -521,7 +617,13 @@ def predict(request: PredictRequest) -> PredictResponse:
             away_star_absent=request.away_star_absent,
             use_live=request.use_live_stats,
         ),
-        model_diagnostics=ModelDiagnosticsResponse(**model_diag_payload.to_dict()),
+        model_diagnostics=ModelDiagnosticsResponse(**strength.to_model_diagnostics_dict()),
+        probability_diagnostics=ProbabilityDiagnosticsResponse(
+            **pipeline.to_probability_diagnostics_dict()
+        ),
+        probability_coherence=ProbabilityCoherenceResponse(
+            **pipeline.to_probability_coherence_dict()
+        ),
     )
 
 

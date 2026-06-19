@@ -2,6 +2,18 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class ExplanationContext:
+    """Tracks whether final 1X2 probabilities match the score-matrix story."""
+
+    odds_blend_applied: bool = False
+    calibration_applied: bool = False
+    matrix_favorite: str | None = None
+    final_favorite: str | None = None
+
 
 def _short_name(full_name: str) -> str:
     if "(" in full_name and ")" in full_name:
@@ -88,6 +100,20 @@ def explain_exact_score(
     return " ".join(parts)
 
 
+def _probability_context_suffix(ctx: ExplanationContext | None) -> str:
+    if ctx is None:
+        return ""
+    parts: list[str] = []
+    if ctx.odds_blend_applied:
+        parts.append(
+            "הסתברות סופית כוללת שילוב שוק הימורים (70% מודל, 30% שוק) — "
+            "לא נגזרת רק מ-xG ומטריצת התוצאות."
+        )
+    if ctx.calibration_applied:
+        parts.append("כיול הסתברות (temperature) הוחל על אחוזי 1X2 הסופיים.")
+    return (" " + " ".join(parts)) if parts else ""
+
+
 def explain_outcome_1x2(
     outcome: str,
     probability: float,
@@ -98,6 +124,7 @@ def explain_outcome_1x2(
     away_xg: float,
     home_team: str,
     away_team: str,
+    explanation_context: ExplanationContext | None = None,
 ) -> str:
     home_label = _short_name(home_team)
     away_label = _short_name(away_team)
@@ -105,60 +132,66 @@ def explain_outcome_1x2(
 
     if outcome == "home":
         if power_gap > 80:
-            return (
+            base = (
                 f"{home_label} חזקה משמעותית (כוח {home_power:.0f} מול {away_power:.0f}). "
                 f"xG צפוי {home_xg:.1f}–{away_xg:.1f}. הסתברות {probability:.1f}%."
             )
-        if power_gap > 20:
-            return (
+        elif power_gap > 20:
+            base = (
                 f"יתרון ל{home_label} בכוח וב-xG ({home_xg:.1f} מול {away_xg:.1f}). "
                 f"הסתברות ניצחון {probability:.1f}%."
             )
-        return (
-            f"ניצחון צמוד ל{home_label} — פער כוח קטן ({power_gap:+.0f} נקודות). "
-            f"הסתברות {probability:.1f}%."
-        )
+        else:
+            base = (
+                f"ניצחון צמוד ל{home_label} — פער כוח קטן ({power_gap:+.0f} נקודות). "
+                f"הסתברות {probability:.1f}%."
+            )
+        return base + _probability_context_suffix(explanation_context)
 
     if outcome == "away":
         gap = away_power - home_power
         if gap < -150:
-            return (
+            base = (
                 f"הפתעה: ניצחון {away_label} רק ב-{probability:.1f}% — "
                 f"פער כוח {abs(gap):.0f} נקודות לטובת {home_label}."
             )
-        if gap > 80:
-            return (
+        elif gap > 80:
+            base = (
                 f"{away_label} חזקה משמעותית (כוח {away_power:.0f} מול {home_power:.0f}). "
                 f"xG צפוי {away_xg:.1f}–{home_xg:.1f}. הסתברות {probability:.1f}%."
             )
-        if gap > 20:
-            return (
+        elif gap > 20:
+            base = (
                 f"יתרון ל{away_label} בכוח וב-xG ({away_xg:.1f} מול {home_xg:.1f}). "
                 f"הסתברות ניצחון {probability:.1f}%."
             )
-        return (
-            f"ניצחון צמוד ל{away_label} — פער כוח קטן. "
-            f"הסתברות {probability:.1f}%."
-        )
+        else:
+            base = (
+                f"ניצחון צמוד ל{away_label} — פער כוח קטן. "
+                f"הסתברות {probability:.1f}%."
+            )
+        return base + _probability_context_suffix(explanation_context)
 
     # draw
     if abs(power_gap) > 150:
         favorite = home_label if power_gap > 0 else away_label
-        return (
+        base = (
             f"תיקו ב-{probability:.1f}% למרות יתרון ברור ל{favorite} "
             f"(פער {abs(power_gap):.0f} נקודות). xG {home_xg:.1f}–{away_xg:.1f} — "
             "Dixon-Coles מעלה הסתברות לתוצאות שוויון נמוכות."
         )
-    if abs(power_gap) > 50:
-        return (
+    elif abs(power_gap) > 50:
+        base = (
             f"תיקו ב-{probability:.1f}% — כוחות לא שווים (פער {abs(power_gap):.0f}) "
             f"אך xG קרוב ({home_xg:.1f}–{away_xg:.1f}). תיקון Dixon-Coles לתוצאות נמוכות."
         )
-    return (
-        f"כוחות קרובים (פער {abs(power_gap):.0f} נקודות) ו-xG דומה "
-        f"({home_xg:.1f}–{away_xg:.1f}). תיקו מועדף ב-{probability:.1f}% "
-        "בזכות תיקון Dixon-Coles לתוצאות נמוכות."
-    )
+    else:
+        base = (
+            f"כוחות קרובים (פער {abs(power_gap):.0f} נקודות) ו-xG דומה "
+            f"({home_xg:.1f}–{away_xg:.1f}). תיקו מועדף ב-{probability:.1f}% "
+            "בזכות תיקון Dixon-Coles לתוצאות נמוכות."
+        )
+    return base + _probability_context_suffix(explanation_context)
 
 
 def explain_score_coverage(scores: list[str], achieved_percent: float) -> str:
@@ -183,6 +216,7 @@ def build_match_summary(
     home_xg: float,
     away_xg: float,
     probs: dict[str, float],
+    explanation_context: ExplanationContext | None = None,
 ) -> str:
     home_label = _short_name(home_team)
     away_label = _short_name(away_team)
@@ -198,4 +232,5 @@ def build_match_summary(
         f"צפי מרכזי: {outcome_he[best[0]]} ({best[1]:.1f}%). "
         f"סה\"כ xG ~{total_xg:.1f} (קצב {tempo}). "
         f"כוח: {home_label} {home_power:.0f} | {away_label} {away_power:.0f}."
+        f"{_probability_context_suffix(explanation_context)}"
     )

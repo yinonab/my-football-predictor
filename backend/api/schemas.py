@@ -15,6 +15,15 @@ class HealthResponse(BaseModel):
     live_stats_available: bool = False
     odds_available: bool = False
     cloud_persist_available: bool = False
+    # Phase 4A — operational model visibility (config-only; no predict() call)
+    app_version: str = "2.1.3"
+    active_model_version: str = config.BASELINE_MODEL_VERSION
+    baseline_model_version: str = config.BASELINE_MODEL_VERSION
+    activation_enabled: bool = False
+    active_candidate: str | None = None
+    power_candidate_affects_prediction: bool = False
+    odds_affect_prediction: bool = config.ODDS_AFFECT_PREDICTION
+    probability_calibration_enabled: bool = config.PROBABILITY_CALIBRATION_ENABLED
 
 
 class PredictRequest(BaseModel):
@@ -193,6 +202,45 @@ class ModelDiagnosticsResponse(BaseModel):
     fallback_reasons: list[str] = Field(default_factory=list)
     candidate_metrics_source: str = "phase2j_walk_forward"
     candidate_gate_status: str = "MODEL_ACTIVATION_PASS"
+    # Phase 4C — explicit strength layer (additive, optional for clients)
+    baseline_home_power: float | None = None
+    baseline_away_power: float | None = None
+    active_home_power: float | None = None
+    active_away_power: float | None = None
+    final_home_power: float | None = None
+    final_away_power: float | None = None
+    gap_delta: float | None = None
+
+
+class ProbabilityCoherenceResponse(BaseModel):
+    passed: bool
+    warnings: list[str] = Field(default_factory=list)
+    blocking_reasons: list[str] = Field(default_factory=list)
+    advisory_reasons: list[str] = Field(default_factory=list)
+
+
+class ProbabilityDiagnosticsResponse(BaseModel):
+    probability_sum: float
+    probability_sum_valid: bool
+    odds_available: bool = False
+    odds_affect_prediction: bool = False
+    odds_blend_applied: bool = False
+    market_probabilities_1x2: dict[str, float] | None = None
+    raw_probabilities_1x2: dict[str, float]
+    final_probabilities_1x2: dict[str, float]
+    favorite_from_final_1x2: str | None = None
+    favorite_from_xg: str | None = None
+    favorite_from_top_score: str | None = None
+    coherence_warnings: list[str] = Field(default_factory=list)
+    odds_source: str | None = None
+    odds_blend_weight_model: float | None = None
+    odds_blend_weight_market: float | None = None
+    score_matrix_source: str = "dixon_coles"
+    calibration_enabled: bool = False
+    calibration_method: str = "temperature"
+    calibration_temperature: float = 1.35
+    calibration_applied: bool = False
+    calibration_blocked_reason: str | None = None
 
 
 class PredictResponse(BaseModel):
@@ -213,6 +261,8 @@ class PredictResponse(BaseModel):
     match_context: MatchContextResponse | None = None
     global_rating_diagnostics: GlobalRatingDiagnosticsResponse | None = None
     model_diagnostics: ModelDiagnosticsResponse | None = None
+    probability_diagnostics: ProbabilityDiagnosticsResponse | None = None
+    probability_coherence: ProbabilityCoherenceResponse | None = None
 
 
 class GlobalRatingDebugResponse(BaseModel):
