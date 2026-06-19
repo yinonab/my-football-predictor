@@ -10,6 +10,10 @@ from typing import Any
 
 import config
 from core.fixture_metadata import TOURNAMENT_STARTS, _match_pair_key
+from core.football_data_fixture import (
+    find_football_data_match,
+    state_from_football_data_match,
+)
 from core.fixture_state import (
     API_FOOTBALL_ACCOUNT_SUSPENDED,
     API_FOOTBALL_UNAVAILABLE,
@@ -20,6 +24,7 @@ from core.fixture_state import (
 from core.global_ratings import english_name
 from core.team_ratings import build_all_matches
 from data.api_football import ApiFootballClient
+from data.football_data import FootballDataClient
 from data.nt_match import NT_REGISTRY_ALIASES
 
 logger = logging.getLogger(__name__)
@@ -301,12 +306,15 @@ class FixtureStateResolver:
     def __init__(
         self,
         api: ApiFootballClient | None = None,
+        football_data: FootballDataClient | None = None,
         *,
         overrides_path: Path | None = None,
     ) -> None:
         self._api = api or ApiFootballClient()
+        self._football_data = football_data or FootballDataClient()
         self._overrides_path = overrides_path
         self._last_api_error: str | None = None
+        self._wc_matches_cache: list[dict[str, Any]] | None = None
 
     @property
     def last_api_error(self) -> str | None:
@@ -329,6 +337,12 @@ class FixtureStateResolver:
             return apply_fixture_state_rules(
                 _state_from_manual_row(home_resolved, away_resolved, manual)
             )
+
+        fd_state = self._resolve_from_football_data(
+            home_resolved, away_resolved, home_en, away_en
+        )
+        if fd_state is not None:
+            return apply_fixture_state_rules(fd_state)
 
         curated = _lookup_curated_metadata(home_en, away_en)
         if curated:
@@ -401,15 +415,49 @@ class FixtureStateResolver:
             )
             return None, warnings
 
+    def _load_wc_matches(self) -> list[dict[str, Any]] | None:
+        if self._wc_matches_cache is not None:
+            return self._wc_matches_cache
+        if not self._football_data.is_available:
+            return None
+        try:
+            matches = self._football_data.get_world_cup_matches()
+        except Exception as exc:
+            code = getattr(self._football_data, "last_error_code", None) or str(exc)
+            logger.warning("football-data WC matches fetch failed: %s", code)
+            return None
+        self._wc_matches_cache = matches
+        return matches
+
+    def _resolve_from_football_data(
+        self,
+        home_resolved: str,
+        away_resolved: str,
+        home_en: str,
+        away_en: str,
+    ) -> FixtureState | None:
+        matches = self._load_wc_matches()
+        if not matches:
+            return None
+        raw = find_football_data_match(matches, home_en, away_en)
+        if not raw:
+            return None
+        return state_from_football_data_match(home_resolved, away_resolved, raw)
+
 
 def resolve_fixture_state(
     home_resolved: str,
     away_resolved: str,
     *,
     api: ApiFootballClient | None = None,
+    football_data: FootballDataClient | None = None,
     overrides_path: Path | None = None,
     match_date: str | None = None,
 ) -> FixtureState:
     """Functional entry point used by predict()."""
-    resolver = FixtureStateResolver(api=api, overrides_path=overrides_path)
+    resolver = FixtureStateResolver(
+        api=api,
+        football_data=football_data,
+        overrides_path=overrides_path,
+    )
     return resolver.resolve(home_resolved, away_resolved, match_date=match_date)

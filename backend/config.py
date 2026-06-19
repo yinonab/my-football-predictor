@@ -200,6 +200,15 @@ PROBABILITY_CALIBRATION_TEMPERATURE: float = float(
     os.getenv("PROBABILITY_CALIBRATION_TEMPERATURE", "1.35")
 )
 
+# Phase 4X — football-data.org World Cup fixture provider (env-only key; never log token)
+FOOTBALL_DATA_BASE_URL: str = os.getenv(
+    "FOOTBALL_DATA_BASE_URL", "https://api.football-data.org/v4"
+).rstrip("/")
+FOOTBALL_DATA_ENABLED: bool = _env_bool("FOOTBALL_DATA_ENABLED", True)
+FOOTBALL_DATA_WC_CODE: str = "WC"
+FOOTBALL_DATA_WC_SEASON: int = 2026
+FOOTBALL_DATA_REQUEST_TIMEOUT: int = int(os.getenv("FOOTBALL_DATA_REQUEST_TIMEOUT", "15"))
+
 # API
 API_HOST: str = "0.0.0.0"
 API_PORT: int = 8000

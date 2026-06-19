@@ -13,9 +13,9 @@ BACKEND_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND_ROOT))
 
 from api import main as api_main
-from core.fixture_state import MATCH_ALREADY_COMPLETED
+from core.fixture_state import MATCH_ALREADY_COMPLETED, FixtureState, apply_fixture_state_rules
 from core.fixture_state_resolver import FixtureStateResolver
-from core.fixture_state import FixtureState, apply_fixture_state_rules
+from data.football_data import FootballDataClient
 from core.match_context_diagnostics import build_match_context_diagnostics
 from core.scoreline_decision import (
     BALANCED_MATCH_LOW_CONFIDENCE,
@@ -267,7 +267,10 @@ def test_context_limited_warning_when_fixture_unavailable(client: TestClient) ->
     api = MagicMock()
     api.is_available = True
     api.search_national_team.side_effect = RuntimeError("Your account is suspended")
-    api_main._fixture_state_resolver = FixtureStateResolver(api=api)
+    api_main._fixture_state_resolver = FixtureStateResolver(
+        api=api,
+        football_data=FootballDataClient(api_key="", enabled=False),
+    )
     data = client.post(
         "/api/predict",
         json={"home_team": "Canada", "away_team": "Qatar", "neutral_ground": True},

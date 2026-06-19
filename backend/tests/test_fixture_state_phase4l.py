@@ -29,6 +29,11 @@ from core.match_context_diagnostics import (
     detect_host_country_match,
     venue_country_from_city,
 )
+from data.football_data import FootballDataClient
+
+
+def _no_football_data() -> FootballDataClient:
+    return FootballDataClient(api_key="", enabled=False)
 
 
 @pytest.fixture(autouse=True)
@@ -87,7 +92,9 @@ def test_resolver_api_failure_returns_warnings_no_crash(tmp_path: Path) -> None:
     api.search_national_team.return_value = {"id": 1}
     api.find_h2h_fixtures.side_effect = RuntimeError("Your account is suspended")
 
-    resolver = FixtureStateResolver(api, overrides_path=tmp_path / "empty.json")
+    resolver = FixtureStateResolver(
+        api, overrides_path=tmp_path / "empty.json", football_data=_no_football_data()
+    )
     (tmp_path / "empty.json").write_text(json.dumps({"fixtures": []}), encoding="utf-8")
 
     state = resolver.resolve("Canada (קנדה)", "Qatar (קטר)")
@@ -119,7 +126,7 @@ def test_completed_override_includes_actual_score(tmp_path: Path) -> None:
     )
     api = MagicMock()
     api.is_available = False
-    resolver = FixtureStateResolver(api, overrides_path=overrides)
+    resolver = FixtureStateResolver(api, overrides_path=overrides, football_data=_no_football_data())
     state = resolver.resolve("Canada (קנדה)", "Qatar (קטר)")
 
     assert state.fixture_status == "completed"
@@ -199,7 +206,9 @@ def test_predict_includes_match_context_diagnostics(client: TestClient) -> None:
 
 
 def test_canada_qatar_unknown_fixture_warning(client: TestClient) -> None:
-    api_main._fixture_state_resolver = FixtureStateResolver(MagicMock(is_available=False))
+    api_main._fixture_state_resolver = FixtureStateResolver(
+        MagicMock(is_available=False), football_data=_no_football_data()
+    )
     resp = client.post(
         "/api/predict",
         json={"home_team": "Canada", "away_team": "Qatar", "neutral_ground": True},
@@ -233,6 +242,7 @@ def test_canada_qatar_completed_6_0_not_valid_prediction(
     api_main._fixture_state_resolver = FixtureStateResolver(
         MagicMock(is_available=False),
         overrides_path=overrides,
+        football_data=_no_football_data(),
     )
     resp = client.post(
         "/api/predict",
@@ -254,6 +264,7 @@ def test_canada_host_country_toronto_warning(client: TestClient, tmp_path: Path)
     api_main._fixture_state_resolver = FixtureStateResolver(
         MagicMock(is_available=False),
         overrides_path=overrides,
+        football_data=_no_football_data(),
     )
     resp = client.post(
         "/api/predict",
@@ -277,7 +288,7 @@ def test_api_failure_predict_still_returns(client: TestClient) -> None:
     api.is_available = True
     api.search_national_team.return_value = {"id": 10}
     api.find_h2h_fixtures.side_effect = RuntimeError("connection failed")
-    api_main._fixture_state_resolver = FixtureStateResolver(api)
+    api_main._fixture_state_resolver = FixtureStateResolver(api, football_data=_no_football_data())
 
     resp = client.post(
         "/api/predict",

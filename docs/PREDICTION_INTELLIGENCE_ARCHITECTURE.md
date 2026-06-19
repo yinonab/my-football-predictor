@@ -637,13 +637,24 @@ Default: `ODDS_AFFECT_PREDICTION=false`, `PROBABILITY_CALIBRATION_ENABLED=false`
 ### Phase 4L — Fixture State + Match Context Engine
 
 - `FixtureState` model: `scheduled` | `live` | `completed` | `unknown`
-- Resolver order: manual override → curated metadata → API-Football → unknown
+- Resolver order (updated Phase 4X): manual override → **football-data.org** → curated metadata → API-Football → unknown
 - Additive `match_context_diagnostics` on `/api/predict`:
   - `prediction_valid`, `prediction_mode`, `actual_score`, fixture source warnings
   - Host-country detection (Canada/USA/Mexico) with `HOST_ADVANTAGE_DETECTED_BUT_VALUE_ZERO` when `DEFAULT_HOME_ADV=0`
-  - API-Football failure codes: `EXTERNAL_FIXTURE_SOURCE_UNAVAILABLE`, `API_FOOTBALL_ACCOUNT_SUSPENDED`
+  - API-Football failure codes: `EXTERNAL_FIXTURE_SOURCE_UNAVAILABLE`, `API_FOOTBALL_ACCOUNT_SUSPENDED` (only when football-data and other sources do not resolve the fixture)
 - Completed matches: `prediction_valid=false`, `MATCH_ALREADY_COMPLETED` — prediction fields retained for backward compatibility
 - **No xG/Maher/calibration tuning** in this phase
+
+### Phase 4X — football-data.org Fixture Provider
+
+- Primary external World Cup fixture/status/results provider when `FOOTBALL_DATA_API_KEY` is set (env only; never commit tokens)
+- `FootballDataClient` (`backend/data/football_data.py`): competitions, `/competitions/WC/matches?season=2026`
+- Status mapping: `FINISHED` → completed; `IN_PLAY`/`PAUSED` → live; `TIMED`/`SCHEDULED` → scheduled
+- Team alias matching (`backend/core/football_data_teams.py`): USA, Bosnia-Herzegovina, Korea Republic, DR Congo, Ivory Coast, Curaçao, etc.
+- When football-data resolves a fixture, API-Football is not consulted and suspended-account warnings are suppressed for that matchup
+- Manual overrides remain highest priority; missing key disables provider without startup crash
+- Diagnostic: `backend/scripts/diag_football_data.py`; audit: `backend/scripts/audit_fixture_sources.py`
+- Tests: `backend/tests/test_football_data_phase4x.py` (mocked; no live token in CI)
 
 ### Phase 4M — Scoreline Decision Engine
 

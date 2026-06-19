@@ -597,10 +597,31 @@ Additive `/api/predict` field: `match_context_diagnostics`
 
 Manual overrides (verified results only): `backend/data/fixture_state_overrides.json`
 
+**Provider order (Phase 4X):** manual override → **football-data.org** → curated metadata → API-Football (optional fallback) → unknown. Set `FOOTBALL_DATA_API_KEY` in env only — never commit tokens. If the key is missing, football-data is disabled gracefully and predictions still work.
+
+```powershell
+# Local football-data diagnostic (set key in env first; never commit)
+$env:FOOTBALL_DATA_API_KEY="..."
+cd backend
+python scripts/diag_football_data.py
+python scripts/audit_fixture_sources.py --markdown reports/fixture_sources_audit.md --csv reports/fixture_sources_audit.csv
+python -m pytest tests/test_fixture_state_phase4l.py tests/test_football_data_phase4x.py -q
+python -m pytest tests/ -q
+```
+
+Render env (rotate token after any exposure):
+
+```
+FOOTBALL_DATA_API_KEY=<rotated token>
+```
+
+## Phase 4X football-data.org Fixture Provider
+
+When `FOOTBALL_DATA_API_KEY` is set, World Cup 2026 fixture status, kickoff times, and finished scores resolve from football-data.org before API-Football. API-Football suspension no longer blocks completed-match detection (e.g. Canada vs Qatar 6–0). Provider failure falls back without crashing predictions.
+
 ```powershell
 cd backend
-python -m pytest tests/test_fixture_state_phase4l.py -q
-python -m pytest tests/ -q
+python -m pytest tests/test_football_data_phase4x.py -q
 ```
 
 ## Phase 4I Coherent Probability Pipeline
