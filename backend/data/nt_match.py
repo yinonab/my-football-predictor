@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any
 
+from data.nt_team_aliases import normalize_nt_team_label
+
 # English API / dataset name → registry key in database.FIFA_ELO_2026
 NT_REGISTRY_ALIASES: dict[str, str] = {
     "United States": "USA (ארצות הברית)",
@@ -12,21 +14,24 @@ NT_REGISTRY_ALIASES: dict[str, str] = {
     "Korea Republic": "South Korea (דרום קוריאה)",
     "South Korea": "South Korea (דרום קוריאה)",
     "Cote d'Ivoire": "Ivory Coast (חוף השנהב)",
+    "Côte d'Ivoire": "Ivory Coast (חוף השנהב)",
     "Ivory Coast": "Ivory Coast (חוף השנהב)",
-    "Cote d'Ivoire": "Ivory Coast (חוף השנהב)",
     "Congo DR": "DR Congo (קונגו)",
     "DR Congo": "DR Congo (קונגו)",
+    "Democratic Republic of the Congo": "DR Congo (קונגו)",
     "Cabo Verde": "Cape Verde (כף ורד)",
     "Cape Verde": "Cape Verde (כף ורד)",
     "Czech Republic": "Czechia (צ'כיה)",
     "Czechia": "Czechia (צ'כיה)",
     "Bosnia and Herzegovina": "Bosnia (בוסניה)",
+    "Bosnia-Herzegovina": "Bosnia (בוסניה)",
     "Bosnia": "Bosnia (בוסניה)",
     "Türkiye": "Turkey (טורקיה)",
     "Turkey": "Turkey (טורקיה)",
     "Curacao": "Curacao (קוראסאו)",
     "Curaçao": "Curacao (קוראסאו)",
     "Iran": "Iran (איראן)",
+    "IR Iran": "Iran (איראן)",
     "Iraq": "Iraq (עיראק)",
     "Jordan": "Jordan (יורדן)",
     "Uzbekistan": "Uzbekistan (אוזבקיסטן)",
@@ -110,7 +115,7 @@ class NationalTeamMatch:
 
 def registry_key_for_nt(name: str, registry_keys: set[str]) -> str | None:
     """Map a match team label to a WC 2026 registry key, if known."""
-    cleaned = name.strip()
+    cleaned = normalize_nt_team_label(name.strip())
     if cleaned in registry_keys:
         return cleaned
     if cleaned in NT_REGISTRY_ALIASES:

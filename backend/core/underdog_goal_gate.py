@@ -76,9 +76,33 @@ class UnderdogGoalGateResult:
     last_10_failed_to_score_rate: float | None
     scored_vs_similar_or_stronger_opponents: float | None
     reason_codes: list[str]
+    # Phase 4R.1 diagnostics (do not affect gate level)
+    recent_form_source: str | None = None
+    recent_form_source_breakdown: dict[str, int] | None = None
+    recent_form_reason_codes: list[str] | None = None
+    matches_found: int | None = None
+    requested_match_count: int | None = None
+    last_10_goals_against_avg: float | None = None
+    scored_vs_similar_or_stronger_opponents_rate: float | None = None
+    scored_vs_strong_opponents_matches: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
+
+
+def _recent_form_diagnostics(form: RecentScoringFormMetrics) -> dict[str, Any]:
+    return {
+        "recent_form_source": form.recent_form_source,
+        "recent_form_source_breakdown": form.source_breakdown or {},
+        "recent_form_reason_codes": form.reason_codes or [],
+        "matches_found": form.matches_found,
+        "requested_match_count": form.requested_match_count,
+        "last_10_goals_against_avg": form.last_10_goals_against_avg,
+        "scored_vs_similar_or_stronger_opponents_rate": (
+            form.scored_vs_similar_or_stronger_opponents_rate
+        ),
+        "scored_vs_strong_opponents_matches": form.scored_vs_strong_opponents_matches,
+    }
 
 
 @dataclass(frozen=True)
@@ -274,6 +298,7 @@ def compute_underdog_goal_gate(
                 recent_form.scored_vs_similar_or_stronger_opponents if recent_form else None
             ),
             reason_codes=reason_codes,
+            **(_recent_form_diagnostics(recent_form) if recent_form else {}),
         )
 
     form = recent_form or get_recent_scoring_form(
@@ -352,6 +377,7 @@ def compute_underdog_goal_gate(
         last_10_failed_to_score_rate=form.last_10_failed_to_score_rate,
         scored_vs_similar_or_stronger_opponents=form.scored_vs_similar_or_stronger_opponents,
         reason_codes=list(dict.fromkeys(reason_codes)),
+        **_recent_form_diagnostics(form),
     )
 
 
