@@ -7,7 +7,19 @@ from typing import Any, Literal
 
 from core.fixture_state import FIXTURE_STATE_UNAVAILABLE, MATCH_ALREADY_COMPLETED
 from core.match_context_diagnostics import MatchContextDiagnostics
+from core.recent_scoring_form import get_recent_scoring_form
 from core.strength_result import StrengthResult
+from core.underdog_goal_gate import (
+    LARGE_CANDIDATE_PROB_GAP,
+    UNDERDOG_GOAL_ALLOWED_CLOSE_CANDIDATE,
+    UNDERDOG_GOAL_REJECTED_CANDIDATE_TOO_FAR,
+    UnderdogGoalGateResult,
+    build_candidate_comparison_summary,
+    build_underdog_match_context,
+    compute_underdog_goal_gate,
+    find_paired_clean_sheet,
+    gate_candidate_adjustment,
+)
 
 OutcomeKey = Literal["home_win", "draw", "away_win"]
 
@@ -24,6 +36,21 @@ BALANCED_MATCH_LOW_CONFIDENCE = "BALANCED_MATCH_LOW_CONFIDENCE"
 PREDICTION_NOT_VALID = "PREDICTION_NOT_VALID"
 CONTEXT_LIMITED = "CONTEXT_LIMITED"
 SCORE_MATRIX_LIMITED = "SCORE_MATRIX_LIMITED"
+
+# Phase 4Q — representative primary score realism warnings
+PRIMARY_CLEAN_SHEET_WITH_UNDERDOG_XG_HIGH = "PRIMARY_CLEAN_SHEET_WITH_UNDERDOG_XG_HIGH"
+PRIMARY_TOO_LOW_FOR_FAVORITE_XG = "PRIMARY_TOO_LOW_FOR_FAVORITE_XG"
+PRIMARY_CAPPED_BELOW_EXPECTED_GOALS = "PRIMARY_CAPPED_BELOW_EXPECTED_GOALS"
+PRIMARY_DIFFERS_FROM_TOP_EXACT_SCORE = "PRIMARY_DIFFERS_FROM_TOP_EXACT_SCORE"
+HIGH_XG_BUT_LOW_PRIMARY_SCORE = "HIGH_XG_BUT_LOW_PRIMARY_SCORE"
+UNDERDOG_GOAL_PROBABILITY_IGNORED = "UNDERDOG_GOAL_PROBABILITY_IGNORED"
+
+REPRESENTATIVE_SCORE_METHOD = "representative_v1_gate"
+REPRESENTATIVE_CANDIDATE_MIN_REL = 0.30
+REPRESENTATIVE_CANDIDATE_MIN_ABS = 2.0
+REPRESENTATIVE_POOL_TOP_K = 12
+UNDERDOG_XG_REPRESENTATIVE_THRESHOLD = 0.75
+UNDERDOG_SCORES_PROB_CLEAN_SHEET_PENALTY = 0.35
 
 OUTCOME_KEYS: tuple[OutcomeKey, ...] = ("home_win", "draw", "away_win")
 
@@ -71,13 +98,22 @@ class ScorelineDecision:
     favorite_outcome_top_scores: list[ScorelineCandidate] = field(default_factory=list)
     score_groups: dict[str, list[ScorelineCandidate]] = field(default_factory=dict)
     warnings: list[str] = field(default_factory=list)
+    representative_score_method: str | None = None
+    both_teams_score_probability: float | None = None
+    underdog_scores_probability: float | None = None
+    favorite_goal_band_probabilities: dict[str, float] = field(default_factory=dict)
+    primary_score_warnings: list[str] = field(default_factory=list)
+    primary_score_candidates: list[dict[str, Any]] = field(default_factory=list)
+    selection_rationale: str = ""
+    underdog_goal_gate: dict[str, Any] = field(default_factory=dict)
+    candidate_comparison_summary: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         primary = self.primary_predicted_score.to_dict() if self.primary_predicted_score else None
         top_exact = (
             self.top_exact_score_overall.to_dict() if self.top_exact_score_overall else None
         )
-        return {
+        payload: dict[str, Any] = {
             "favorite_outcome": self.favorite_outcome,
             "favorite_outcome_probability": round(self.favorite_outcome_probability, 2),
             "second_outcome": self.second_outcome,
@@ -95,6 +131,31 @@ class ScorelineDecision:
             },
             "warnings": list(self.warnings),
         }
+        if self.representative_score_method:
+            payload["representative_score_method"] = self.representative_score_method
+        if self.both_teams_score_probability is not None:
+            payload["both_teams_score_probability"] = round(
+                self.both_teams_score_probability, 2
+            )
+        if self.underdog_scores_probability is not None:
+            payload["underdog_scores_probability"] = round(
+                self.underdog_scores_probability, 2
+            )
+        if self.favorite_goal_band_probabilities:
+            payload["favorite_goal_band_probabilities"] = {
+                k: round(v, 2) for k, v in self.favorite_goal_band_probabilities.items()
+            }
+        if self.primary_score_warnings:
+            payload["primary_score_warnings"] = list(self.primary_score_warnings)
+        if self.primary_score_candidates:
+            payload["primary_score_candidates"] = self.primary_score_candidates
+        if self.selection_rationale:
+            payload["selection_rationale"] = self.selection_rationale
+        if self.underdog_goal_gate:
+            payload["underdog_goal_gate"] = self.underdog_goal_gate
+        if self.candidate_comparison_summary:
+            payload["candidate_comparison_summary"] = self.candidate_comparison_summary
+        return payload
 
 
 def _outcome_from_goals(home_goals: int, away_goals: int) -> OutcomeKey:
@@ -201,6 +262,378 @@ def _context_fit(candidate: ScorelineCandidate, context: MatchContextDiagnostics
     if context.neutral_ground_requested and candidate.outcome == "home_win":
         tilt -= 0.1
     return tilt
+
+
+@dataclass(frozen=True)
+class MatrixStats:
+    btts_probability: float
+    underdog_scores_probability: float
+    favorite_scores_2_plus: float
+    favorite_scores_3_plus: float
+    favorite_scores_4_plus: float
+    expected_home_goals: float
+    expected_away_goals: float
+    expected_goal_difference: float
+    upset_probability: float
+
+
+def _compute_matrix_stats(
+    all_scores: dict[str, float],
+    favorite_outcome: OutcomeKey,
+    probabilities_1x2: dict[str, float],
+) -> MatrixStats:
+    total_mass = sum(all_scores.values()) or 100.0
+    scale = 100.0 / total_mass
+
+    exp_home = 0.0
+    exp_away = 0.0
+    btts = 0.0
+    home_scores = 0.0
+    away_scores = 0.0
+    home_2_plus = home_3_plus = home_4_plus = 0.0
+    away_2_plus = away_3_plus = away_4_plus = 0.0
+
+    for score, prob_pct in all_scores.items():
+        prob = prob_pct * scale / 100.0
+        parts = score.split("-", 1)
+        h, a = int(parts[0]), int(parts[1])
+        exp_home += h * prob
+        exp_away += a * prob
+        if h >= 1 and a >= 1:
+            btts += prob
+        if h >= 1:
+            home_scores += prob
+        if a >= 1:
+            away_scores += prob
+        if h >= 2:
+            home_2_plus += prob
+        if h >= 3:
+            home_3_plus += prob
+        if h >= 4:
+            home_4_plus += prob
+        if a >= 2:
+            away_2_plus += prob
+        if a >= 3:
+            away_3_plus += prob
+        if a >= 4:
+            away_4_plus += prob
+
+    if favorite_outcome == "home_win":
+        underdog_scores = away_scores
+        fav_2, fav_3, fav_4 = home_2_plus, home_3_plus, home_4_plus
+        upset = probabilities_1x2.get("away_win", 0.0) / 100.0
+    elif favorite_outcome == "away_win":
+        underdog_scores = home_scores
+        fav_2, fav_3, fav_4 = away_2_plus, away_3_plus, away_4_plus
+        upset = probabilities_1x2.get("home_win", 0.0) / 100.0
+    else:
+        underdog_scores = min(home_scores, away_scores)
+        fav_2 = fav_3 = fav_4 = 0.0
+        upset = min(
+            probabilities_1x2.get("home_win", 0.0),
+            probabilities_1x2.get("away_win", 0.0),
+        ) / 100.0
+
+    return MatrixStats(
+        btts_probability=round(btts * 100, 2),
+        underdog_scores_probability=round(underdog_scores * 100, 2),
+        favorite_scores_2_plus=round(fav_2 * 100, 2),
+        favorite_scores_3_plus=round(fav_3 * 100, 2),
+        favorite_scores_4_plus=round(fav_4 * 100, 2),
+        expected_home_goals=round(exp_home, 3),
+        expected_away_goals=round(exp_away, 3),
+        expected_goal_difference=round(exp_home - exp_away, 3),
+        upset_probability=round(upset * 100, 2),
+    )
+
+
+def _normalize_fit(raw: float, scale: float = 3.0) -> float:
+    return max(0.0, min(1.0, 1.0 + raw / scale))
+
+
+def _favorite_side_goals(
+    candidate: ScorelineCandidate, favorite: OutcomeKey
+) -> tuple[int, int]:
+    if favorite == "home_win":
+        return candidate.home_goals, candidate.away_goals
+    if favorite == "away_win":
+        return candidate.away_goals, candidate.home_goals
+    return candidate.home_goals, candidate.away_goals
+
+
+def _representative_composite(
+    candidate: ScorelineCandidate,
+    *,
+    stats: MatrixStats,
+    favorite: OutcomeKey,
+    home_xg: float,
+    away_xg: float,
+    max_prob: float,
+    power_gap: float,
+    context: MatchContextDiagnostics | None,
+    gate: UnderdogGoalGateResult,
+    pool_by_label: dict[str, ScorelineCandidate],
+) -> float:
+    norm_prob = candidate.probability / max_prob if max_prob > 0 else 0.0
+    xg_shape_norm = _normalize_fit(_xg_shape_fit(candidate, home_xg, away_xg))
+    expected_total = home_xg + away_xg
+    actual_total = candidate.home_goals + candidate.away_goals
+    total_fit_norm = _normalize_fit(-abs(actual_total - expected_total))
+
+    fav_goals, underdog_goals = _favorite_side_goals(candidate, favorite)
+    fav_xg = home_xg if favorite == "home_win" else away_xg
+
+    fav_band_fit = 0.0
+    if fav_xg >= 3.5:
+        if fav_goals >= 4:
+            fav_band_fit = min(1.0, stats.favorite_scores_4_plus / 100.0 + 0.15)
+        elif fav_goals == 3:
+            fav_band_fit = min(0.85, stats.favorite_scores_3_plus / 100.0)
+        elif fav_goals <= 2 and stats.favorite_scores_3_plus >= 20.0:
+            fav_band_fit = -0.25
+    elif fav_xg >= 1.7:
+        if fav_goals >= 2:
+            fav_band_fit = min(1.0, stats.favorite_scores_2_plus / 100.0)
+        elif fav_goals == 1 and stats.favorite_scores_2_plus >= 40.0:
+            fav_band_fit = -0.30
+
+    strength_norm = max(0.0, min(1.0, 0.5 + _strength_gap_fit(candidate, power_gap) / 20.0))
+    context_norm = max(0.0, min(1.0, 0.5 + _context_fit(candidate, context)))
+
+    paired_clean = find_paired_clean_sheet(candidate.score_label, pool_by_label)
+    clean_prob = paired_clean.probability if paired_clean else None
+    gate_adj = gate_candidate_adjustment(
+        underdog_goals=underdog_goals,
+        gate=gate,
+        clean_sheet_probability=clean_prob,
+        candidate_probability=candidate.probability,
+    )
+
+    return (
+        0.36 * norm_prob
+        + 0.26 * xg_shape_norm
+        + 0.18 * total_fit_norm
+        + 0.10 * max(0.0, fav_band_fit)
+        + 0.04 * strength_norm
+        + 0.02 * context_norm
+        + gate_adj
+    )
+
+
+def _assess_primary_realism_warnings(
+    primary: ScorelineCandidate,
+    modal_favorite: ScorelineCandidate | None,
+    *,
+    stats: MatrixStats,
+    favorite: OutcomeKey,
+    home_xg: float,
+    away_xg: float,
+    top_exact: ScorelineCandidate | None,
+) -> list[str]:
+    warnings: list[str] = []
+    fav_goals, underdog_goals = _favorite_side_goals(primary, favorite)
+    fav_xg = home_xg if favorite == "home_win" else away_xg
+    dog_xg = away_xg if favorite == "home_win" else home_xg
+
+    if (
+        underdog_goals == 0
+        and dog_xg >= UNDERDOG_XG_REPRESENTATIVE_THRESHOLD
+        and stats.underdog_scores_probability >= 40.0
+    ):
+        warnings.append(PRIMARY_CLEAN_SHEET_WITH_UNDERDOG_XG_HIGH)
+
+    if fav_xg >= 1.7 and fav_goals < 2 and stats.favorite_scores_2_plus >= 45.0:
+        warnings.append(PRIMARY_TOO_LOW_FOR_FAVORITE_XG)
+
+    if fav_xg >= 3.5 and fav_goals < round(fav_xg - 0.5) and stats.favorite_scores_3_plus >= 25.0:
+        warnings.append(PRIMARY_CAPPED_BELOW_EXPECTED_GOALS)
+
+    if fav_xg >= 3.5 and fav_goals <= 3 and stats.favorite_scores_4_plus >= 12.0:
+        warnings.append(HIGH_XG_BUT_LOW_PRIMARY_SCORE)
+
+    if (
+        underdog_goals == 0
+        and stats.underdog_scores_probability >= 50.0
+        and stats.btts_probability >= 35.0
+    ):
+        warnings.append(UNDERDOG_GOAL_PROBABILITY_IGNORED)
+
+    if top_exact and (
+        primary.home_goals != top_exact.home_goals or primary.away_goals != top_exact.away_goals
+    ):
+        warnings.append(PRIMARY_DIFFERS_FROM_TOP_EXACT_SCORE)
+
+    if modal_favorite and primary.score_label != modal_favorite.score_label:
+        pass  # expected when representative beats modal favorite cell
+
+    return warnings
+
+
+def _pick_representative_score(
+    pool: list[ScorelineCandidate],
+    *,
+    favorite: OutcomeKey,
+    home_xg: float,
+    away_xg: float,
+    power_gap: float,
+    all_scores: dict[str, float] | None,
+    probabilities_1x2: dict[str, float],
+    context: MatchContextDiagnostics | None,
+    home_team: str,
+    away_team: str,
+    home_power: float,
+    away_power: float,
+) -> tuple[ScorelineCandidate | None, dict[str, Any]]:
+    if not pool:
+        return None, {}
+    if not all_scores:
+        return _pick_from_pool(
+            pool,
+            home_xg=home_xg,
+            away_xg=away_xg,
+            power_gap=power_gap,
+            strong_or_heavy=True,
+            context=context,
+        ), {}
+
+    stats = _compute_matrix_stats(all_scores, favorite, probabilities_1x2)
+    if favorite == "home_win":
+        fav_power, dog_power = home_power, away_power
+    elif favorite == "away_win":
+        fav_power, dog_power = away_power, home_power
+    else:
+        fav_power = max(home_power, away_power)
+        dog_power = min(home_power, away_power)
+
+    underdog_ctx = build_underdog_match_context(
+        favorite_outcome=favorite,
+        probabilities_1x2=probabilities_1x2,
+        home_team=home_team,
+        away_team=away_team,
+        home_xg=home_xg,
+        away_xg=away_xg,
+        favorite_power=fav_power,
+        underdog_power=dog_power,
+        power_gap=power_gap,
+    )
+    recent_form = None
+    if underdog_ctx and underdog_ctx.underdog_team:
+        recent_form = get_recent_scoring_form(
+            underdog_ctx.underdog_team,
+            favorite_power=underdog_ctx.favorite_power,
+        )
+    gate = compute_underdog_goal_gate(
+        underdog_ctx=underdog_ctx
+        or build_underdog_match_context(
+            favorite_outcome=favorite,
+            probabilities_1x2=probabilities_1x2,
+            home_team=home_team,
+            away_team=away_team,
+            home_xg=home_xg,
+            away_xg=away_xg,
+            favorite_power=fav_power,
+            underdog_power=dog_power,
+            power_gap=power_gap,
+        ),
+        underdog_scores_probability=stats.underdog_scores_probability,
+        btts_probability=stats.btts_probability,
+        recent_form=recent_form,
+    )
+
+    ordered = sorted(pool, key=lambda c: c.probability, reverse=True)
+    modal = ordered[0]
+    top_prob = modal.probability
+    threshold = max(
+        REPRESENTATIVE_CANDIDATE_MIN_ABS,
+        top_prob * REPRESENTATIVE_CANDIDATE_MIN_REL,
+    )
+    shortlist = [c for c in ordered if c.probability >= threshold][:REPRESENTATIVE_POOL_TOP_K]
+    if not shortlist:
+        shortlist = ordered[:REPRESENTATIVE_POOL_TOP_K]
+
+    pool_by_label = {c.score_label: c for c in pool}
+    max_prob = max(c.probability for c in shortlist)
+    scored = [
+        (
+            c,
+            _representative_composite(
+                c,
+                stats=stats,
+                favorite=favorite,
+                home_xg=home_xg,
+                away_xg=away_xg,
+                max_prob=max_prob,
+                power_gap=power_gap,
+                context=context,
+                gate=gate,
+                pool_by_label=pool_by_label,
+            ),
+        )
+        for c in shortlist
+    ]
+    best, best_score = max(scored, key=lambda item: item[1])
+    modal_score = next(s for c, s in scored if c.score_label == modal.score_label)
+
+    comparison = build_candidate_comparison_summary(
+        pool=pool,
+        scored=scored,
+        selected=best,
+        gate=gate,
+        favorite_outcome=favorite,
+    )
+
+    rationale = (
+        f"{REPRESENTATIVE_SCORE_METHOD}: selected {best.score_label} (composite={best_score:.3f}) "
+        f"over modal {modal.score_label} ({modal_score:.3f}); "
+        f"gate={gate.level} support={gate.support_score:.1f}/{gate.threshold:.0f}; "
+        f"BTTS={stats.btts_probability:.1f}%, underdog scores={stats.underdog_scores_probability:.1f}%"
+    )
+
+    goal_bands = {
+        "favorite_2_plus": stats.favorite_scores_2_plus,
+        "favorite_3_plus": stats.favorite_scores_3_plus,
+        "favorite_4_plus": stats.favorite_scores_4_plus,
+    }
+    candidate_preview = [
+        {
+            "score": c.score_label,
+            "probability": round(c.probability, 2),
+            "composite": round(score, 4),
+        }
+        for c, score in sorted(scored, key=lambda item: item[1], reverse=True)[:5]
+    ]
+    primary_warnings = _assess_primary_realism_warnings(
+        best,
+        modal,
+        stats=stats,
+        favorite=favorite,
+        home_xg=home_xg,
+        away_xg=away_xg,
+        top_exact=None,
+    )
+    primary_warnings.extend(gate.reason_codes)
+    if comparison.exact_probability_gap is not None:
+        if comparison.exact_probability_gap <= CLOSE_SCORELINE_PP:
+            primary_warnings.append(UNDERDOG_GOAL_ALLOWED_CLOSE_CANDIDATE)
+        elif (
+            best.score_label == comparison.best_underdog_goal_candidate
+            and comparison.exact_probability_gap > LARGE_CANDIDATE_PROB_GAP
+            and gate.level not in {"STRONG_ALLOW"}
+        ):
+            primary_warnings.append(UNDERDOG_GOAL_REJECTED_CANDIDATE_TOO_FAR)
+
+    diagnostics: dict[str, Any] = {
+        "representative_score_method": REPRESENTATIVE_SCORE_METHOD,
+        "both_teams_score_probability": stats.btts_probability,
+        "underdog_scores_probability": stats.underdog_scores_probability,
+        "favorite_goal_band_probabilities": goal_bands,
+        "primary_score_warnings": list(dict.fromkeys(primary_warnings)),
+        "primary_score_candidates": candidate_preview,
+        "selection_rationale": rationale,
+        "underdog_goal_gate": gate.to_dict(),
+        "candidate_comparison_summary": comparison.to_dict(),
+    }
+    return best, diagnostics
 
 
 def _pick_from_pool(
@@ -381,32 +814,66 @@ def build_scoreline_decision(
         warnings.append(CONTEXT_LIMITED)
 
     power_gap = strength.final_gap if strength else 0.0
+    home_power = strength.final_home_power if strength else 700.0
+    away_power = strength.final_away_power if strength else 700.0
 
+    rep_diagnostics: dict[str, Any] = {}
     primary: ScorelineCandidate | None
     if prediction_invalid:
         primary = top_exact
     elif balanced:
         primary = top_exact
     elif clear_favorite or strong_favorite or heavy_favorite:
-        primary = _pick_from_pool(
+        primary, rep_diagnostics = _pick_representative_score(
             favorite_pool,
+            favorite=favorite,
             home_xg=home_xg,
             away_xg=away_xg,
             power_gap=power_gap,
-            strong_or_heavy=strong_favorite or heavy_favorite,
+            all_scores=all_scores,
+            probabilities_1x2=final_probabilities_1x2,
             context=ctx,
+            home_team=home_team,
+            away_team=away_team,
+            home_power=home_power,
+            away_power=away_power,
         )
         if primary is None and top_exact:
             primary = top_exact
     else:
-        primary = _pick_from_pool(
+        primary, rep_diagnostics = _pick_representative_score(
             favorite_pool,
+            favorite=favorite,
             home_xg=home_xg,
             away_xg=away_xg,
             power_gap=power_gap,
-            strong_or_heavy=False,
+            all_scores=all_scores,
+            probabilities_1x2=final_probabilities_1x2,
             context=ctx,
-        ) or top_exact
+            home_team=home_team,
+            away_team=away_team,
+            home_power=home_power,
+            away_power=away_power,
+        )
+        if primary is None:
+            primary = top_exact
+
+    if rep_diagnostics.get("primary_score_warnings") and top_exact and primary:
+        extra = _assess_primary_realism_warnings(
+            primary,
+            None,
+            stats=_compute_matrix_stats(all_scores or {}, favorite, final_probabilities_1x2)
+            if all_scores
+            else MatrixStats(0, 0, 0, 0, 0, 0, 0, 0, 0),
+            favorite=favorite,
+            home_xg=home_xg,
+            away_xg=away_xg,
+            top_exact=top_exact,
+        )
+        merged = list(
+            dict.fromkeys(rep_diagnostics.get("primary_score_warnings", []) + extra)
+        )
+        rep_diagnostics["primary_score_warnings"] = merged
 
     differs = bool(
         primary
@@ -455,4 +922,15 @@ def build_scoreline_decision(
         favorite_outcome_top_scores=favorite_outcome_top_scores,
         score_groups=score_groups,
         warnings=warnings,
+        representative_score_method=rep_diagnostics.get("representative_score_method"),
+        both_teams_score_probability=rep_diagnostics.get("both_teams_score_probability"),
+        underdog_scores_probability=rep_diagnostics.get("underdog_scores_probability"),
+        favorite_goal_band_probabilities=rep_diagnostics.get(
+            "favorite_goal_band_probabilities", {}
+        ),
+        primary_score_warnings=rep_diagnostics.get("primary_score_warnings", []),
+        primary_score_candidates=rep_diagnostics.get("primary_score_candidates", []),
+        selection_rationale=rep_diagnostics.get("selection_rationale", ""),
+        underdog_goal_gate=rep_diagnostics.get("underdog_goal_gate", {}),
+        candidate_comparison_summary=rep_diagnostics.get("candidate_comparison_summary", {}),
     )

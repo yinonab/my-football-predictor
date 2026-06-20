@@ -284,6 +284,15 @@ class ScorelineDecisionResponse(BaseModel):
     favorite_outcome_top_scores: list[ScorelineCandidateResponse] = Field(default_factory=list)
     score_groups: ScoreGroupsResponse = Field(default_factory=ScoreGroupsResponse)
     warnings: list[str] = Field(default_factory=list)
+    representative_score_method: str | None = None
+    both_teams_score_probability: float | None = None
+    underdog_scores_probability: float | None = None
+    favorite_goal_band_probabilities: dict[str, float] = Field(default_factory=dict)
+    primary_score_warnings: list[str] = Field(default_factory=list)
+    primary_score_candidates: list[dict[str, Any]] = Field(default_factory=list)
+    selection_rationale: str = ""
+    underdog_goal_gate: dict[str, Any] = Field(default_factory=dict)
+    candidate_comparison_summary: dict[str, Any] = Field(default_factory=dict)
 
 
 class ProbabilityCoherenceResponse(BaseModel):
