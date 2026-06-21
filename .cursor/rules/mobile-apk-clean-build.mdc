@@ -1,0 +1,46 @@
+---
+description: Mandatory clean APK build workflow (preserves tracked Flutter web for Render)
+alwaysApply: true
+---
+
+# Mobile APK — clean build only
+
+When the user asks to build an APK (including Hebrew: APK, אפליקציה, קלין בילד):
+
+## Required workflow
+
+**Do not** run bare `flutter clean` + `flutter build apk` without restoring web.
+
+Use **only** this sequence (repo root):
+
+```powershell
+.\mobile\scripts\build_apk_clean.ps1
+```
+
+Or run the steps manually in order:
+
+```powershell
+cd mobile
+flutter clean
+flutter pub get
+flutter build apk --release
+cd ..
+git restore mobile/build/web
+```
+
+## Why
+
+`mobile/build/web` is **tracked in Git** for Render static deploy. `flutter clean` deletes it and Git shows dozens of deleted files. `git restore mobile/build/web` restores the committed web bundle without affecting the APK.
+
+## Do not
+
+- Skip `git restore mobile/build/web` after clean
+- Commit deleted or modified `mobile/build/web` as part of an APK-only task
+- Change `.gitignore` or Render config unless the user explicitly requests web-deploy migration
+- Run `flutter build web` unless the user also wants to update the Render web bundle
+
+## Output
+
+Report APK path: `mobile/build/app/outputs/flutter-apk/app-release.apk`
+
+If the user changed mobile UI and needs Render web updated, use option B separately: `flutter build web` then commit `mobile/build/web` intentionally.

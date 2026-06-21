@@ -23,6 +23,8 @@ class _HomeScreenState extends State<HomeScreen> {
   final _apiService = ApiService();
   final _teamAController = TextEditingController();
   final _teamBController = TextEditingController();
+  final _teamAFocus = FocusNode();
+  final _teamBFocus = FocusNode();
 
   PredictionSettings _settings = const PredictionSettings();
   List<String> _teams = [];
@@ -47,10 +49,20 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _onTeamAFocus() {
+    _teamBFocus.unfocus();
+  }
+
+  void _onTeamBFocus() {
+    _teamAFocus.unfocus();
+  }
+
   @override
   void dispose() {
     _teamAController.dispose();
     _teamBController.dispose();
+    _teamAFocus.dispose();
+    _teamBFocus.dispose();
     super.dispose();
   }
 
@@ -87,6 +99,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _predict() async {
+    FocusScope.of(context).unfocus();
+
     final teamA = _teamAController.text.trim();
     final teamB = _teamBController.text.trim();
 
@@ -158,6 +172,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final teamALabel = useHostAwayLabels ? 'נבחרת מארחת' : 'נבחרת א\'';
     final teamBLabel = useHostAwayLabels ? 'נבחרת אורחת' : 'נבחרת ב\'';
     const scoreLabelsNeutral = true;
+    final showResults = _result != null && !_predicting;
 
     return Directionality(
       textDirection: TextDirection.rtl,
@@ -203,6 +218,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     TeamTextField(
                       label: teamALabel,
                       controller: _teamAController,
+                      focusNode: _teamAFocus,
+                      onFocusGained: _onTeamAFocus,
                       hint: 'Argentina (ארגנטינה)',
                       suggestions: _teams,
                       groupBadge: _result?.homeBreakdown.group,
@@ -211,6 +228,8 @@ class _HomeScreenState extends State<HomeScreen> {
                     TeamTextField(
                       label: teamBLabel,
                       controller: _teamBController,
+                      focusNode: _teamBFocus,
+                      onFocusGained: _onTeamBFocus,
                       hint: 'France (צרפת)',
                       suggestions: _teams,
                       groupBadge: _result?.awayBreakdown.group,
@@ -229,7 +248,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       team2: _teamBController.text.trim(),
                       onChanged: (mode) => setState(() => _venueMode = mode),
                     ),
-                    if (_result != null) ...[
+                    if (showResults) ...[
                       Builder(
                         builder: (context) {
                           final note = hostAdvantageNote(
@@ -242,7 +261,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               note,
                               style: theme.textTheme.bodySmall?.copyWith(
                                 color: theme.colorScheme.onSurfaceVariant,
-                                fontStyle: FontStyle.italic,
                               ),
                               textAlign: TextAlign.right,
                             ),
@@ -279,8 +297,18 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                     ],
-                    if (_result != null) ...[
-                      const SizedBox(height: 32),
+                    if (_predicting && _result != null) ...[
+                      const SizedBox(height: 24),
+                      const Center(child: LinearProgressIndicator()),
+                      const SizedBox(height: 8),
+                      Text(
+                        'מחשב תחזית חדשה…',
+                        style: theme.textTheme.bodySmall,
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                    if (showResults) ...[
+                      const SizedBox(height: 24),
                       Text(
                         'תוצאות חיזוי',
                         style: theme.textTheme.titleLarge?.copyWith(
@@ -307,8 +335,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       const SizedBox(height: 12),
                       PredictionStatusBanner(result: _result!),
-                      PredictionWarningChips(result: _result!),
-                      const SizedBox(height: 8),
+                      PredictionDataLimitBanner(result: _result!),
                       PredictionPrimaryScoreCard(
                         result: _result!,
                         isNeutralGround: scoreLabelsNeutral,
@@ -321,27 +348,24 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ] else if (_result!.matchSummary.isNotEmpty) ...[
                         const SizedBox(height: 8),
-                        Card(
-                          color: theme.colorScheme.surfaceContainerHighest,
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Text(
-                              _result!.matchSummary,
-                              style: theme.textTheme.bodyMedium,
-                              textAlign: TextAlign.right,
-                            ),
-                          ),
+                        PredictionWhyCard(
+                          result: _result!,
+                          requestedVenueMode: _venueMode,
                         ),
                       ],
                       if (_result!.h2hSummary.isNotEmpty) ...[
                         const SizedBox(height: 8),
                         Card(
-                          color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.4),
                           child: Padding(
                             padding: const EdgeInsets.all(12),
                             child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Icon(Icons.history, size: 20, color: theme.colorScheme.secondary),
+                                Icon(
+                                  Icons.history,
+                                  size: 20,
+                                  color: theme.colorScheme.secondary,
+                                ),
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
@@ -356,80 +380,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ],
                       const SizedBox(height: 12),
-                      Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            children: [
-                              Text('xG צפוי', style: theme.textTheme.titleSmall),
-                              const SizedBox(height: 8),
-                              Text(
-                                '${shortTeamName(_result!.homeTeam)}: ${_result!.homeXg}  |  '
-                                '${shortTeamName(_result!.awayTeam)}: ${_result!.awayXg}',
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Card(
-                        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.35),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(
-                                'טווח תוצאות (${_result!.scoreCoverage.achievedPercent.toStringAsFixed(0)}% מהמסה)',
-                                style: theme.textTheme.titleSmall,
-                                textAlign: TextAlign.right,
-                              ),
-                              const SizedBox(height: 8),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                alignment: WrapAlignment.end,
-                                children: _result!.scoreCoverage.scores
-                                    .map(
-                                      (s) => Chip(
-                                        label: Text(
-                                          formatNamedScore(
-                                            s,
-                                            teamAName: _result!.homeTeam,
-                                            teamBName: _result!.awayTeam,
-                                            isNeutralGround: scoreLabelsNeutral,
-                                          ),
-                                          textAlign: TextAlign.right,
-                                        ),
-                                        backgroundColor:
-                                            theme.colorScheme.surface,
-                                      ),
-                                    )
-                                    .toList(),
-                              ),
-                              if (_result!.scoreCoverage.explanation.isNotEmpty) ...[
-                                const SizedBox(height: 8),
-                                Text(
-                                  _result!.scoreCoverage.explanation,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurfaceVariant,
-                                  ),
-                                  textAlign: TextAlign.right,
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      ),
+                      ExpectedGoalsCard(result: _result!),
                       const SizedBox(height: 16),
                       Text(
-                        _result!.scorelineDecision != null
-                            ? 'התוצאות הבודדות המובילות במטריצה'
-                            : 'תחזית מדויקת — 3 האפשרויות המובילות',
+                        'תוצאות אפשריות מובילות',
                         style: theme.textTheme.titleMedium,
                         textAlign: TextAlign.right,
                       ),
@@ -439,6 +393,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         teamAName: _result!.homeTeam,
                         teamBName: _result!.awayTeam,
                         isNeutralGround: scoreLabelsNeutral,
+                        initialVisibleCount: 3,
                       ),
                       const SizedBox(height: 12),
                       PredictionContextCard(
@@ -446,22 +401,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         requestedVenueMode: _venueMode,
                       ),
                       const SizedBox(height: 8),
-                      PredictionTechnicalDetails(result: _result!),
-                      const SizedBox(height: 8),
-                      ExpansionTile(
-                        title: const Text('פירוט כוח נבחרות'),
-                        children: [
-                          ListTile(
-                            title: Text(_result!.homeBreakdown.name),
-                            subtitle: Text(_result!.homeBreakdown.breakdown),
-                            trailing: Text(_result!.homePower.toStringAsFixed(0)),
-                          ),
-                          ListTile(
-                            title: Text(_result!.awayBreakdown.name),
-                            subtitle: Text(_result!.awayBreakdown.breakdown),
-                            trailing: Text(_result!.awayPower.toStringAsFixed(0)),
-                          ),
-                        ],
+                      PredictionTechnicalDetails(
+                        result: _result!,
+                        requestedVenueMode: _venueMode,
+                        isNeutralGround: scoreLabelsNeutral,
                       ),
                     ],
                     const SizedBox(height: 32),

@@ -8,6 +8,7 @@ class OutcomeCards extends StatelessWidget {
   final String teamALabel;
   final String teamBLabel;
   final bool isNeutralGround;
+  final bool showExplanations;
 
   const OutcomeCards({
     super.key,
@@ -16,6 +17,7 @@ class OutcomeCards extends StatelessWidget {
     required this.teamALabel,
     required this.teamBLabel,
     this.isNeutralGround = true,
+    this.showExplanations = false,
   });
 
   @override
@@ -57,16 +59,18 @@ class OutcomeCards extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        _ExplanationTile(
-          title: '$sideALabel ($teamA)',
-          text: explanations.homeWin,
-        ),
-        _ExplanationTile(title: 'תיקו', text: explanations.draw),
-        _ExplanationTile(
-          title: '$sideBLabel ($teamB)',
-          text: explanations.awayWin,
-        ),
+        if (showExplanations) ...[
+          const SizedBox(height: 12),
+          _ExplanationTile(
+            title: '$sideALabel ($teamA)',
+            text: explanations.homeWin,
+          ),
+          _ExplanationTile(title: 'תיקו', text: explanations.draw),
+          _ExplanationTile(
+            title: '$sideBLabel ($teamB)',
+            text: explanations.awayWin,
+          ),
+        ],
       ],
     );
   }

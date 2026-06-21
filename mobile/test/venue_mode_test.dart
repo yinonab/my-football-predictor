@@ -96,7 +96,7 @@ void main() {
         awayTeam: away,
       );
       expect(line, contains('מגרש ניטרלי'));
-      expect(line, contains('לא נוסף יתרון ביתיות'));
+      expect(line, contains('אין יתרון ביתיות'));
     });
 
     test('first_team_home applied', () {
@@ -137,6 +137,7 @@ void main() {
         awayTeam: away,
       );
       expect(line, contains('לא זוהתה מדינה מארחת'));
+      expect(line, contains('אין יתרון ביתיות'));
     });
 
     test('fallback when backend omits venue_mode', () {
@@ -163,11 +164,11 @@ void main() {
     test('applied says included in calculation', () {
       expect(
         homeAdvantageExplanation(
-          const MatchContextDiagnostics(
+          diag: const MatchContextDiagnostics(
             venueMode: 'first_team_home',
             hostAdvantageApplied: true,
           ),
-          VenueMode.firstTeamHome,
+          requestedVenueMode: VenueMode.firstTeamHome,
         ),
         'יתרון ביתיות נכלל בחישוב.',
       );
@@ -176,13 +177,13 @@ void main() {
     test('neutral not applied', () {
       expect(
         homeAdvantageExplanation(
-          const MatchContextDiagnostics(
+          diag: const MatchContextDiagnostics(
             venueMode: 'neutral',
             hostAdvantageApplied: false,
           ),
-          VenueMode.neutral,
+          requestedVenueMode: VenueMode.neutral,
         ),
-        'המשחק מוגדר כניטרלי.',
+        'מגרש ניטרלי — אין יתרון ביתיות.',
       );
     });
 

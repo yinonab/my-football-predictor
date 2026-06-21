@@ -48,34 +48,40 @@ class PredictionStatusBanner extends StatelessWidget {
   }
 }
 
-class PredictionWarningChips extends StatelessWidget {
+class PredictionDataLimitBanner extends StatelessWidget {
   final PredictionResult result;
 
-  const PredictionWarningChips({super.key, required this.result});
+  const PredictionDataLimitBanner({super.key, required this.result});
 
   @override
   Widget build(BuildContext context) {
-    final lines = buildUserWarningLines(result);
-    if (lines.isEmpty) return const SizedBox.shrink();
+    final message = buildConsolidatedDataLimitMessage(result);
+    if (message == null) return const SizedBox.shrink();
 
     final theme = Theme.of(context);
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      alignment: WrapAlignment.end,
-      children: lines
-          .map(
-            (line) => Chip(
-              avatar: Icon(
-                Icons.info_outline,
-                size: 16,
-                color: theme.colorScheme.onSecondaryContainer,
-              ),
-              label: Text(line),
-              backgroundColor: theme.colorScheme.secondaryContainer,
+    return Card(
+      color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.45),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(
+              Icons.info_outline,
+              size: 18,
+              color: theme.colorScheme.onSecondaryContainer,
             ),
-          )
-          .toList(),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                message,
+                style: theme.textTheme.bodyMedium,
+                textAlign: TextAlign.right,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
@@ -122,7 +128,7 @@ class PredictionPrimaryScoreCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'תחזית תוצאה מרכזית',
+              'תחזית מרכזית',
               style: theme.textTheme.titleSmall?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
@@ -138,28 +144,10 @@ class PredictionPrimaryScoreCard extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'התרחיש המוביל: $favoriteText — '
-              '${sd.favoriteOutcomeProbability.toStringAsFixed(1)}%',
+              'תרחיש מוביל: $favoriteText (${sd.favoriteOutcomeProbability.toStringAsFixed(1)}%)',
               style: theme.textTheme.bodyMedium,
               textAlign: TextAlign.right,
             ),
-            if (sd.topExactScoreDiffersFromPrimary &&
-                sd.topExactScoreOverall != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                'התוצאה הבודדת הנפוצה ביותר במודל: '
-                '${formatScorelineCandidate(
-                  sd.topExactScoreOverall!,
-                  homeTeam: result.homeTeam,
-                  awayTeam: result.awayTeam,
-                  isNeutralGround: isNeutralGround,
-                )}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-                textAlign: TextAlign.right,
-              ),
-            ],
           ],
         ),
       ),
@@ -230,10 +218,16 @@ class PredictionContextCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!shouldShowMatchContextCard(
+      result,
+      requestedVenueMode: requestedVenueMode,
+    )) {
+      return const SizedBox.shrink();
+    }
+
     final theme = Theme.of(context);
     final diag = result.matchContextDiagnostics;
     final ctx = result.matchContext;
-    final reliable = isFixtureContextReliable(diag);
     final venueLine = venueContextSummaryLine(
       diag: diag,
       homeTeam: result.homeTeam,
@@ -243,96 +237,51 @@ class PredictionContextCard extends StatelessWidget {
     final powerLine = homeAdvantagePowerDeltaLine(diag);
 
     return Card(
-      color: theme.colorScheme.tertiaryContainer.withValues(alpha: 0.45),
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                Icon(
-                  Icons.wb_sunny_outlined,
-                  size: 20,
-                  color: theme.colorScheme.tertiary,
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  'הקשר משחק',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
+            Text(
+              'הקשר משחק',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.right,
             ),
             const SizedBox(height: 8),
-            if (venueLine != null) ...[
+            if (venueLine != null)
               Text(
                 venueLine,
                 style: theme.textTheme.bodyMedium,
                 textAlign: TextAlign.right,
               ),
-              if (powerLine != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  powerLine,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
-                  textAlign: TextAlign.right,
-                ),
-              ],
-              const SizedBox(height: 8),
-            ],
-            if (!reliable) ...[
-              Text(
-                'נתוני מועד, אצטדיון והקשר משחק אינם זמינים כרגע.',
-                style: theme.textTheme.bodyMedium,
-                textAlign: TextAlign.right,
-              ),
+            if (powerLine != null) ...[
               const SizedBox(height: 4),
               Text(
-                'התחזית מבוססת בעיקר על חוזק הקבוצות, xG ותוצאות עבר.',
+                powerLine,
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
                 textAlign: TextAlign.right,
               ),
-            ] else ...[
+            ],
+            if (shouldShowRestDays(diag, ctx)) ...[
+              const SizedBox(height: 6),
               Text(
-                'ביתיות: ${diag?.hostAdvantageApplied == true ? 'הופעלה' : 'לא הופעלה'}',
-                style: theme.textTheme.bodyMedium,
+                'ימי מנוחה: ${shortTeamName(result.homeTeam)} ${ctx!.homeRestDays} · ${shortTeamName(result.awayTeam)} ${ctx.awayRestDays}',
+                style: theme.textTheme.bodySmall,
                 textAlign: TextAlign.right,
               ),
-              const SizedBox(height: 4),
+            ],
+            if (ctx?.weatherSummary != null &&
+                ctx!.weatherSummary!.isNotEmpty) ...[
+              const SizedBox(height: 6),
               Text(
-                'אצטדיון: ${diag?.venueContextAvailable == true ? 'זמין' : 'לא זמין'}',
-                style: theme.textTheme.bodyMedium,
+                ctx.weatherSummary!,
+                style: theme.textTheme.bodySmall,
                 textAlign: TextAlign.right,
               ),
-              const SizedBox(height: 4),
-              Text(
-                'נתוני מנוחה: ${shouldShowRestDays(diag, ctx) ? 'זמינים' : 'לא זמינים'}',
-                style: theme.textTheme.bodyMedium,
-                textAlign: TextAlign.right,
-              ),
-              if (shouldShowRestDays(diag, ctx)) ...[
-                const SizedBox(height: 6),
-                Text(
-                  'מנוחה: בית ${ctx!.homeRestDays} ימים · חוץ ${ctx.awayRestDays} ימים',
-                  style: theme.textTheme.bodySmall,
-                  textAlign: TextAlign.right,
-                ),
-              ],
-              if (ctx?.weatherSummary != null &&
-                  ctx!.weatherSummary!.isNotEmpty) ...[
-                const SizedBox(height: 6),
-                Text(
-                  ctx.weatherSummary!,
-                  style: theme.textTheme.bodySmall,
-                  textAlign: TextAlign.right,
-                ),
-              ],
             ],
           ],
         ),
@@ -343,25 +292,325 @@ class PredictionContextCard extends StatelessWidget {
 
 class PredictionTechnicalDetails extends StatelessWidget {
   final PredictionResult result;
+  final VenueMode? requestedVenueMode;
+  final bool isNeutralGround;
 
-  const PredictionTechnicalDetails({super.key, required this.result});
+  const PredictionTechnicalDetails({
+    super.key,
+    required this.result,
+    this.requestedVenueMode,
+    this.isNeutralGround = true,
+  });
 
   @override
   Widget build(BuildContext context) {
-    if (result.matchSummary.isEmpty) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    final diag = result.matchContextDiagnostics;
+    final ctx = result.matchContext;
+    final hasContent = result.matchSummary.isNotEmpty ||
+        result.outcomeExplanations.homeWin.isNotEmpty ||
+        result.scoreCoverage.scores.isNotEmpty ||
+        result.homeBreakdown.breakdown.isNotEmpty;
 
-    return ExpansionTile(
-      title: const Text('פרטים טכניים'),
+    if (!hasContent) return const SizedBox.shrink();
+
+    return Card(
+      margin: EdgeInsets.zero,
+      child: Theme(
+        data: theme.copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          initiallyExpanded: false,
+          leading: Icon(Icons.tune, color: theme.colorScheme.primary),
+          title: Text(
+            'פרטים טכניים',
+            style: theme.textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          subtitle: const Text(
+            'דירוגים, הסברי מודל ונתוני מקור',
+            textAlign: TextAlign.right,
+          ),
+          children: [
+            _TeamStrengthSection(result: result),
+            if (result.matchSummary.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                result.matchSummary,
+                style: theme.textTheme.bodySmall,
+                textAlign: TextAlign.right,
+              ),
+            ],
+            if (result.outcomeExplanations.homeWin.isNotEmpty ||
+                result.outcomeExplanations.draw.isNotEmpty ||
+                result.outcomeExplanations.awayWin.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                'הסברי תוצאות (מודל)',
+                style: theme.textTheme.labelLarge,
+                textAlign: TextAlign.right,
+              ),
+              const SizedBox(height: 4),
+              if (result.outcomeExplanations.homeWin.isNotEmpty)
+                _TechnicalLine(
+                  title: shortTeamName(result.homeTeam),
+                  text: result.outcomeExplanations.homeWin,
+                ),
+              if (result.outcomeExplanations.draw.isNotEmpty)
+                _TechnicalLine(title: 'תיקו', text: result.outcomeExplanations.draw),
+              if (result.outcomeExplanations.awayWin.isNotEmpty)
+                _TechnicalLine(
+                  title: shortTeamName(result.awayTeam),
+                  text: result.outcomeExplanations.awayWin,
+                ),
+            ],
+            if (result.scoreCoverage.scores.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                'טווח תוצאות (${result.scoreCoverage.achievedPercent.toStringAsFixed(0)}% מהמסה)',
+                style: theme.textTheme.labelLarge,
+                textAlign: TextAlign.right,
+              ),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                alignment: WrapAlignment.end,
+                children: result.scoreCoverage.scores
+                    .map(
+                      (s) => Chip(
+                        label: Text(
+                          formatNamedScore(
+                            s,
+                            teamAName: result.homeTeam,
+                            teamBName: result.awayTeam,
+                            isNeutralGround: isNeutralGround,
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
+              ),
+              if (result.scoreCoverage.explanation.isNotEmpty) ...[
+                const SizedBox(height: 6),
+                Text(
+                  result.scoreCoverage.explanation,
+                  style: theme.textTheme.bodySmall,
+                  textAlign: TextAlign.right,
+                ),
+              ],
+            ],
+            if (diag != null || ctx != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                'אבחון הקשר',
+                style: theme.textTheme.labelLarge,
+                textAlign: TextAlign.right,
+              ),
+              const SizedBox(height: 4),
+              if (diag != null) ...[
+                Text(
+                  'מקור משחק: ${diag.fixtureSourceAvailable ? "זמין" : "לא זמין"} · '
+                  'אצטדיון: ${diag.venueContextAvailable ? "זמין" : "לא זמין"}',
+                  style: theme.textTheme.bodySmall,
+                  textAlign: TextAlign.right,
+                ),
+                if (ctx?.matchDate != null)
+                  Text(
+                    'תאריך במערכת: ${ctx!.matchDate}',
+                    style: theme.textTheme.bodySmall,
+                    textAlign: TextAlign.right,
+                  ),
+                if (diag.warnings.isNotEmpty)
+                  Text(
+                    'אזהרות: ${diag.warnings.join(", ")}',
+                    style: theme.textTheme.bodySmall,
+                    textAlign: TextAlign.right,
+                  ),
+              ],
+            ],
+            if (result.scorelineDecision?.warnings.isNotEmpty == true) ...[
+              const SizedBox(height: 8),
+              Text(
+                'אזהרות תחזית: ${result.scorelineDecision!.warnings.join(", ")}',
+                style: theme.textTheme.bodySmall,
+                textAlign: TextAlign.right,
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TeamStrengthSection extends StatelessWidget {
+  final PredictionResult result;
+
+  const _TeamStrengthSection({required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: Text(
-            result.matchSummary,
+        Text(
+          'פירוט כוח נבחרות',
+          style: theme.textTheme.labelLarge,
+          textAlign: TextAlign.right,
+        ),
+        const SizedBox(height: 8),
+        _TeamStrengthBlock(
+          label: shortTeamName(result.homeTeam),
+          breakdown: result.homeBreakdown,
+          power: result.homePower,
+        ),
+        const SizedBox(height: 8),
+        _TeamStrengthBlock(
+          label: shortTeamName(result.awayTeam),
+          breakdown: result.awayBreakdown,
+          power: result.awayPower,
+        ),
+      ],
+    );
+  }
+}
+
+class _TeamStrengthBlock extends StatelessWidget {
+  final String label;
+  final TeamBreakdown breakdown;
+  final double power;
+
+  const _TeamStrengthBlock({
+    required this.label,
+    required this.breakdown,
+    required this.power,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final rows = parseBreakdownRows(breakdown.breakdown);
+
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Text(
+                'כוח כולל: ${power.toStringAsFixed(0)}',
+                style: theme.textTheme.titleSmall,
+              ),
+              const Spacer(),
+              Text(label, style: theme.textTheme.titleSmall),
+            ],
+          ),
+          if (rows.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            for (final row in rows)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Text(
+                  '${row.key}: ${row.value}',
+                  style: theme.textTheme.bodySmall,
+                  textAlign: TextAlign.right,
+                ),
+              ),
+          ] else if (breakdown.breakdown.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              breakdown.breakdown,
+              style: theme.textTheme.bodySmall,
+              textAlign: TextAlign.right,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _TechnicalLine extends StatelessWidget {
+  final String title;
+  final String text;
+
+  const _TechnicalLine({required this.title, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.labelMedium,
+            textAlign: TextAlign.right,
+          ),
+          Text(
+            text,
             style: Theme.of(context).textTheme.bodySmall,
             textAlign: TextAlign.right,
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class ExpectedGoalsCard extends StatelessWidget {
+  final PredictionResult result;
+
+  const ExpectedGoalsCard({super.key, required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'שערים צפויים',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.right,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${shortTeamName(result.homeTeam)}: ${result.homeXg}  |  '
+              '${shortTeamName(result.awayTeam)}: ${result.awayXg}',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'זהו אומדן לכמות השערים הצפויה, לא תוצאה מובטחת.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.right,
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
