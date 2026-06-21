@@ -26,6 +26,8 @@ NT_TEAM_ALIASES: dict[str, str] = {
     "Bosnia": "Bosnia and Herzegovina",
     "Bosnia and Herzegovina": "Bosnia and Herzegovina",
     "Bosnia-Herzegovina": "Bosnia and Herzegovina",
+    "Bosnia-H.": "Bosnia and Herzegovina",
+    "Bosnia-H": "Bosnia and Herzegovina",
     # Curacao
     "Curacao": "Curacao",
     "Curaçao": "Curacao",

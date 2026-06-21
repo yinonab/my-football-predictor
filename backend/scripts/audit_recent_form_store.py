@@ -1,4 +1,4 @@
-"""Phase 4R.1 — Normalized recent form store coverage audit (offline)."""
+"""Phase 4R.1/4R.2/4R.3 — Normalized recent form store coverage audit (offline)."""
 
 from __future__ import annotations
 
@@ -13,9 +13,24 @@ BACKEND = Path(__file__).resolve().parent.parent
 if str(BACKEND) not in sys.path:
     sys.path.insert(0, str(BACKEND))
 
+from core.football_data_recent_form import (  # noqa: E402
+    cache_age_hours,
+    load_recent_form_cache,
+)
+from core.recent_form_fusion import (  # noqa: E402
+    cache_age_hours as fusion_cache_age_hours,
+    fusion_match_to_normalized,
+    get_fusion_cache_status,
+    load_fusion_cache,
+    load_fusion_cache_rows,
+)
 from core.recent_form_sources_audit import classify_confidence_bucket  # noqa: E402
 from core.recent_match_history import (  # noqa: E402
+    NormalizedRecentMatch,
+    _dedupe_rows,
+    _sort_rows,
     build_normalized_recent_match_history,
+    get_recent_form_cache_status,
     get_recent_match_coverage_summary,
 )
 from core.recent_scoring_form import get_recent_scoring_form  # noqa: E402
@@ -25,21 +40,57 @@ from data.nt_match import registry_key_for_nt  # noqa: E402
 REPORTS = BACKEND / "reports"
 REGISTRY = set(FIFA_ELO_2026.keys())
 
-EXAMPLE_TEAMS = (
-    "Brazil (ברזיל)",
-    "Haiti (האיטי)",
-    "Netherlands (הולנד)",
-    "Sweden (שבדיה)",
-    "Tunisia (תוניסיה)",
-    "Japan (יפן)",
-    "Switzerland (שוויץ)",
-    "Canada (קנדה)",
-    "USA (ארצות הברית)",
-    "Australia (אוסטרליה)",
+FOCUS_TEAMS = (
+    "New Zealand",
+    "Haiti",
+    "Curacao",
+    "Cape Verde",
+    "Ivory Coast",
+    "Norway",
+    "Sweden",
+    "Netherlands",
+    "Japan",
+    "Canada",
+    "Brazil",
+    "Morocco",
 )
 
 
-def _audit_rows(history) -> list[dict]:
+def _provider_history_from_fusion(provider: str) -> list[NormalizedRecentMatch]:
+    """Offline slice: one provider's candidates from fusion cache file."""
+    payload, _ = load_fusion_cache()
+    if not payload:
+        return []
+    rows: list[NormalizedRecentMatch] = []
+    for entry in (payload.get("teams") or {}).values():
+        if not isinstance(entry, dict):
+            continue
+        for raw in entry.get("candidates") or []:
+            if not isinstance(raw, dict):
+                continue
+            if str(raw.get("provider") or "") != provider:
+                continue
+            try:
+                rows.append(fusion_match_to_normalized(raw))
+            except (KeyError, TypeError, ValueError):
+                continue
+    return _sort_rows(_dedupe_rows(rows))
+
+
+def _bucket_counts(history) -> dict[str, int]:
+    coverage = get_recent_match_coverage_summary(history=history)
+    buckets = {"high": 0, "medium": 0, "low": 0, "unavailable": 0}
+    for cov in coverage:
+        bucket = classify_confidence_bucket(
+            cov.matches_found,
+            cov.real_dated_matches,
+            cov.synthetic_dated_matches,
+        )
+        buckets[bucket] += 1
+    return buckets
+
+
+def _audit_rows(history, *, label: str) -> list[dict]:
     coverage = get_recent_match_coverage_summary(history=history)
     rows: list[dict] = []
     for cov in coverage:
@@ -49,13 +100,19 @@ def _audit_rows(history) -> list[dict]:
             cov.real_dated_matches,
             cov.synthetic_dated_matches,
         )
+        fd_count = cov.source_breakdown.get("recent_form_cache_football_data", 0)
+        fusion_count = cov.source_breakdown.get("recent_form_fusion_cache", 0)
         rows.append(
             {
+                "audit_label": label,
                 "english_name": cov.english_name,
                 "registry_key": cov.team_registry_key,
                 "matches_found": cov.matches_found,
                 "real_dated_matches": cov.real_dated_matches,
                 "synthetic_dated_matches": cov.synthetic_dated_matches,
+                "football_data_matches": fd_count,
+                "fusion_cache_matches": fusion_count,
+                "api_football_matches": 0,
                 "latest_match_date": cov.latest_match_date or "",
                 "confidence_bucket": bucket,
                 "recent_form_confidence": form.recent_form_confidence,
@@ -73,56 +130,68 @@ def _audit_rows(history) -> list[dict]:
     return rows
 
 
-def _write_md(path: Path, rows: list[dict], examples: list[dict]) -> None:
-    buckets = {"high": 0, "medium": 0, "low": 0, "unavailable": 0}
-    for row in rows:
-        buckets[row["confidence_bucket"]] += 1
+def _enrich_apif_counts(rows: list[dict], apif_history: list[NormalizedRecentMatch]) -> None:
+    by_team: dict[str, int] = {}
+    for row in apif_history:
+        key = row.team_registry_key or row.team
+        by_team[key] = by_team.get(key, 0) + 1
+    for r in rows:
+        if r["audit_label"] != "api_football_only":
+            continue
+        reg = r["registry_key"]
+        r["api_football_matches"] = by_team.get(reg, 0)
+        r["matches_found"] = by_team.get(reg, 0)
 
+
+def _write_md(
+    path: Path,
+    rows: list[dict],
+    *,
+    bucket_matrix: dict[str, dict[str, int]],
+    cache_meta: dict,
+    fusion_meta: dict,
+    improved: dict[str, list[str]],
+) -> None:
     lines = [
-        "# Recent Form Store Audit (Phase 4R.1)",
+        "# Recent Form Store Audit (Phase 4R.3)",
         "",
         f"Generated: {datetime.now(timezone.utc).isoformat()}",
         "",
-        "Normalized offline store — no live API.",
+        "## Cache status",
         "",
-        "## Summary",
-        "",
-        f"- Teams: **{len(rows)}**",
-        f"- High: **{buckets['high']}** | Medium: **{buckets['medium']}** | "
-        f"Low: **{buckets['low']}** | Unavailable: **{buckets['unavailable']}**",
-        "",
-        "## Example team metrics",
-        "",
-        "| Team | Matches | Conf | Scored rate | GF avg | Failed rate | Source |",
-        "|------|---------|------|-------------|--------|-------------|--------|",
+        f"- football-data cache found: **{cache_meta.get('cache_found', False)}**",
+        f"- football-data rows: **{cache_meta.get('cache_row_count', 0)}**",
+        f"- fusion cache found: **{fusion_meta.get('cache_found', False)}**",
+        f"- fusion rows: **{fusion_meta.get('cache_row_count', 0)}**",
     ]
-    for ex in examples:
-        lines.append(
-            f"| {ex['english_name']} | {ex['matches_found']} | {ex['recent_form_confidence']} | "
-            f"{ex['last_10_scored_rate']} | {ex['last_10_goals_for_avg']} | "
-            f"{ex['last_10_failed_to_score_rate']} | {ex['recent_form_source']} |"
-        )
 
-    lines.extend(["", "## All teams", ""])
-    lines.append(
-        "| Team | Found | Real | Synth | Latest | Bucket | Scored% | GF avg | Opp proxy |"
-    )
-    lines.append("|------|-------|------|-------|--------|--------|---------|--------|-----------|")
+    lines.extend(["", "## Coverage buckets by mode", ""])
+    headers = ["Bucket", "Static", "FD only", "API-F only", "Fused"]
+    lines.append("| " + " | ".join(headers) + " |")
+    lines.append("|" + "|".join(["---"] * len(headers)) + "|")
+    for bucket in ("high", "medium", "low", "unavailable"):
+        cells = [bucket]
+        for mode in ("static_only", "football_data_only", "api_football_only", "fused"):
+            cells.append(str(bucket_matrix.get(mode, {}).get(bucket, 0)))
+        lines.append("| " + " | ".join(cells) + " |")
+
+    lines.extend(["", "## Improvements vs static-only", ""])
+    for mode, teams in improved.items():
+        lines.append(f"### {mode}")
+        lines.append(", ".join(teams[:20]) or "none")
+        lines.append("")
+
+    lines.extend(["", "## Focus teams (fused)", ""])
+    lines.append("| Team | Matches | Fusion | Bucket | Scored rate |")
+    lines.append("|------|---------|--------|--------|-------------|")
+    focus_set = set(FOCUS_TEAMS)
     for row in sorted(rows, key=lambda r: r["english_name"]):
+        if row["english_name"] not in focus_set or row["audit_label"] != "fused":
+            continue
         lines.append(
-            f"| {row['english_name']} | {row['matches_found']} | {row['real_dated_matches']} | "
-            f"{row['synthetic_dated_matches']} | {row['latest_match_date']} | "
-            f"{row['confidence_bucket']} | {row['last_10_scored_rate']} | "
-            f"{row['last_10_goals_for_avg']} | {row['opponent_strength_proxy_available']} |"
+            f"| {row['english_name']} | {row['matches_found']} | {row['fusion_cache_matches']} | "
+            f"{row['confidence_bucket']} | {row['last_10_scored_rate']} |"
         )
-
-    no_data = [r["english_name"] for r in rows if r["matches_found"] == 0]
-    low_cov = [r["english_name"] for r in rows if r["confidence_bucket"] in {"low", "unavailable"}]
-    synth_only = [r["english_name"] for r in rows if r["only_synthetic_dates"]]
-
-    lines.extend(["", "## No data", "", ", ".join(no_data) or "none"])
-    lines.extend(["", "## Low/unavailable coverage", "", ", ".join(low_cov) or "none"])
-    lines.extend(["", "## Synthetic-only last-10", "", ", ".join(synth_only) or "none"])
 
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -137,32 +206,85 @@ def _write_csv(path: Path, rows: list[dict]) -> None:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Phase 4R.1 normalized store audit")
+    parser = argparse.ArgumentParser(description="Phase 4R.3 normalized store audit")
     parser.parse_args()
 
     REPORTS.mkdir(parents=True, exist_ok=True)
-    history = build_normalized_recent_match_history(include_optional_caches=False)
-    rows = _audit_rows(history)
-    examples = [r for r in rows if r["registry_key"] in EXAMPLE_TEAMS]
+
+    static_history = build_normalized_recent_match_history(
+        include_optional_caches=False,
+        include_recent_form_cache=False,
+        include_fusion_cache=False,
+    )
+    fd_history = build_normalized_recent_match_history(
+        include_optional_caches=False,
+        include_recent_form_cache=True,
+        include_fusion_cache=False,
+    )
+    apif_history = _provider_history_from_fusion("api_football_recent_form")
+    fused_history = build_normalized_recent_match_history(
+        include_optional_caches=False,
+        include_recent_form_cache=False,
+        include_fusion_cache=True,
+    )
+
+    histories = {
+        "static_only": static_history,
+        "football_data_only": fd_history,
+        "api_football_only": apif_history,
+        "fused": fused_history,
+    }
+
+    bucket_matrix = {label: _bucket_counts(h) for label, h in histories.items()}
+
+    all_rows: list[dict] = []
+    for label, history in histories.items():
+        all_rows.extend(_audit_rows(history, label=label))
+
+    _enrich_apif_counts(all_rows, apif_history)
+
+    static_by_name = {r["english_name"]: r for r in all_rows if r["audit_label"] == "static_only"}
+    improved: dict[str, list[str]] = {}
+    for mode in ("football_data_only", "api_football_only", "fused"):
+        improved[mode] = []
+        for row in all_rows:
+            if row["audit_label"] != mode:
+                continue
+            prev = static_by_name.get(row["english_name"], {})
+            if row["matches_found"] > prev.get("matches_found", 0):
+                improved[mode].append(row["english_name"])
+
+    cache_meta = get_recent_form_cache_status()
+    cache_payload, _ = load_recent_form_cache()
+    if cache_payload:
+        cache_meta["cache_age_hours"] = cache_age_hours(cache_payload)
+
+    fusion_meta = get_fusion_cache_status()
+    fusion_payload, _ = load_fusion_cache()
+    fusion_rows, fusion_load_meta = load_fusion_cache_rows()
+    fusion_meta.update(fusion_load_meta)
+    if fusion_payload:
+        fusion_meta["cache_age_hours"] = fusion_cache_age_hours(fusion_payload)
 
     md_path = REPORTS / "recent_form_store_audit.md"
     csv_path = REPORTS / "recent_form_store_audit.csv"
-    _write_md(md_path, rows, examples)
-    _write_csv(csv_path, rows)
-
-    buckets = {}
-    for row in rows:
-        buckets[row["confidence_bucket"]] = buckets.get(row["confidence_bucket"], 0) + 1
+    _write_md(
+        md_path,
+        all_rows,
+        bucket_matrix=bucket_matrix,
+        cache_meta=cache_meta,
+        fusion_meta=fusion_meta,
+        improved=improved,
+    )
+    fused_rows = [r for r in all_rows if r["audit_label"] == "fused"]
+    _write_csv(csv_path, fused_rows)
 
     print(f"Wrote {md_path}")
     print(f"Wrote {csv_path}")
-    print(f"Normalized rows: {len(history)}")
-    print(f"Coverage buckets: {buckets}")
-    for ex in examples:
-        print(
-            f"  {ex['english_name']}: matches={ex['matches_found']} "
-            f"scored_rate={ex['last_10_scored_rate']} conf={ex['recent_form_confidence']}"
-        )
+    for mode, buckets in bucket_matrix.items():
+        print(f"{mode} buckets: {buckets}")
+    print(f"FD cache: found={cache_meta.get('cache_found')} rows={cache_meta.get('cache_row_count', 0)}")
+    print(f"Fusion cache: found={fusion_meta.get('cache_found')} rows={fusion_meta.get('cache_row_count', 0)}")
 
 
 if __name__ == "__main__":

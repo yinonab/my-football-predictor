@@ -1,11 +1,15 @@
 # Python
 backend/__pycache__/
 backend/.pytest_cache/
+backend/.pytest_tmp/
+backend/.pytest_tmp*/
 backend/.venv/
 backend/data/cache/nt_history_fetched.json
 backend/data/cache/elo_overrides.json
 backend/data/cache/wc2026_live_matches.json
 backend/data/cache/nt_ratings.json
+backend/data/cache/recent_form_cache.json
+backend/data/cache/recent_form_fusion_cache.json
 backend/reports/
 reports/
 *.pyc

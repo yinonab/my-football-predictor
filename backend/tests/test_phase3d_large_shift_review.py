@@ -28,10 +28,32 @@ from scripts.local_enablement_checklist import (
 PYTHON = sys.executable
 
 
+# Stable Elo overrides used by activation explainer tests (matches data/cache/elo_overrides.json).
+_PHASE3D_ELO_OVERRIDES: dict[str, float] = {
+    "Haiti (האיטי)": 1595.1,
+    "Curacao (קוראסאו)": 939.9,
+}
+
+
 @pytest.fixture(autouse=True)
 def _reset_activation_config(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Stable explainer inputs: prior tests may rewrite nt_ratings.json via build_and_save_ratings()."""
     monkeypatch.setattr(config, "MODEL_ACTIVATION_ENABLED", False)
     monkeypatch.setattr(config, "POWER_CANDIDATE_AFFECTS_PREDICTION", False)
+
+    from core.team_ratings import TeamRatingsCalculator
+    from data.nt_history_bundle import BUNDLED_NT_MATCHES
+
+    bundled_ratings = TeamRatingsCalculator().compute(list(BUNDLED_NT_MATCHES))
+    ratings_dict = {key: rating.to_dict() for key, rating in bundled_ratings.items()}
+    monkeypatch.setattr(
+        "core.team_ratings.load_ratings",
+        lambda path=None: ratings_dict,
+    )
+    monkeypatch.setattr(
+        "core.elo_store.load_elo_overrides",
+        lambda: dict(_PHASE3D_ELO_OVERRIDES),
+    )
 
 
 def test_germany_haiti_explainer_structure() -> None:
@@ -49,6 +71,12 @@ def test_germany_haiti_explainer_structure() -> None:
 
 
 def test_germany_haiti_expected_correction() -> None:
+    """Germany–Haiti: large FIFA gap + activation widens favorite → expected_correction.
+
+    Classifier returns suspicious_shift only when direction_reversal/fallback fire;
+    polluted nt_ratings.json from earlier tests (e.g. test_team_ratings) can flip
+    favorite direction — autouse fixture pins bundled ratings to avoid that flake.
+    """
     explanation = explain_activation_shift("Germany", "Haiti")
     assert explanation["classification"]["shift_size"] == "large_shift"
     assert explanation["classification"]["fallback"] is False

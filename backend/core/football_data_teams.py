@@ -14,6 +14,8 @@ FOOTBALL_DATA_TEAM_ALIASES: dict[str, str] = {
     "korea republic": "korea republic",
     "bosnia and herzegovina": "bosnia herzegovina",
     "bosnia herzegovina": "bosnia herzegovina",
+    "bosnia h": "bosnia herzegovina",
+    "bosnia": "bosnia herzegovina",
     "dr congo": "congo dr",
     "democratic republic of congo": "congo dr",
     "congo dr": "congo dr",

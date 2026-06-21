@@ -213,6 +213,52 @@ FOOTBALL_DATA_WC_CODE: str = "WC"
 FOOTBALL_DATA_WC_SEASON: int = 2026
 FOOTBALL_DATA_REQUEST_TIMEOUT: int = int(os.getenv("FOOTBALL_DATA_REQUEST_TIMEOUT", "15"))
 
+# Phase 4R.2 — Recent form API cache ingestion (diagnostics only; no scoreline effect by default)
+RECENT_FORM_AFFECTS_SCORELINE: bool = _env_bool("RECENT_FORM_AFFECTS_SCORELINE", False)
+RECENT_FORM_CACHE_TTL_HOURS: int = int(os.getenv("RECENT_FORM_CACHE_TTL_HOURS", "24"))
+RECENT_FORM_REFRESH_TIMEOUT_SECONDS: int = int(
+    os.getenv("RECENT_FORM_REFRESH_TIMEOUT_SECONDS", "3")
+)
+RECENT_FORM_API_ENABLED: bool = _env_bool("RECENT_FORM_API_ENABLED", True)
+
+
+def recent_form_api_enabled() -> bool:
+    """True when football-data key exists and recent-form API ingestion is allowed."""
+    if not RECENT_FORM_API_ENABLED:
+        return False
+    return bool(os.getenv("FOOTBALL_DATA_API_KEY", "").strip())
+
+
+# Phase 4R.3 — API-Football historical national-team recent-form (fusion provider)
+API_FOOTBALL_ENABLED: bool = _env_bool("API_FOOTBALL_ENABLED", True)
+API_FOOTBALL_BASE_URL: str = os.getenv(
+    "API_FOOTBALL_BASE_URL", "https://v3.football.api-sports.io"
+).rstrip("/")
+API_FOOTBALL_SEASONS: str = os.getenv("API_FOOTBALL_SEASONS", "2022,2023,2024")
+API_FOOTBALL_TIMEOUT_SECONDS: int = int(os.getenv("API_FOOTBALL_TIMEOUT_SECONDS", "15"))
+API_FOOTBALL_SLEEP_SECONDS: float = float(os.getenv("API_FOOTBALL_SLEEP_SECONDS", "0.5"))
+
+
+def api_football_api_key() -> str:
+    return (os.getenv("API_FOOTBALL_API_KEY") or os.getenv("API_FOOTBALL_KEY") or "").strip()
+
+
+def api_football_recent_form_enabled() -> bool:
+    """True when API-Football key exists and provider is enabled."""
+    if not API_FOOTBALL_ENABLED:
+        return False
+    return bool(api_football_api_key())
+
+
+def api_football_seasons_list() -> list[int]:
+    out: list[int] = []
+    for part in API_FOOTBALL_SEASONS.split(","):
+        part = part.strip()
+        if part.isdigit():
+            out.append(int(part))
+    return out or [2022, 2023, 2024]
+
+
 # API
 API_HOST: str = "0.0.0.0"
 API_PORT: int = 8000

@@ -23,6 +23,8 @@ SourcePriority = Literal[
 REGISTRY = set(FIFA_ELO_2026.keys())
 
 SOURCE_PRIORITY_RANK: dict[str, int] = {
+    "recent_form_fusion_cache": 115,
+    "recent_form_cache_football_data": 110,
     "cache_wc2026_live_matches": 100,
     "cache_nt_history_fetched": 95,
     "bundled_wc2026_qualifiers": 90,
@@ -33,6 +35,8 @@ SOURCE_PRIORITY_RANK: dict[str, int] = {
 }
 
 SOURCE_TO_PRIORITY_LABEL: dict[str, SourcePriority] = {
+    "recent_form_fusion_cache": "api_cache_fresh",
+    "recent_form_cache_football_data": "api_cache_fresh",
     "cache_wc2026_live_matches": "api_cache_fresh",
     "cache_nt_history_fetched": "api_cache_fresh",
     "bundled_wc2026_qualifiers": "static_real_dated",
@@ -43,6 +47,8 @@ SOURCE_TO_PRIORITY_LABEL: dict[str, SourcePriority] = {
 }
 
 SOURCE_TO_CONFIDENCE: dict[str, SourceConfidence] = {
+    "recent_form_fusion_cache": "high",
+    "recent_form_cache_football_data": "high",
     "cache_wc2026_live_matches": "high",
     "cache_nt_history_fetched": "high",
     "bundled_wc2026_qualifiers": "medium",
@@ -50,6 +56,14 @@ SOURCE_TO_CONFIDENCE: dict[str, SourceConfidence] = {
     "bundled_copa2024": "low",
     "bundled_wc2022": "low",
     "bundled_wc2018": "low",
+}
+
+CACHE_LOAD_META: dict[str, Any] = {
+    "cache_found": False,
+    "cache_stale": False,
+    "cache_error": None,
+    "cache_row_count": 0,
+    "reason_codes": [],
 }
 
 
@@ -199,13 +213,113 @@ def _sort_rows(rows: list[NormalizedRecentMatch]) -> list[NormalizedRecentMatch]
     return sorted(rows, key=sort_key, reverse=True)
 
 
+def _enrich_opponent_proxy(row: NormalizedRecentMatch) -> NormalizedRecentMatch:
+    if row.opponent_power_proxy is not None:
+        return row
+    opp_key = row.opponent_registry_key or _resolve_team_key(row.opponent)
+    proxy, conf = _opponent_power_proxy(opp_key)
+    if proxy is None:
+        return row
+    return NormalizedRecentMatch(
+        **{
+            **row.to_dict(),
+            "opponent_power_proxy": proxy,
+            "opponent_strength_confidence": conf,
+            "opponent_registry_key": opp_key,
+        }
+    )
+
+
+def load_fusion_cache_rows() -> tuple[list[NormalizedRecentMatch], dict[str, Any]]:
+    """Read multi-provider fusion cache if present (no live API)."""
+    from core.recent_form_fusion import (
+        FUSION_CACHE_CORRUPT,
+        FUSION_CACHE_MISSING,
+        fusion_rows_from_payload,
+        load_fusion_cache,
+    )
+
+    payload, error = load_fusion_cache()
+    meta: dict[str, Any] = {
+        "cache_found": payload is not None,
+        "cache_stale": False,
+        "cache_error": error,
+        "cache_row_count": 0,
+        "reason_codes": [],
+    }
+    if error == FUSION_CACHE_MISSING:
+        meta["reason_codes"].append(FUSION_CACHE_MISSING)
+        return [], meta
+    if error == FUSION_CACHE_CORRUPT or payload is None:
+        meta["reason_codes"].append(FUSION_CACHE_CORRUPT)
+        return [], meta
+
+    rows, cache_meta = fusion_rows_from_payload(payload)
+    meta.update(cache_meta)
+    enriched = [_enrich_opponent_proxy(r) for r in rows]
+    meta["cache_row_count"] = len(enriched)
+    return enriched, meta
+
+
+def load_recent_form_cache_rows() -> tuple[list[NormalizedRecentMatch], dict[str, Any]]:
+    """Read football-data recent form cache if present (no live API)."""
+    from core.football_data_recent_form import (
+        RECENT_FORM_CACHE_CORRUPT,
+        RECENT_FORM_CACHE_MISSING,
+        cache_rows_from_payload,
+        load_recent_form_cache,
+    )
+
+    payload, error = load_recent_form_cache()
+    meta: dict[str, Any] = {
+        "cache_found": payload is not None,
+        "cache_stale": False,
+        "cache_error": error,
+        "cache_row_count": 0,
+        "reason_codes": [],
+    }
+    if error == RECENT_FORM_CACHE_MISSING:
+        meta["reason_codes"].append(RECENT_FORM_CACHE_MISSING)
+        return [], meta
+    if error == RECENT_FORM_CACHE_CORRUPT or payload is None:
+        meta["reason_codes"].append(RECENT_FORM_CACHE_CORRUPT)
+        return [], meta
+
+    rows, cache_meta = cache_rows_from_payload(payload)
+    meta.update(cache_meta)
+    enriched = [_enrich_opponent_proxy(r) for r in rows]
+    meta["cache_row_count"] = len(enriched)
+    global CACHE_LOAD_META
+    CACHE_LOAD_META = meta
+    return enriched, meta
+
+
+def get_recent_form_cache_status() -> dict[str, Any]:
+    """Last cache load metadata for audits/diagnostics."""
+    return dict(CACHE_LOAD_META)
+
+
 def build_normalized_recent_match_history(
     *,
     include_optional_caches: bool = True,
+    include_recent_form_cache: bool = True,
+    include_fusion_cache: bool = True,
 ) -> list[NormalizedRecentMatch]:
-    """Build deduplicated normalized match list from static/bundled sources only."""
-    tagged = load_tagged_matches(include_optional_caches=include_optional_caches)
+    """Build deduplicated normalized match list from cache + static/bundled sources."""
     rows: list[NormalizedRecentMatch] = []
+    fusion_used = False
+
+    if include_fusion_cache:
+        fusion_rows, fusion_meta = load_fusion_cache_rows()
+        if fusion_rows:
+            rows.extend(fusion_rows)
+            fusion_used = True
+
+    if include_recent_form_cache and not fusion_used:
+        cache_rows, _ = load_recent_form_cache_rows()
+        rows.extend(cache_rows)
+
+    tagged = load_tagged_matches(include_optional_caches=include_optional_caches)
     for tm in tagged:
         rows.extend(
             _match_to_normalized_rows(
