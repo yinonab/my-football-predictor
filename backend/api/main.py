@@ -528,6 +528,8 @@ def predict(request: PredictRequest) -> PredictResponse:
             away_xg,
             ctx_adj.xg_total_delta,
         )
+    base_home_xg = round(home_xg, 2)
+    base_away_xg = round(away_xg, 2)
     blowout = apply_blowout_adjustment(
         home_xg,
         away_xg,
@@ -659,6 +661,11 @@ def predict(request: PredictRequest) -> PredictResponse:
         ),
         home_xg=result["home_xg"],
         away_xg=result["away_xg"],
+        base_home_xg=base_home_xg,
+        base_away_xg=base_away_xg,
+        blowout_adjustment_applied=blowout.active,
+        adjusted_home_xg=result["home_xg"],
+        adjusted_away_xg=result["away_xg"],
         probabilities_1x2=Probabilities1X2(**probs),
         outcome_explanations=OutcomeExplanations(
             home_win=explain_outcome_1x2(

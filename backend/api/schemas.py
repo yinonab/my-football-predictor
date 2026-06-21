@@ -294,6 +294,7 @@ class ScorelineDecisionResponse(BaseModel):
     underdog_goal_gate: dict[str, Any] = Field(default_factory=dict)
     candidate_comparison_summary: dict[str, Any] = Field(default_factory=dict)
     recent_form_shadow: dict[str, Any] = Field(default_factory=dict)
+    representative_selection: dict[str, Any] = Field(default_factory=dict)
 
 
 class ProbabilityCoherenceResponse(BaseModel):
@@ -336,6 +337,11 @@ class PredictResponse(BaseModel):
     away_breakdown: TeamBreakdown
     home_xg: float
     away_xg: float
+    base_home_xg: float | None = None
+    base_away_xg: float | None = None
+    blowout_adjustment_applied: bool = False
+    adjusted_home_xg: float | None = None
+    adjusted_away_xg: float | None = None
     probabilities_1x2: Probabilities1X2
     outcome_explanations: OutcomeExplanations
     top_scores: list[ScoreProbability]

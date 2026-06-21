@@ -306,7 +306,7 @@ def test_scoreline_primary_regression() -> None:
         home_team="Netherlands",
         away_team="Sweden",
     )
-    assert decision.representative_score_method == "representative_v1_gate"
+    assert decision.representative_score_method == "representative_v2_composite"
 
 
 def _mock_response(status: int, body: str) -> MagicMock:

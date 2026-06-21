@@ -439,6 +439,16 @@ class PredictionTechnicalDetails extends StatelessWidget {
                 textAlign: TextAlign.right,
               ),
             ],
+            if (result.scorelineDecision?.representativeSelection.isNotEmpty ==
+                true) ...[
+              const SizedBox(height: 8),
+              Text(
+                'בחירת תוצאה מייצגת: '
+                '${result.scorelineDecision!.representativeSelection}',
+                style: theme.textTheme.bodySmall,
+                textAlign: TextAlign.right,
+              ),
+            ],
           ],
         ),
       ),
@@ -574,9 +584,21 @@ class ExpectedGoalsCard extends StatelessWidget {
 
   const ExpectedGoalsCard({super.key, required this.result});
 
+  String _formatPair(double home, double away) {
+    return '${shortTeamName(result.homeTeam)}: ${home.toStringAsFixed(2)}  |  '
+        '${shortTeamName(result.awayTeam)}: ${away.toStringAsFixed(2)}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final hasBase = result.baseHomeXg != null && result.baseAwayXg != null;
+    final adjustedHome = result.adjustedHomeXg ?? result.homeXg;
+    final adjustedAway = result.adjustedAwayXg ?? result.awayXg;
+    final showAdjustedRow = hasBase &&
+        (result.blowoutAdjustmentApplied ||
+            (result.baseHomeXg! - adjustedHome).abs() > 0.01 ||
+            (result.baseAwayXg! - adjustedAway).abs() > 0.01);
 
     return Card(
       child: Padding(
@@ -591,18 +613,52 @@ class ExpectedGoalsCard extends StatelessWidget {
               ),
               textAlign: TextAlign.right,
             ),
-            const SizedBox(height: 8),
-            Text(
-              '${shortTeamName(result.homeTeam)}: ${result.homeXg}  |  '
-              '${shortTeamName(result.awayTeam)}: ${result.awayXg}',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
+            if (hasBase) ...[
+              const SizedBox(height: 10),
+              Text(
+                'xG בסיסי',
+                style: theme.textTheme.labelLarge,
+                textAlign: TextAlign.right,
               ),
-              textAlign: TextAlign.center,
-            ),
+              const SizedBox(height: 4),
+              Text(
+                _formatPair(result.baseHomeXg!, result.baseAwayXg!),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+            if (showAdjustedRow) ...[
+              const SizedBox(height: 10),
+              Text(
+                'אחרי התאמה לתוצאה',
+                style: theme.textTheme.labelLarge,
+                textAlign: TextAlign.right,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                _formatPair(adjustedHome, adjustedAway),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ] else if (!hasBase) ...[
+              const SizedBox(height: 8),
+              Text(
+                _formatPair(result.homeXg, result.awayXg),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
             const SizedBox(height: 6),
             Text(
-              'זהו אומדן לכמות השערים הצפויה, לא תוצאה מובטחת.',
+              hasBase
+                  ? 'xG בסיסי הוא האומדן לפני התאמת נפח שערים. הערך המותאם משמש להערכת תוצאות אפשריות.'
+                  : 'זהו אומדן לכמות השערים הצפויה, לא תוצאה מובטחת.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),

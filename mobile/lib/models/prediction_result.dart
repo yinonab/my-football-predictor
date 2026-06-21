@@ -217,6 +217,7 @@ class ScorelineDecision {
   final bool topExactScoreDiffersFromPrimary;
   final List<ScorelineCandidate> favoriteOutcomeTopScores;
   final List<String> warnings;
+  final Map<String, dynamic> representativeSelection;
 
   const ScorelineDecision({
     required this.favoriteOutcome,
@@ -231,6 +232,7 @@ class ScorelineDecision {
     this.topExactScoreDiffersFromPrimary = false,
     this.favoriteOutcomeTopScores = const [],
     this.warnings = const [],
+    this.representativeSelection = const {},
   });
 
   factory ScorelineDecision.fromJson(Map<String, dynamic> json) {
@@ -263,6 +265,11 @@ class ScorelineDecision {
               )
               .toList(),
       warnings: List<String>.from(json['warnings'] as List<dynamic>? ?? []),
+      representativeSelection: Map<String, dynamic>.from(
+        json['representative_selection'] as Map<String, dynamic>? ??
+            json['favorite_goal_volume_uplift'] as Map<String, dynamic>? ??
+            {},
+      ),
     );
   }
 }
@@ -356,6 +363,11 @@ class PredictionResult {
   final TeamBreakdown awayBreakdown;
   final double homeXg;
   final double awayXg;
+  final double? baseHomeXg;
+  final double? baseAwayXg;
+  final bool blowoutAdjustmentApplied;
+  final double? adjustedHomeXg;
+  final double? adjustedAwayXg;
   final Probabilities1X2 probabilities;
   final OutcomeExplanations outcomeExplanations;
   final List<ScoreProbability> topScores;
@@ -375,6 +387,11 @@ class PredictionResult {
     required this.awayBreakdown,
     required this.homeXg,
     required this.awayXg,
+    this.baseHomeXg,
+    this.baseAwayXg,
+    this.blowoutAdjustmentApplied = false,
+    this.adjustedHomeXg,
+    this.adjustedAwayXg,
     required this.probabilities,
     required this.outcomeExplanations,
     required this.topScores,
@@ -400,6 +417,12 @@ class PredictionResult {
       ),
       homeXg: (json['home_xg'] as num).toDouble(),
       awayXg: (json['away_xg'] as num).toDouble(),
+      baseHomeXg: (json['base_home_xg'] as num?)?.toDouble(),
+      baseAwayXg: (json['base_away_xg'] as num?)?.toDouble(),
+      blowoutAdjustmentApplied:
+          json['blowout_adjustment_applied'] as bool? ?? false,
+      adjustedHomeXg: (json['adjusted_home_xg'] as num?)?.toDouble(),
+      adjustedAwayXg: (json['adjusted_away_xg'] as num?)?.toDouble(),
       probabilities: Probabilities1X2.fromJson(
         json['probabilities_1x2'] as Map<String, dynamic>,
       ),

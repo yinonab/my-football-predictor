@@ -22,6 +22,11 @@ void main() {
       },
       'home_xg': 1.6,
       'away_xg': 1.0,
+      'base_home_xg': 1.4,
+      'base_away_xg': 0.95,
+      'blowout_adjustment_applied': false,
+      'adjusted_home_xg': 1.6,
+      'adjusted_away_xg': 1.0,
       'probabilities_1x2': {
         'home_win': 49.8,
         'draw': 27.7,
@@ -87,6 +92,8 @@ void main() {
     });
 
     expect(result.scorelineDecision, isNotNull);
+    expect(result.baseHomeXg, 1.4);
+    expect(result.adjustedHomeXg, 1.6);
     expect(result.scorelineDecision!.primaryPredictedScore?.homeGoals, 1);
     expect(result.scorelineDecision!.topExactScoreDiffersFromPrimary, isTrue);
     expect(result.matchContextDiagnostics?.fixtureStatus, 'unknown');
