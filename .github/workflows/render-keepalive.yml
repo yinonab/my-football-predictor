@@ -8,13 +8,29 @@ on:
 jobs:
   ping:
     runs-on: ubuntu-latest
-    timeout-minutes: 2
+    timeout-minutes: 4
 
     steps:
-      - name: Ping Render health endpoint
+      - name: Ping Render health endpoint with retries
         run: |
           set -e
           URL="https://football-predictor-api-bq6h.onrender.com/api/health"
-          echo "Pinging $URL"
-          curl --fail --silent --show-error --max-time 30 "$URL"
-          echo "Render service is awake"
+
+          for attempt in 1 2 3; do
+            echo "Pinging $URL - attempt $attempt/3"
+
+            if curl --fail --silent --show-error --max-time 60 "$URL"; then
+              echo "Render service is awake"
+              exit 0
+            fi
+
+            echo "Ping attempt $attempt failed"
+
+            if [ "$attempt" != "3" ]; then
+              echo "Waiting 20 seconds before retry..."
+              sleep 20
+            fi
+          done
+
+          echo "::error::Render health endpoint did not respond successfully after 3 attempts"
+          exit 1
