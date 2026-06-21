@@ -327,4 +327,4 @@ def test_diagnostics_exposed(client: TestClient) -> None:
     sd = data["scoreline_decision"]
     assert "underdog_goal_gate" in sd
     assert "candidate_comparison_summary" in sd
-    assert sd["representative_score_method"] == "representative_v2_composite"
+    assert sd["representative_score_method"] == "representative_v3_expected_goals"

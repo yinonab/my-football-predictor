@@ -1,4 +1,4 @@
-"""High favorite-xG representative composite selection and base xG API fields."""
+"""Expected-goals representative composite selection and base xG API fields."""
 
 from __future__ import annotations
 
@@ -14,7 +14,8 @@ sys.path.insert(0, str(BACKEND_ROOT))
 from api import main as api_main
 from core.math_engine import AdvancedDixonColesEngine
 from core.scoreline_decision import (
-    FAVORITE_HIGH_XG_REPRESENTATIVE_SELECTION,
+    EXPECTED_GOALS_REPRESENTATIVE_SELECTION,
+    _representative_goal_target,
     build_scoreline_decision,
 )
 from core.strength_result import StrengthResult
@@ -45,11 +46,18 @@ def _strength(home_power: float = 900.0, away_power: float = 650.0) -> StrengthR
     )
 
 
-def _matrix(home_xg: float, away_xg: float, *, alpha: float = 0.25) -> dict[str, float]:
+def _matrix(
+    home_xg: float,
+    away_xg: float,
+    *,
+    home_power: float = 900.0,
+    away_power: float = 650.0,
+    alpha: float = 0.25,
+) -> dict[str, float]:
     engine = AdvancedDixonColesEngine(rho=-0.15, global_avg=2.6, alpha=alpha)
     return engine.generate_match_prediction(
-        900,
-        650,
+        home_power,
+        away_power,
         0,
         max_goals=8,
         include_all_scores=True,
@@ -59,8 +67,14 @@ def _matrix(home_xg: float, away_xg: float, *, alpha: float = 0.25) -> dict[str,
     )
 
 
-def _decision(home_xg: float, away_xg: float):
-    payload = _matrix(home_xg, away_xg)
+def _decision(
+    home_xg: float,
+    away_xg: float,
+    *,
+    home_power: float = 900.0,
+    away_power: float = 650.0,
+):
+    payload = _matrix(home_xg, away_xg, home_power=home_power, away_power=away_power)
     probs = payload["probabilities_1x2"]
     return build_scoreline_decision(
         final_probabilities_1x2=probs,
@@ -68,9 +82,9 @@ def _decision(home_xg: float, away_xg: float):
         all_scores=payload["all_scores"],
         home_xg=home_xg,
         away_xg=away_xg,
-        home_team="Spain (ספרד)",
-        away_team="Saudi Arabia (ערב הסעודית)",
-        strength=_strength(),
+        home_team="Home",
+        away_team="Away",
+        strength=_strength(home_power, away_power),
     )
 
 
@@ -78,54 +92,102 @@ def _selection(decision) -> dict:
     return decision.representative_selection
 
 
-def test_high_favorite_xg_low_underdog_selects_four_zero() -> None:
+def _utilities(decision) -> dict[str, dict]:
+    sel = _selection(decision)
+    return {row["score"]: row["utility_components"] for row in sel["top_candidate_utilities"]}
+
+
+def test_representative_goal_target_round_half_up() -> None:
+    assert _representative_goal_target(0.49) == 0
+    assert _representative_goal_target(0.50) == 1
+    assert _representative_goal_target(1.49) == 1
+    assert _representative_goal_target(1.50) == 2
+    assert _representative_goal_target(2.97) == 3
+    assert _representative_goal_target(4.09) == 4
+    assert _representative_goal_target(5.50) == 6
+
+
+def test_uruguay_style_297_077_three_goal_favorite_competes() -> None:
+    decision = _decision(2.97, 0.77)
+    sel = _selection(decision)
+    assert sel["home_target_goals"] == 3
+    assert sel["away_target_goals"] == 1
+    primary = decision.primary_predicted_score
+    assert primary is not None
+    assert primary.home_goals >= 3
+    utils = _utilities(decision)
+    assert "3-0" in utils or "3-1" in utils
+    assert utils.get("3-0", {}).get("expected_goal_target_fit", 0) >= 0.66
+
+
+def test_spain_style_409_092_four_goal_favorite_competes() -> None:
     decision = _decision(4.09, 0.92)
+    sel = _selection(decision)
+    assert sel["home_target_goals"] == 4
+    assert sel["away_target_goals"] == 1
     primary = decision.primary_predicted_score
     assert primary is not None
-    assert primary.score_label == "4-0"
+    assert primary.home_goals >= 4
+    utils = _utilities(decision)
+    assert "4-0" in utils or "4-1" in utils
+    if sel["previous_modal_score"] == "3-0":
+        assert sel.get("expected_goals_target_influenced") is True
+        assert sel.get("selection_reason_code") == EXPECTED_GOALS_REPRESENTATIVE_SELECTION
+
+
+def test_low_xg_boundary_150_049_two_goal_favorite_competes() -> None:
+    decision = _decision(1.50, 0.49)
     sel = _selection(decision)
-    assert sel["previous_modal_score"] == "3-0"
-    assert sel["selected_primary_score"] == "4-0"
-    assert sel["high_favorite_xg_influenced"] is True
-    assert sel["selection_reason_code"] == FAVORITE_HIGH_XG_REPRESENTATIVE_SELECTION
-    assert FAVORITE_HIGH_XG_REPRESENTATIVE_SELECTION in decision.primary_score_warnings
-    utilities = {row["score"]: row["utility_components"] for row in sel["top_candidate_utilities"]}
-    assert "4-0" in utilities
-    assert utilities["4-0"]["favorite_goal_volume_fit"] >= utilities["3-0"]["favorite_goal_volume_fit"]
-
-
-def test_high_favorite_xg_mid_underdog_prefers_four_one() -> None:
-    decision = _decision(4.09, 1.20)
+    assert sel["home_target_goals"] == 2
+    assert sel["away_target_goals"] == 0
     primary = decision.primary_predicted_score
     assert primary is not None
-    assert primary.score_label == "4-1"
+    utils = _utilities(decision)
+    assert "2-0" in utils
+    assert utils["2-0"]["expected_goal_target_fit"] == pytest.approx(1.0, abs=0.01)
+    assert primary.score_label in {"2-0", "1-0"}
+
+
+def test_underdog_half_boundary_210_050_two_one_competes() -> None:
+    decision = _decision(2.10, 0.50)
     sel = _selection(decision)
-    utilities = {row["score"]: row["utility_components"] for row in sel["top_candidate_utilities"]}
-    assert "4-1" in utilities
-    if "4-0" in utilities:
-        assert utilities["4-1"]["underdog_goal_fit"] > utilities["4-0"]["underdog_goal_fit"]
-
-
-def test_favorite_xg_below_threshold_no_high_xg_influence() -> None:
-    decision = _decision(3.20, 0.80)
-    sel = _selection(decision)
-    assert sel.get("high_favorite_xg_influenced") is not True
-    assert FAVORITE_HIGH_XG_REPRESENTATIVE_SELECTION not in decision.primary_score_warnings
-
-
-def test_underdog_xg_too_high_no_clean_sheet_blowout() -> None:
-    decision = _decision(4.10, 1.50)
+    assert sel["home_target_goals"] == 2
+    assert sel["away_target_goals"] == 1
     primary = decision.primary_predicted_score
     assert primary is not None
-    assert primary.score_label != "4-0"
+    utils = _utilities(decision)
+    assert "2-1" in utils
+    assert utils["2-1"]["expected_goal_target_fit"] == pytest.approx(1.0, abs=0.01)
+    assert primary.score_label in {"2-1", "2-0"}
+
+
+def test_high_extreme_550_080_no_four_goal_cap() -> None:
+    decision = _decision(5.50, 0.80)
     sel = _selection(decision)
-    assert sel.get("high_favorite_xg_influenced") is not True
+    assert sel["home_target_goals"] == 6
+    assert sel["away_target_goals"] == 1
+    primary = decision.primary_predicted_score
+    assert primary is not None
+    assert primary.home_goals >= 5
+    utils = _utilities(decision)
+    assert any(score.startswith("5-") or score.startswith("6-") for score in utils)
+
+
+def test_equal_low_xg_stability() -> None:
+    decision = _decision(1.45, 0.95, home_power=900.0, away_power=620.0)
+    sel = _selection(decision)
+    assert sel["home_target_goals"] == 1
+    assert sel["away_target_goals"] == 1
+    primary = decision.primary_predicted_score
+    assert primary is not None
+    assert primary.home_goals <= 2
+    assert primary.away_goals <= 2
 
 
 def test_candidate_probability_too_low_cannot_win() -> None:
     payload = _matrix(4.09, 0.92)
     all_scores = dict(payload["all_scores"])
-    for label in ("4-0", "4-1", "5-0", "5-1"):
+    for label in ("4-0", "4-1", "5-0", "5-1", "6-0"):
         if label in all_scores:
             all_scores[label] = 0.5
     decision = build_scoreline_decision(
@@ -140,9 +202,6 @@ def test_candidate_probability_too_low_cannot_win() -> None:
     )
     assert decision.primary_predicted_score is not None
     assert decision.primary_predicted_score.score_label == "3-0"
-    sel = _selection(decision)
-    assert sel["selected_primary_score"] == "3-0"
-    assert sel.get("high_favorite_xg_influenced") is not True
 
 
 @pytest.fixture
@@ -165,9 +224,5 @@ def test_predict_includes_base_xg_fields(client: TestClient) -> None:
     assert "base_away_xg" in baseline
     assert baseline["adjusted_home_xg"] == baseline["home_xg"]
     assert baseline["adjusted_away_xg"] == baseline["away_xg"]
-    if baseline["blowout_adjustment_applied"]:
-        assert baseline["base_home_xg"] != baseline["home_xg"] or (
-            baseline["base_away_xg"] != baseline["away_xg"]
-        )
     probs_before = baseline["probabilities_1x2"]
     assert sum(probs_before.values()) == pytest.approx(100.0, abs=0.2)

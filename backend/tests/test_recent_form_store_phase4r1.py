@@ -213,4 +213,4 @@ def test_scoreline_primary_unchanged_representative_gate() -> None:
     primary = decision.primary_predicted_score
     assert primary is not None
     assert primary.score_label in {"2-0", "1-0", "2-1"}
-    assert decision.representative_score_method == "representative_v2_composite"
+    assert decision.representative_score_method == "representative_v3_expected_goals"

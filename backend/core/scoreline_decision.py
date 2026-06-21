@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
@@ -50,22 +51,16 @@ PRIMARY_CAPPED_BELOW_EXPECTED_GOALS = "PRIMARY_CAPPED_BELOW_EXPECTED_GOALS"
 PRIMARY_DIFFERS_FROM_TOP_EXACT_SCORE = "PRIMARY_DIFFERS_FROM_TOP_EXACT_SCORE"
 HIGH_XG_BUT_LOW_PRIMARY_SCORE = "HIGH_XG_BUT_LOW_PRIMARY_SCORE"
 UNDERDOG_GOAL_PROBABILITY_IGNORED = "UNDERDOG_GOAL_PROBABILITY_IGNORED"
-FAVORITE_HIGH_XG_REPRESENTATIVE_SELECTION = "FAVORITE_HIGH_XG_REPRESENTATIVE_SELECTION"
+EXPECTED_GOALS_REPRESENTATIVE_SELECTION = "EXPECTED_GOALS_REPRESENTATIVE_SELECTION"
 
-REPRESENTATIVE_SCORE_METHOD = "representative_v2_composite"
+REPRESENTATIVE_SCORE_METHOD = "representative_v3_expected_goals"
 # Eligibility floor only — candidates below this cannot compete in the pool.
-REPRESENTATIVE_CANDIDATE_ELIGIBILITY_REL = 0.55
-REPRESENTATIVE_CANDIDATE_MIN_ABS = 2.0
-REPRESENTATIVE_POOL_TOP_K = 16
+REPRESENTATIVE_CANDIDATE_ELIGIBILITY_REL = 0.35
+REPRESENTATIVE_CANDIDATE_MIN_ABS = 1.0
+REPRESENTATIVE_POOL_TOP_K = 20
 UNDERDOG_XG_REPRESENTATIVE_THRESHOLD = 0.75
 UNDERDOG_SCORES_PROB_CLEAN_SHEET_PENALTY = 0.35
-
-FAVORITE_HIGH_XG_VOLUME_THRESHOLD = 3.50
-FAVORITE_VOLUME_UNDERDOG_LOW = 0.85
-FAVORITE_VOLUME_UNDERDOG_MID = 1.10
-FAVORITE_VOLUME_UNDERDOG_HIGH = 1.35
-FAVORITE_XG_VOLUME_MID = 3.85
-FAVORITE_XG_VOLUME_HIGH = 4.35
+EXPECTED_GOAL_TARGET_FIT_SCALE = 3.0
 
 OUTCOME_KEYS: tuple[OutcomeKey, ...] = ("home_win", "draw", "away_win")
 
@@ -260,53 +255,21 @@ def _lookup_candidate(
     return None
 
 
-def _favorite_goal_volume_fit(fav_goals: int, fav_xg: float) -> float:
-    """Soft fit for favorite goal count vs adjusted favorite xG (not hard rounding)."""
-    if fav_xg < FAVORITE_HIGH_XG_VOLUME_THRESHOLD:
-        return _normalize_fit(-abs(fav_goals - fav_xg) * 0.45)
-
-    if fav_xg <= FAVORITE_XG_VOLUME_MID:
-        fit_three = _normalize_fit(-abs(fav_goals - 3) * 0.75)
-        fit_four = _normalize_fit(-abs(fav_goals - 4) * 0.75)
-        return max(fit_three, fit_four) * 0.95
-
-    if fav_xg <= FAVORITE_XG_VOLUME_HIGH:
-        return _normalize_fit(-abs(fav_goals - 4) * 0.70)
-
-    fit_four = _normalize_fit(-abs(fav_goals - 4) * 0.70)
-    fit_five = _normalize_fit(-abs(fav_goals - 5) * 0.75)
-    return max(fit_four, fit_five * 0.92)
+def _representative_goal_target(xg: float) -> int:
+    """Round-half-up goal target: 0.50+ xG pulls toward the next goal count."""
+    return max(0, int(math.floor(xg + 0.5)))
 
 
-def _underdog_goal_fit(underdog_goals: int, dog_xg: float) -> float:
-    """Soft fit for underdog scoring vs adjusted underdog xG."""
-    if dog_xg <= FAVORITE_VOLUME_UNDERDOG_LOW:
-        if underdog_goals == 0:
-            return 1.0
-        if underdog_goals == 1:
-            return 0.55
-        return 0.20
-
-    if dog_xg <= FAVORITE_VOLUME_UNDERDOG_MID:
-        if underdog_goals == 0:
-            return 0.85
-        if underdog_goals == 1:
-            return 0.90
-        return 0.35
-
-    if dog_xg <= FAVORITE_VOLUME_UNDERDOG_HIGH:
-        if underdog_goals == 1:
-            return 1.0
-        if underdog_goals == 0:
-            return 0.65
-        if underdog_goals == 2:
-            return 0.70
-        return 0.25
-
-    if underdog_goals == 0:
-        return 0.35
-    target = max(1, round(dog_xg))
-    return _normalize_fit(-abs(underdog_goals - target) * 0.60)
+def _expected_goal_target_fit(
+    candidate: ScorelineCandidate,
+    *,
+    home_target_goals: int,
+    away_target_goals: int,
+) -> float:
+    target_distance = abs(candidate.home_goals - home_target_goals) + abs(
+        candidate.away_goals - away_target_goals
+    )
+    return max(0.0, 1.0 - target_distance / EXPECTED_GOAL_TARGET_FIT_SCALE)
 
 
 def _realism_penalty(
@@ -322,6 +285,8 @@ def _realism_penalty(
     fav_goals, underdog_goals = _favorite_side_goals(candidate, favorite)
     fav_xg = home_xg if favorite == "home_win" else away_xg
     dog_xg = away_xg if favorite == "home_win" else home_xg
+    fav_target = _representative_goal_target(fav_xg)
+    dog_target = _representative_goal_target(dog_xg)
 
     if (
         underdog_goals == 0
@@ -333,15 +298,11 @@ def _realism_penalty(
     if fav_xg >= 1.7 and fav_goals < 2 and stats.favorite_scores_2_plus >= 45.0:
         penalty += 0.06
 
-    if fav_xg >= FAVORITE_HIGH_XG_VOLUME_THRESHOLD and fav_goals <= 2:
-        penalty += 0.08
+    if fav_goals < fav_target - 1 and stats.favorite_scores_3_plus >= 25.0:
+        penalty += 0.05
 
-    if (
-        dog_xg > FAVORITE_VOLUME_UNDERDOG_HIGH
-        and underdog_goals == 0
-        and fav_goals >= 4
-    ):
-        penalty += 0.12
+    if underdog_goals == 0 and dog_target >= 2 and fav_goals >= 4:
+        penalty += 0.08
 
     return penalty
 
@@ -359,6 +320,8 @@ def _build_representative_candidate_pool(
     if not ordered:
         return []
 
+    home_target = _representative_goal_target(home_xg)
+    away_target = _representative_goal_target(away_xg)
     top_prob = ordered[0].probability
     threshold = max(
         REPRESENTATIVE_CANDIDATE_MIN_ABS,
@@ -367,13 +330,12 @@ def _build_representative_candidate_pool(
     by_label: dict[str, ScorelineCandidate] = {c.score_label: c for c in ordered}
     shortlist = [c for c in ordered if c.probability >= threshold]
 
-    fav_xg = home_xg if favorite == "home_win" else away_xg
-    if fav_xg >= FAVORITE_HIGH_XG_VOLUME_THRESHOLD and all_scores:
+    if all_scores:
         pool_by_label = {c.score_label: c for c in pool}
-        for fav_g in (3, 4, 5):
-            for dog_g in range(0, 4):
-                label = _favorite_volume_score_label(favorite, fav_g, dog_g)
-                if not label or label in by_label:
+        for h in range(max(0, home_target - 1), home_target + 2):
+            for a in range(max(0, away_target - 1), away_target + 2):
+                label = f"{h}-{a}"
+                if label in by_label:
                     continue
                 cand = _lookup_candidate(
                     label, pool_by_label=pool_by_label, all_scores=all_scores
@@ -385,7 +347,7 @@ def _build_representative_candidate_pool(
                     shortlist.append(cand)
 
     deduped = sorted(
-        by_label.values(),
+        {c.score_label: c for c in shortlist}.values(),
         key=lambda c: c.probability,
         reverse=True,
     )[:REPRESENTATIVE_POOL_TOP_K]
@@ -399,24 +361,26 @@ def _compute_representative_utility(
     favorite: OutcomeKey,
     home_xg: float,
     away_xg: float,
+    home_target_goals: int,
+    away_target_goals: int,
     max_prob: float,
     power_gap: float,
     context: MatchContextDiagnostics | None,
     gate: UnderdogGoalGateResult,
     pool_by_label: dict[str, ScorelineCandidate],
 ) -> tuple[float, dict[str, float]]:
-    fav_goals, underdog_goals = _favorite_side_goals(candidate, favorite)
-    fav_xg = home_xg if favorite == "home_win" else away_xg
-    dog_xg = away_xg if favorite == "home_win" else home_xg
-    high_fav_xg = fav_xg >= FAVORITE_HIGH_XG_VOLUME_THRESHOLD
+    _, underdog_goals = _favorite_side_goals(candidate, favorite)
 
     prob_fit = candidate.probability / max_prob if max_prob > 0 else 0.0
+    goal_target_fit = _expected_goal_target_fit(
+        candidate,
+        home_target_goals=home_target_goals,
+        away_target_goals=away_target_goals,
+    )
     xg_shape_fit = _normalize_fit(_xg_shape_fit(candidate, home_xg, away_xg))
     expected_total = home_xg + away_xg
     actual_total = candidate.home_goals + candidate.away_goals
     total_goals_fit = _normalize_fit(-abs(actual_total - expected_total))
-    favorite_goal_volume_fit = _favorite_goal_volume_fit(fav_goals, fav_xg)
-    underdog_goal_fit_val = _underdog_goal_fit(underdog_goals, dog_xg)
     strength_fit = max(0.0, min(1.0, 0.5 + _strength_gap_fit(candidate, power_gap) / 20.0))
     context_fit = max(0.0, min(1.0, 0.5 + _context_fit(candidate, context)))
 
@@ -436,37 +400,22 @@ def _compute_representative_utility(
         away_xg=away_xg,
     )
 
-    if high_fav_xg:
-        composite = (
-            0.28 * prob_fit
-            + 0.18 * xg_shape_fit
-            + 0.12 * total_goals_fit
-            + 0.24 * favorite_goal_volume_fit
-            + 0.10 * underdog_goal_fit_val
-            + 0.04 * strength_fit
-            + 0.02 * context_fit
-            - realism_penalty_val
-            + gate_adjustment
-        )
-    else:
-        composite = (
-            0.36 * prob_fit
-            + 0.26 * xg_shape_fit
-            + 0.18 * total_goals_fit
-            + 0.06 * favorite_goal_volume_fit
-            + 0.06 * underdog_goal_fit_val
-            + 0.04 * strength_fit
-            + 0.02 * context_fit
-            - realism_penalty_val
-            + gate_adjustment
-        )
+    composite = (
+        0.22 * prob_fit
+        + 0.34 * goal_target_fit
+        + 0.14 * xg_shape_fit
+        + 0.10 * total_goals_fit
+        + 0.04 * strength_fit
+        + 0.02 * context_fit
+        - realism_penalty_val
+        + gate_adjustment
+    )
 
     components = {
         "candidate_probability_fit": round(prob_fit, 4),
+        "expected_goal_target_fit": round(goal_target_fit, 4),
         "adjusted_xg_shape_fit": round(xg_shape_fit, 4),
         "total_goals_fit": round(total_goals_fit, 4),
-        "favorite_goal_volume_fit": round(favorite_goal_volume_fit, 4),
-        "underdog_goal_fit": round(underdog_goal_fit_val, 4),
         "realism_penalty": round(realism_penalty_val, 4),
         "gate_penalty": round(-gate_adjustment, 4),
         "composite": round(composite, 4),
@@ -651,6 +600,8 @@ def _score_representative_candidates(
     modal = max(pool, key=lambda c: c.probability)
     pool_by_label = {c.score_label: c for c in pool}
     max_prob = max(c.probability for c in shortlist)
+    home_target_goals = _representative_goal_target(home_xg)
+    away_target_goals = _representative_goal_target(away_xg)
     scored: list[tuple[ScorelineCandidate, float, dict[str, float]]] = []
     for c in shortlist:
         composite, components = _compute_representative_utility(
@@ -659,6 +610,8 @@ def _score_representative_candidates(
             favorite=favorite,
             home_xg=home_xg,
             away_xg=away_xg,
+            home_target_goals=home_target_goals,
+            away_target_goals=away_target_goals,
             max_prob=max_prob,
             power_gap=power_gap,
             context=context,
@@ -870,8 +823,8 @@ def _pick_representative_score(
             all_scores=all_scores,
         )
 
-    fav_xg = home_xg if favorite == "home_win" else away_xg
-    dog_xg = away_xg if favorite == "home_win" else home_xg
+    home_target_goals = _representative_goal_target(home_xg)
+    away_target_goals = _representative_goal_target(away_xg)
     modal_components = next(
         (components for c, _, components in scored if c.score_label == modal.score_label),
         {},
@@ -880,16 +833,10 @@ def _pick_representative_score(
         (components for c, _, components in scored if c.score_label == best.score_label),
         {},
     )
-    high_fav_influenced = (
-        fav_xg >= FAVORITE_HIGH_XG_VOLUME_THRESHOLD
-        and dog_xg <= FAVORITE_VOLUME_UNDERDOG_HIGH
-        and best.score_label != modal.score_label
-        and (
-            selected_components.get("favorite_goal_volume_fit", 0.0)
-            > modal_components.get("favorite_goal_volume_fit", 0.0) + 0.05
-            or selected_components.get("total_goals_fit", 0.0)
-            > modal_components.get("total_goals_fit", 0.0) + 0.05
-        )
+    expected_goals_changed_selection = best.score_label != modal.score_label
+    expected_goals_influenced = expected_goals_changed_selection and (
+        selected_components.get("expected_goal_target_fit", 0.0)
+        >= modal_components.get("expected_goal_target_fit", 0.0)
     )
 
     top_utilities = [
@@ -906,14 +853,17 @@ def _pick_representative_score(
         "modal_probability": round(modal.probability, 2),
         "selected_probability": round(best.probability, 2),
         "representative_score_method": REPRESENTATIVE_SCORE_METHOD,
-        "favorite_xg": round(fav_xg, 2),
-        "underdog_xg": round(dog_xg, 2),
-        "high_favorite_xg_influenced": high_fav_influenced,
+        "home_xg": round(home_xg, 2),
+        "away_xg": round(away_xg, 2),
+        "home_target_goals": home_target_goals,
+        "away_target_goals": away_target_goals,
+        "expected_goals_target_changed_selection": expected_goals_changed_selection,
+        "expected_goals_target_influenced": expected_goals_influenced,
         "top_candidate_utilities": top_utilities,
     }
-    if high_fav_influenced:
+    if expected_goals_influenced:
         representative_selection["selection_reason_code"] = (
-            FAVORITE_HIGH_XG_REPRESENTATIVE_SELECTION
+            EXPECTED_GOALS_REPRESENTATIVE_SELECTION
         )
 
     rationale = (
@@ -946,8 +896,8 @@ def _pick_representative_score(
         away_xg=away_xg,
         top_exact=None,
     )
-    if high_fav_influenced and FAVORITE_HIGH_XG_REPRESENTATIVE_SELECTION not in primary_warnings:
-        primary_warnings.append(FAVORITE_HIGH_XG_REPRESENTATIVE_SELECTION)
+    if expected_goals_influenced and EXPECTED_GOALS_REPRESENTATIVE_SELECTION not in primary_warnings:
+        primary_warnings.append(EXPECTED_GOALS_REPRESENTATIVE_SELECTION)
     primary_warnings.extend(active_gate.reason_codes)
     if comparison.exact_probability_gap is not None:
         if comparison.exact_probability_gap <= CLOSE_SCORELINE_PP:

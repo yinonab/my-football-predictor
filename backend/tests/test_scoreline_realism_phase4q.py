@@ -78,7 +78,7 @@ def test_high_favorite_xg_considers_four_goal_primary() -> None:
     )
     assert decision.primary_predicted_score is not None
     assert decision.primary_predicted_score.home_goals >= 3
-    assert decision.representative_score_method == "representative_v2_composite"
+    assert decision.representative_score_method == "representative_v3_expected_goals"
     assert decision.favorite_goal_band_probabilities.get("favorite_4_plus", 0) > 0
 
 
@@ -216,7 +216,7 @@ def test_representative_diagnostics_exposed(client: TestClient) -> None:
         json={"home_team": "Brazil", "away_team": "Haiti", "neutral_ground": True},
     ).json()
     sd = data["scoreline_decision"]
-    assert sd.get("representative_score_method") == "representative_v2_composite"
+    assert sd.get("representative_score_method") == "representative_v3_expected_goals"
     assert "both_teams_score_probability" in sd
     assert "underdog_scores_probability" in sd
     assert isinstance(sd.get("primary_score_candidates"), list)
