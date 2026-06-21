@@ -6,7 +6,7 @@ import logging
 import sys
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header
 from fastapi.middleware.cors import CORSMiddleware
 
 BACKEND_ROOT = Path(__file__).resolve().parent.parent
@@ -45,6 +45,10 @@ from api.schemas import (
     ProbabilityCoherenceResponse,
     ProbabilityDiagnosticsResponse,
     RefreshHistoryResponse,
+    RecentFormStatusResponse,
+    RecentFormTeamStatusResponse,
+    RecentFormWarmupRequest,
+    RecentFormWarmupResponse,
     Probabilities1X2,
     ScoreCoverage,
     ScoreProbability,
@@ -97,6 +101,12 @@ from core.cloud_persist import is_configured as cloud_persist_configured, pull_a
 from core.elo_store import load_elo_overrides, save_elo_overrides
 from core.team_power import TeamPowerEvaluator
 from core.tournament_sim import TournamentSimulator
+from core.recent_form_warmup import (
+    build_recent_form_status,
+    build_recent_form_team_status,
+    run_recent_form_warmup,
+    verify_admin_token,
+)
 from data.api_football import ApiFootballClient
 from data.database import FIFA_ELO_2026, LiveDataManager, compute_derived_metrics
 
@@ -995,6 +1005,50 @@ def simulate_champion(request: SimulateChampionRequest) -> SimulateChampionRespo
         iterations=request.iterations,
         champion_odds=[ChampionOddsRow(**c.__dict__) for c in odds],
     )
+
+
+@app.get("/api/recent-form/status", response_model=RecentFormStatusResponse)
+def recent_form_status() -> RecentFormStatusResponse:
+    """Read-only fusion cache status (no external API calls)."""
+    return RecentFormStatusResponse(**build_recent_form_status())
+
+
+@app.get("/api/recent-form/team/{team}", response_model=RecentFormTeamStatusResponse)
+def recent_form_team(team: str) -> RecentFormTeamStatusResponse:
+    """Read-only per-team recent-form diagnostics (no external API calls)."""
+    payload = build_recent_form_team_status(team)
+    if payload is None:
+        raise HTTPException(status_code=404, detail=f"Team not found: {team}")
+    return RecentFormTeamStatusResponse(**payload)
+
+
+@app.post("/api/recent-form/warmup", response_model=RecentFormWarmupResponse)
+def recent_form_warmup(
+    request: RecentFormWarmupRequest,
+    x_admin_token: str | None = Header(default=None, alias="X-Admin-Token"),
+) -> RecentFormWarmupResponse:
+    """Admin-only targeted fusion cache refresh with request budget."""
+    if not config.recent_form_warmup_enabled():
+        raise HTTPException(status_code=403, detail="Recent-form warmup is disabled")
+    if not x_admin_token:
+        raise HTTPException(status_code=401, detail="Admin token required")
+    if not verify_admin_token(x_admin_token):
+        raise HTTPException(status_code=403, detail="Invalid admin token")
+    try:
+        result = run_recent_form_warmup(
+            teams=request.teams,
+            max_requests=request.max_requests,
+            force=request.force,
+            dry_run=request.dry_run,
+        )
+    except ValueError as exc:
+        detail = str(exc)
+        if detail.startswith("TOO_MANY_TEAMS"):
+            raise HTTPException(status_code=400, detail=detail) from exc
+        if detail in {"WARMUP_DISABLED", "TEAMS_REQUIRED", "TEAMS_UNRESOLVED"}:
+            raise HTTPException(status_code=400, detail=detail) from exc
+        raise HTTPException(status_code=400, detail=detail) from exc
+    return RecentFormWarmupResponse(**result)
 
 
 if __name__ == "__main__":

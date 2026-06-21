@@ -293,6 +293,7 @@ class ScorelineDecisionResponse(BaseModel):
     selection_rationale: str = ""
     underdog_goal_gate: dict[str, Any] = Field(default_factory=dict)
     candidate_comparison_summary: dict[str, Any] = Field(default_factory=dict)
+    recent_form_shadow: dict[str, Any] = Field(default_factory=dict)
 
 
 class ProbabilityCoherenceResponse(BaseModel):
@@ -440,3 +441,83 @@ class SimulateChampionRequest(BaseModel):
 class SimulateChampionResponse(BaseModel):
     iterations: int
     champion_odds: list[ChampionOddsRow]
+
+
+class RecentFormWarmupRequest(BaseModel):
+    teams: list[str] = Field(min_length=1)
+    max_requests: int | None = Field(default=None, ge=1, le=100)
+    force: bool = False
+    dry_run: bool = False
+
+
+class RecentFormRequestBudgetResponse(BaseModel):
+    max_requests: int
+    estimated_used: int
+    stopped_due_to_budget: bool
+
+
+class RecentFormProviderStatusResponse(BaseModel):
+    api_football: str
+    football_data: str
+
+
+class RecentFormWarmupTeamReportResponse(BaseModel):
+    status: str
+    matches_before: int = 0
+    matches_after: int = 0
+    coverage_quality_before: str = "unavailable"
+    coverage_quality_after: str = "unavailable"
+    source_mix: dict[str, int] = Field(default_factory=dict)
+    warnings: list[str] = Field(default_factory=list)
+    reason_codes: list[str] = Field(default_factory=list)
+
+
+class RecentFormWarmupResponse(BaseModel):
+    enabled: bool
+    dry_run: bool
+    requested_teams: list[str]
+    refreshed_teams: list[str]
+    skipped_teams: list[str]
+    failed_teams: list[str]
+    request_budget: RecentFormRequestBudgetResponse
+    provider_status: RecentFormProviderStatusResponse
+    teams: dict[str, RecentFormWarmupTeamReportResponse]
+    cache_written: bool = False
+    cloud_persist_pushed: bool = False
+    write_status: str = ""
+
+
+class RecentFormStatusResponse(BaseModel):
+    cache_exists: bool
+    cache_path: str
+    cache_error: str | None = None
+    last_updated_utc: str | None = None
+    cache_age_hours: float | None = None
+    team_count: int = 0
+    total_normalized_rows: int = 0
+    coverage_buckets: dict[str, int] = Field(default_factory=dict)
+    provider_configured: dict[str, bool] = Field(default_factory=dict)
+    cloud_persist_configured: bool = False
+    flags: dict[str, bool] = Field(default_factory=dict)
+    warmup_available: bool = False
+    warnings: list[str] = Field(default_factory=list)
+
+
+class RecentFormTeamStatusResponse(BaseModel):
+    team: str
+    registry_key: str
+    matches_found: int | None = None
+    requested_match_count: int | None = None
+    latest_match_date: str | None = None
+    coverage_quality: str = "unavailable"
+    source_mix: dict[str, int] = Field(default_factory=dict)
+    competition_mix: dict[str, int] = Field(default_factory=dict)
+    recent_form_available: bool = False
+    recent_form_confidence: str = "unavailable"
+    last_10_scored_rate: float | None = None
+    last_10_goals_for_avg: float | None = None
+    last_10_goals_against_avg: float | None = None
+    failed_to_score_rate: float | None = None
+    support_level: str = "unavailable"
+    warnings: list[str] = Field(default_factory=list)
+    reason_codes: list[str] = Field(default_factory=list)

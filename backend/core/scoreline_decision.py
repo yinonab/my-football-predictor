@@ -7,12 +7,18 @@ from typing import Any, Literal
 
 from core.fixture_state import FIXTURE_STATE_UNAVAILABLE, MATCH_ALREADY_COMPLETED
 from core.match_context_diagnostics import MatchContextDiagnostics
+import config
+from core.recent_form_shadow import (
+    evaluate_recent_form_shadow,
+    gate_result_with_level,
+)
 from core.recent_scoring_form import get_recent_scoring_form
 from core.strength_result import StrengthResult
 from core.underdog_goal_gate import (
     LARGE_CANDIDATE_PROB_GAP,
     UNDERDOG_GOAL_ALLOWED_CLOSE_CANDIDATE,
     UNDERDOG_GOAL_REJECTED_CANDIDATE_TOO_FAR,
+    CandidateComparisonSummary,
     UnderdogGoalGateResult,
     build_candidate_comparison_summary,
     build_underdog_match_context,
@@ -107,6 +113,7 @@ class ScorelineDecision:
     selection_rationale: str = ""
     underdog_goal_gate: dict[str, Any] = field(default_factory=dict)
     candidate_comparison_summary: dict[str, Any] = field(default_factory=dict)
+    recent_form_shadow: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         primary = self.primary_predicted_score.to_dict() if self.primary_predicted_score else None
@@ -155,6 +162,8 @@ class ScorelineDecision:
             payload["underdog_goal_gate"] = self.underdog_goal_gate
         if self.candidate_comparison_summary:
             payload["candidate_comparison_summary"] = self.candidate_comparison_summary
+        if self.recent_form_shadow:
+            payload["recent_form_shadow"] = self.recent_form_shadow
         return payload
 
 
@@ -469,6 +478,67 @@ def _assess_primary_realism_warnings(
     return warnings
 
 
+def _score_representative_candidates(
+    pool: list[ScorelineCandidate],
+    *,
+    favorite: OutcomeKey,
+    home_xg: float,
+    away_xg: float,
+    power_gap: float,
+    stats: MatrixStats,
+    context: MatchContextDiagnostics | None,
+    gate: UnderdogGoalGateResult,
+) -> tuple[
+    ScorelineCandidate,
+    float,
+    ScorelineCandidate,
+    float,
+    list[tuple[ScorelineCandidate, float]],
+    CandidateComparisonSummary,
+]:
+    ordered = sorted(pool, key=lambda c: c.probability, reverse=True)
+    modal = ordered[0]
+    top_prob = modal.probability
+    threshold = max(
+        REPRESENTATIVE_CANDIDATE_MIN_ABS,
+        top_prob * REPRESENTATIVE_CANDIDATE_MIN_REL,
+    )
+    shortlist = [c for c in ordered if c.probability >= threshold][:REPRESENTATIVE_POOL_TOP_K]
+    if not shortlist:
+        shortlist = ordered[:REPRESENTATIVE_POOL_TOP_K]
+
+    pool_by_label = {c.score_label: c for c in pool}
+    max_prob = max(c.probability for c in shortlist)
+    scored = [
+        (
+            c,
+            _representative_composite(
+                c,
+                stats=stats,
+                favorite=favorite,
+                home_xg=home_xg,
+                away_xg=away_xg,
+                max_prob=max_prob,
+                power_gap=power_gap,
+                context=context,
+                gate=gate,
+                pool_by_label=pool_by_label,
+            ),
+        )
+        for c in shortlist
+    ]
+    best, best_score = max(scored, key=lambda item: item[1])
+    modal_score = next(s for c, s in scored if c.score_label == modal.score_label)
+    comparison = build_candidate_comparison_summary(
+        pool=pool,
+        scored=scored,
+        selected=best,
+        gate=gate,
+        favorite_outcome=favorite,
+    )
+    return best, best_score, modal, modal_score, scored, comparison
+
+
 def _pick_representative_score(
     pool: list[ScorelineCandidate],
     *,
@@ -540,52 +610,74 @@ def _pick_representative_score(
         recent_form=recent_form,
     )
 
-    ordered = sorted(pool, key=lambda c: c.probability, reverse=True)
-    modal = ordered[0]
-    top_prob = modal.probability
-    threshold = max(
-        REPRESENTATIVE_CANDIDATE_MIN_ABS,
-        top_prob * REPRESENTATIVE_CANDIDATE_MIN_REL,
+    best, best_score, modal, modal_score, scored, comparison = _score_representative_candidates(
+        pool,
+        favorite=favorite,
+        home_xg=home_xg,
+        away_xg=away_xg,
+        power_gap=power_gap,
+        stats=stats,
+        context=context,
+        gate=gate,
     )
-    shortlist = [c for c in ordered if c.probability >= threshold][:REPRESENTATIVE_POOL_TOP_K]
-    if not shortlist:
-        shortlist = ordered[:REPRESENTATIVE_POOL_TOP_K]
 
-    pool_by_label = {c.score_label: c for c in pool}
-    max_prob = max(c.probability for c in shortlist)
-    scored = [
-        (
-            c,
-            _representative_composite(
-                c,
-                stats=stats,
-                favorite=favorite,
-                home_xg=home_xg,
-                away_xg=away_xg,
-                max_prob=max_prob,
-                power_gap=power_gap,
-                context=context,
-                gate=gate,
-                pool_by_label=pool_by_label,
+    shadow_primary: ScorelineCandidate | None = None
+    active_gate = gate
+    shadow_outcome = evaluate_recent_form_shadow(
+        underdog_ctx=underdog_ctx,
+        baseline_gate=gate,
+        underdog_scores_probability=stats.underdog_scores_probability,
+        btts_probability=stats.btts_probability,
+        comparison=comparison,
+        baseline_primary_label=best.score_label,
+        shadow_primary_label=None,
+    )
+
+    if config.recent_form_shadow_enabled() and shadow_outcome.shadow_gate_level != gate.level:
+        shadow_gate = gate_result_with_level(gate, shadow_outcome.shadow_gate_level)
+        shadow_primary, _, _, _, _, _ = _score_representative_candidates(
+            pool,
+            favorite=favorite,
+            home_xg=home_xg,
+            away_xg=away_xg,
+            power_gap=power_gap,
+            stats=stats,
+            context=context,
+            gate=shadow_gate,
+        )
+        shadow_outcome = evaluate_recent_form_shadow(
+            underdog_ctx=underdog_ctx,
+            baseline_gate=gate,
+            underdog_scores_probability=stats.underdog_scores_probability,
+            btts_probability=stats.btts_probability,
+            comparison=comparison,
+            baseline_primary_label=best.score_label,
+            shadow_primary_label=shadow_primary.score_label,
+        )
+
+    if shadow_outcome.active_change_applied:
+        active_gate = gate_result_with_level(
+            gate,
+            shadow_outcome.active_gate_level,
+            extra_reason_codes=list(
+                shadow_outcome.diagnostics.get("reason_codes") or []
             ),
         )
-        for c in shortlist
-    ]
-    best, best_score = max(scored, key=lambda item: item[1])
-    modal_score = next(s for c, s in scored if c.score_label == modal.score_label)
-
-    comparison = build_candidate_comparison_summary(
-        pool=pool,
-        scored=scored,
-        selected=best,
-        gate=gate,
-        favorite_outcome=favorite,
-    )
+        best, best_score, modal, modal_score, scored, comparison = _score_representative_candidates(
+            pool,
+            favorite=favorite,
+            home_xg=home_xg,
+            away_xg=away_xg,
+            power_gap=power_gap,
+            stats=stats,
+            context=context,
+            gate=active_gate,
+        )
 
     rationale = (
         f"{REPRESENTATIVE_SCORE_METHOD}: selected {best.score_label} (composite={best_score:.3f}) "
         f"over modal {modal.score_label} ({modal_score:.3f}); "
-        f"gate={gate.level} support={gate.support_score:.1f}/{gate.threshold:.0f}; "
+        f"gate={active_gate.level} support={active_gate.support_score:.1f}/{active_gate.threshold:.0f}; "
         f"BTTS={stats.btts_probability:.1f}%, underdog scores={stats.underdog_scores_probability:.1f}%"
     )
 
@@ -611,16 +703,21 @@ def _pick_representative_score(
         away_xg=away_xg,
         top_exact=None,
     )
-    primary_warnings.extend(gate.reason_codes)
+    primary_warnings.extend(active_gate.reason_codes)
     if comparison.exact_probability_gap is not None:
         if comparison.exact_probability_gap <= CLOSE_SCORELINE_PP:
             primary_warnings.append(UNDERDOG_GOAL_ALLOWED_CLOSE_CANDIDATE)
         elif (
             best.score_label == comparison.best_underdog_goal_candidate
             and comparison.exact_probability_gap > LARGE_CANDIDATE_PROB_GAP
-            and gate.level not in {"STRONG_ALLOW"}
+            and active_gate.level not in {"STRONG_ALLOW"}
         ):
             primary_warnings.append(UNDERDOG_GOAL_REJECTED_CANDIDATE_TOO_FAR)
+
+    gate_payload = active_gate.to_dict()
+    recent_form_shadow = shadow_outcome.diagnostics
+    if recent_form_shadow:
+        gate_payload["recent_form"] = recent_form_shadow
 
     diagnostics: dict[str, Any] = {
         "representative_score_method": REPRESENTATIVE_SCORE_METHOD,
@@ -630,8 +727,9 @@ def _pick_representative_score(
         "primary_score_warnings": list(dict.fromkeys(primary_warnings)),
         "primary_score_candidates": candidate_preview,
         "selection_rationale": rationale,
-        "underdog_goal_gate": gate.to_dict(),
+        "underdog_goal_gate": gate_payload,
         "candidate_comparison_summary": comparison.to_dict(),
+        "recent_form_shadow": recent_form_shadow,
     }
     return best, diagnostics
 
@@ -933,4 +1031,5 @@ def build_scoreline_decision(
         selection_rationale=rep_diagnostics.get("selection_rationale", ""),
         underdog_goal_gate=rep_diagnostics.get("underdog_goal_gate", {}),
         candidate_comparison_summary=rep_diagnostics.get("candidate_comparison_summary", {}),
+        recent_form_shadow=rep_diagnostics.get("recent_form_shadow", {}),
     )

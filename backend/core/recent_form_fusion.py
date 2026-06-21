@@ -414,6 +414,7 @@ def collect_api_football_candidates(
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     from core.api_football_recent_form import (
         ApiFootballRecentFormClient,
+        known_nt_team_id,
         parse_apif_fixture_for_team,
     )
 
@@ -426,7 +427,7 @@ def collect_api_football_candidates(
     english = team_registry_key.split(" (")[0]
     team_obj, candidates, err = client.search_national_team(english, registry=registry or REGISTRY)
     meta["search_candidate_count"] = len(candidates)
-    if err:
+    if err and not team_obj:
         meta["status"] = err.category
         meta["error"] = err.message
         return [], meta
@@ -436,6 +437,9 @@ def collect_api_football_candidates(
 
     team_id = int(team_obj.get("id"))
     meta["api_football_team_id"] = team_id
+    known_id = known_nt_team_id(english)
+    if known_id is not None and team_id == known_id and not candidates:
+        meta["search_fallback"] = "known_nt_team_id"
     if len(candidates) > 1:
         meta["ambiguous_search"] = True
 
@@ -640,6 +644,15 @@ def load_fusion_cache_rows() -> tuple[list[NormalizedRecentMatch], dict[str, Any
 
 def get_fusion_cache_status() -> dict[str, Any]:
     return dict(FUSION_LOAD_META)
+
+
+def get_fusion_team_entry(team_registry_key: str) -> dict[str, Any] | None:
+    """Return one team's fusion cache entry (offline read; no API)."""
+    payload, error = load_fusion_cache()
+    if error or not payload:
+        return None
+    entry = (payload.get("teams") or {}).get(team_registry_key)
+    return entry if isinstance(entry, dict) else None
 
 
 def validate_fusion_payload_for_write(

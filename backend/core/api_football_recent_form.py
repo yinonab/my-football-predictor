@@ -32,6 +32,10 @@ INTERNATIONAL_LEAGUE_KEYWORDS = (
     "nations league",
     "qualification",
     "confederations",
+    "concacaf",
+    "ofc",
+    "oceania",
+    "caribbean",
 )
 
 APIF_ERROR_BLOCKED_SEASON = "APIF_BLOCKED_SEASON"
@@ -39,6 +43,18 @@ APIF_ERROR_BLOCKED_LAST = "APIF_BLOCKED_LAST"
 APIF_ERROR_RATE_LIMIT = "APIF_RATE_LIMIT"
 APIF_ERROR_NO_RESULTS = "APIF_NO_RESULTS"
 APIF_ERROR_KEY_MISSING = "APIF_KEY_MISSING"
+APIF_ACCOUNT_SUSPENDED = "APIF_ACCOUNT_SUSPENDED"
+
+# Verified senior men's national-team IDs (fallback when search is ambiguous or fails).
+KNOWN_API_FOOTBALL_NT_TEAM_IDS: dict[str, int] = {
+    "haiti": 2386,
+    "new zealand": 4673,
+}
+
+YOUTH_WOMEN_TEAM_RE = re.compile(
+    r"(^|\s|-)(u\s?\d{1,2}|under\s?\d{1,2}|youth|women|woman|femenin|féminin|female|girls)(\s|$|-)",
+    re.IGNORECASE,
+)
 
 
 @dataclass(frozen=True)
@@ -63,6 +79,25 @@ def is_international_league(league_name: str) -> bool:
     return any(kw in blob for kw in INTERNATIONAL_LEAGUE_KEYWORDS)
 
 
+def known_nt_team_id(name: str) -> int | None:
+    return KNOWN_API_FOOTBALL_NT_TEAM_IDS.get(normalize_search_name(name))
+
+
+def is_senior_men_national_team(team: dict[str, Any]) -> bool:
+    if not team.get("national"):
+        return False
+    name = str(team.get("name") or "")
+    return YOUTH_WOMEN_TEAM_RE.search(name) is None
+
+
+def synthetic_team_from_known_id(name: str) -> dict[str, Any] | None:
+    team_id = known_nt_team_id(name)
+    if team_id is None:
+        return None
+    english = registry_english_for_alias(name.split(" (")[0].strip())
+    return {"id": team_id, "name": english, "national": True, "country": english}
+
+
 def parse_apif_errors(payload: dict[str, Any]) -> ApiFootballRequestError | None:
     errors = payload.get("errors")
     if not errors:
@@ -72,9 +107,11 @@ def parse_apif_errors(payload: dict[str, Any]) -> ApiFootballRequestError | None
     else:
         text = str(errors)
     lower = text.lower()
+    if "suspend" in lower or ("access" in lower and "account" in lower):
+        return ApiFootballRequestError(APIF_ACCOUNT_SUSPENDED, text[:200])
     if "last" in lower and ("plan" in lower or "free" in lower or "blocked" in lower):
         return ApiFootballRequestError(APIF_ERROR_BLOCKED_LAST, text[:200])
-    if "season" in lower or "2025" in lower or "2026" in lower:
+    if "season" in lower and ("plan" in lower or "free" in lower or "blocked" in lower):
         return ApiFootballRequestError(APIF_ERROR_BLOCKED_SEASON, text[:200])
     if "rate" in lower or "limit" in lower:
         return ApiFootballRequestError(APIF_ERROR_RATE_LIMIT, text[:200])
@@ -165,6 +202,21 @@ class ApiFootballRecentFormClient:
         self.last_error = None
         return payload, None
 
+    def _prefer_known_senior_team(
+        self,
+        search: str,
+        team: dict[str, Any] | None,
+    ) -> dict[str, Any] | None:
+        known = synthetic_team_from_known_id(search)
+        if known is None:
+            return team
+        if team is None:
+            return known
+        if int(team.get("id") or 0) == int(known["id"]):
+            return team
+        # Prefer verified senior men's ID when search returns a different national team.
+        return known
+
     def search_national_team(
         self,
         name: str,
@@ -175,6 +227,9 @@ class ApiFootballRecentFormClient:
         search = registry_english_for_alias(name.split(" (")[0].strip())
         payload, err = self.request_raw("/teams", {"search": search})
         if err is not None:
+            fallback = synthetic_team_from_known_id(search)
+            if fallback is not None:
+                return fallback, [], None
             return None, [], err
         items = list((payload or {}).get("response") or [])
         candidates: list[dict[str, Any]] = []
@@ -183,26 +238,37 @@ class ApiFootballRecentFormClient:
             candidates.append(team)
 
         req_norm = normalize_team_key(search)
-        national = [t for t in candidates if t.get("national")]
+        national = [t for t in candidates if is_senior_men_national_team(t)]
+        selected: dict[str, Any] | None = None
         for team in national:
             team_norm = normalize_team_key(str(team.get("name") or ""))
             if team_norm == req_norm or normalize_team_key(str(team.get("country") or "")) == req_norm:
-                return team, candidates, None
+                selected = team
+                break
 
-        if registry:
+        if selected is None and registry:
             canonical = registry_key_for_nt(search, registry)
             if canonical:
                 english = canonical.split(" (")[0]
                 eng_norm = normalize_team_key(english)
                 for team in national:
                     if normalize_team_key(str(team.get("name") or "")) == eng_norm:
-                        return team, candidates, None
+                        selected = team
+                        break
 
-        if len(national) == 1:
-            return national[0], candidates, None
-        if national:
-            return national[0], candidates, None
-        return (candidates[0] if candidates else None), candidates, None
+        if selected is None and len(national) == 1:
+            selected = national[0]
+        if selected is None and national:
+            selected = national[0]
+        if selected is None and candidates:
+            selected = candidates[0]
+
+        selected = self._prefer_known_senior_team(search, selected)
+        if selected is None:
+            fallback = synthetic_team_from_known_id(search)
+            if fallback is not None:
+                return fallback, candidates, None
+        return selected, candidates, None
 
     def fetch_team_leagues(self, team_id: int) -> tuple[list[dict[str, Any]], ApiFootballRequestError | None]:
         payload, err = self.request_raw("/leagues", {"team": team_id})
@@ -269,7 +335,22 @@ class ApiFootballRecentFormClient:
             meta["league_error"] = league_err.category
 
         for season in seasons:
+            season_ids: set[int] = set()
             season_fixtures: list[dict[str, Any]] = []
+
+            def _append_batch(batch: list[dict[str, Any]]) -> None:
+                for fx in batch:
+                    fix = fx.get("fixture") or {}
+                    fid = fix.get("id")
+                    if fid is None:
+                        season_fixtures.append(fx)
+                        continue
+                    fid_int = int(fid)
+                    if fid_int in season_ids:
+                        continue
+                    season_ids.add(fid_int)
+                    season_fixtures.append(fx)
+
             if leagues:
                 for league_item in leagues:
                     league = league_item.get("league") or {}
@@ -281,13 +362,14 @@ class ApiFootballRecentFormClient:
                     if err:
                         meta["season_errors"][f"{league_id}:{season}"] = err.category
                         continue
-                    season_fixtures.extend(batch)
-            if not season_fixtures:
-                batch, err = self.fetch_fixtures_team_season(team_id, season)
-                if err:
-                    meta["season_errors"][str(season)] = err.category
-                    continue
-                season_fixtures = batch
+                    _append_batch(batch)
+
+            # Always merge team+season fixtures (captures friendlies / leagues missing from /leagues).
+            batch, err = self.fetch_fixtures_team_season(team_id, season)
+            if err:
+                meta["season_errors"][f"team_season:{season}"] = err.category
+            else:
+                _append_batch(batch)
 
             for fx in season_fixtures:
                 fix = fx.get("fixture") or {}

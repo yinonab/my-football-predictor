@@ -221,6 +221,55 @@ RECENT_FORM_REFRESH_TIMEOUT_SECONDS: int = int(
 )
 RECENT_FORM_API_ENABLED: bool = _env_bool("RECENT_FORM_API_ENABLED", True)
 
+# Phase 4R.4 — Recent-form shadow diagnostics + controlled active experiment
+RECENT_FORM_SHADOW_ENABLED: bool = _env_bool("RECENT_FORM_SHADOW_ENABLED", True)
+RECENT_FORM_ACTIVE_EXPERIMENT_ENABLED: bool = _env_bool(
+    "RECENT_FORM_ACTIVE_EXPERIMENT_ENABLED", False
+)
+RECENT_FORM_MIN_COVERAGE_FOR_ACTIVE: str = os.getenv(
+    "RECENT_FORM_MIN_COVERAGE_FOR_ACTIVE", "medium"
+).strip().lower()
+RECENT_FORM_MAX_GATE_STEP_DELTA: int = int(os.getenv("RECENT_FORM_MAX_GATE_STEP_DELTA", "1"))
+
+# Phase 4R.5 — Admin-only recent-form fusion warmup (Render cache fill)
+RECENT_FORM_WARMUP_ENABLED: bool = _env_bool("RECENT_FORM_WARMUP_ENABLED", False)
+RECENT_FORM_WARMUP_ADMIN_TOKEN: str = os.getenv("RECENT_FORM_WARMUP_ADMIN_TOKEN", "").strip()
+RECENT_FORM_WARMUP_DEFAULT_MAX_REQUESTS: int = int(
+    os.getenv("RECENT_FORM_WARMUP_DEFAULT_MAX_REQUESTS", "10")
+)
+RECENT_FORM_WARMUP_MAX_TEAMS: int = int(os.getenv("RECENT_FORM_WARMUP_MAX_TEAMS", "3"))
+RECENT_FORM_WARMUP_MIN_REFRESH_INTERVAL_HOURS: int = int(
+    os.getenv("RECENT_FORM_WARMUP_MIN_REFRESH_INTERVAL_HOURS", "24")
+)
+RECENT_FORM_WARMUP_SLEEP_SECONDS: float = float(
+    os.getenv("RECENT_FORM_WARMUP_SLEEP_SECONDS", "1.5")
+)
+
+
+def recent_form_warmup_enabled() -> bool:
+    """Warmup endpoint requires explicit enable flag and admin token env."""
+    return RECENT_FORM_WARMUP_ENABLED and bool(RECENT_FORM_WARMUP_ADMIN_TOKEN)
+
+
+def recent_form_warmup_admin_token() -> str:
+    return RECENT_FORM_WARMUP_ADMIN_TOKEN
+
+
+def recent_form_shadow_enabled() -> bool:
+    return RECENT_FORM_SHADOW_ENABLED
+
+
+def recent_form_active_experiment_enabled() -> bool:
+    """Active scoreline influence requires both experiment flag and affects-scoreline flag."""
+    return RECENT_FORM_ACTIVE_EXPERIMENT_ENABLED and RECENT_FORM_AFFECTS_SCORELINE
+
+
+def recent_form_min_coverage_for_active() -> frozenset[str]:
+    minimum = RECENT_FORM_MIN_COVERAGE_FOR_ACTIVE
+    if minimum == "high":
+        return frozenset({"high"})
+    return frozenset({"high", "medium"})
+
 
 def recent_form_api_enabled() -> bool:
     """True when football-data key exists and recent-form API ingestion is allowed."""

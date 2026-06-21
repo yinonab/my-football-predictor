@@ -21,6 +21,7 @@ SYNCED_FILES = (
     "elo_overrides.json",
     "wc2026_live_matches.json",
     "nt_history_fetched.json",
+    "recent_form_fusion_cache.json",
 )
 GITHUB_API = "https://api.github.com"
 

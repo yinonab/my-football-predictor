@@ -187,7 +187,10 @@ def test_missing_cache_static_fallback(tmp_path: Path, monkeypatch) -> None:
         "core.football_data_recent_form.RECENT_FORM_CACHE_PATH",
         path,
     )
-    history = build_normalized_recent_match_history(include_optional_caches=False)
+    history = build_normalized_recent_match_history(
+        include_optional_caches=False,
+        include_fusion_cache=False,
+    )
     assert len(history) >= 300
     rows, meta = load_recent_form_cache_rows()
     assert rows == []
@@ -202,7 +205,10 @@ def test_api_cache_priority_over_static(tmp_path: Path, monkeypatch) -> None:
         "core.football_data_recent_form.RECENT_FORM_CACHE_PATH",
         path,
     )
-    history = build_normalized_recent_match_history(include_optional_caches=False)
+    history = build_normalized_recent_match_history(
+        include_optional_caches=False,
+        include_fusion_cache=False,
+    )
     brazil_api = [
         r
         for r in history
@@ -218,6 +224,7 @@ def test_coverage_improves_with_cache_fixture(tmp_path: Path, monkeypatch) -> No
     static = build_normalized_recent_match_history(
         include_optional_caches=False,
         include_recent_form_cache=False,
+        include_fusion_cache=False,
     )
     nz_static = get_recent_scoring_form("New Zealand (ניו זילנד)", history=static)
     assert nz_static.recent_form_confidence == "unavailable"
@@ -229,7 +236,10 @@ def test_coverage_improves_with_cache_fixture(tmp_path: Path, monkeypatch) -> No
         "core.football_data_recent_form.RECENT_FORM_CACHE_PATH",
         path,
     )
-    merged = build_normalized_recent_match_history(include_optional_caches=False)
+    merged = build_normalized_recent_match_history(
+        include_optional_caches=False,
+        include_fusion_cache=False,
+    )
     nz_merged = get_recent_scoring_form("New Zealand (ניו זילנד)", history=merged)
     assert nz_merged.recent_form_available is True
     assert nz_merged.recent_form_confidence in {"high", "medium", "low"}
