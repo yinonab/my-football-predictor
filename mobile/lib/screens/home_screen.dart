@@ -32,8 +32,10 @@ class _HomeScreenState extends State<HomeScreen> {
   PredictionResult? _result;
   bool _serverOnline = false;
   bool _checking = true;
+  bool _teamsLoading = false;
   bool _predicting = false;
   String? _error;
+  String? _connectionError;
 
   @override
   void initState() {
@@ -66,34 +68,58 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
+  static const _startupHealthTimeout = Duration(seconds: 15);
+
   Future<void> _init() async {
-    _settings = await _apiService.loadSettings();
-    _venueMode = _settings.venueMode;
+    final settings = await _apiService.loadSettings();
+    if (!mounted) return;
+    setState(() {
+      _settings = settings;
+      _venueMode = settings.venueMode;
+    });
+    await _refreshConnection();
+  }
+
+  Future<void> _refreshConnection() async {
     await _checkServer();
-    if (_serverOnline) {
+    if (mounted && _serverOnline) {
       await _loadTeams();
     }
   }
 
   Future<void> _loadTeams() async {
+    if (!mounted) return;
+    setState(() => _teamsLoading = true);
     try {
       final teams = await _apiService.fetchTeams(_settings.apiBaseUrl);
-      if (mounted) setState(() => _teams = teams);
-    } catch (_) {}
+      if (mounted) {
+        setState(() {
+          _teams = teams;
+          _teamsLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _teamsLoading = false);
+    }
   }
 
   Future<void> _checkServer() async {
+    if (!mounted) return;
     setState(() {
       _checking = true;
-      _error = null;
+      _connectionError = null;
     });
-    final online = await _apiService.checkHealth(_settings.apiBaseUrl);
+    final online = await _apiService.checkHealth(
+      _settings.apiBaseUrl,
+      timeout: _startupHealthTimeout,
+    );
     if (!mounted) return;
     setState(() {
       _serverOnline = online;
       _checking = false;
       if (!online) {
-        _error = 'לא ניתן להתחבר לשרת. בדוק את כתובת ה-API בהגדרות.';
+        _connectionError =
+            'לא ניתן להתחבר לשרת. משוך למטה לניסיון חוזר או בדוק את כתובת ה-API בהגדרות.';
       }
     });
   }
@@ -160,9 +186,24 @@ class _HomeScreenState extends State<HomeScreen> {
         _settings = updated;
         _venueMode = updated.venueMode;
       });
-      await _checkServer();
-      if (_serverOnline) await _loadTeams();
+      await _refreshConnection();
     }
+  }
+
+  String _serverStatusLabel() {
+    if (_checking) return 'מתחבר לשרת...';
+    if (_serverOnline) {
+      if (_teamsLoading) return 'שרת מחובר · טוען נבחרות...';
+      return 'שרת מחובר · ${_teams.length} נבחרות';
+    }
+    return 'שרת לא מחובר';
+  }
+
+  String _predictButtonLabel() {
+    if (_predicting) return 'מחשב...';
+    if (_checking) return 'מתחבר לשרת...';
+    if (!_serverOnline) return 'מחמם שרת...';
+    return 'חזה משחק';
   }
 
   @override
@@ -187,33 +228,59 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
           ],
         ),
-        body: _checking
-            ? const Center(child: CircularProgressIndicator())
-            : RefreshIndicator(
-                onRefresh: () async {
-                  await _checkServer();
-                  if (_serverOnline) await _loadTeams();
-                },
-                child: ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+        body: RefreshIndicator(
+          onRefresh: _refreshConnection,
+          child: ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (_checking)
+                    SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: theme.colorScheme.primary,
+                      ),
+                    )
+                  else
+                    Icon(
+                      _serverOnline ? Icons.cloud_done : Icons.cloud_off,
+                      color: _serverOnline ? Colors.green : Colors.red,
+                      size: 18,
+                    ),
+                  const SizedBox(width: 6),
+                  Text(
+                    _serverStatusLabel(),
+                    style: theme.textTheme.bodySmall,
+                  ),
+                ],
+              ),
+              if (_connectionError != null) ...[
+                const SizedBox(height: 12),
+                Card(
+                  color: theme.colorScheme.errorContainer,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Icon(
-                          _serverOnline ? Icons.cloud_done : Icons.cloud_off,
-                          color: _serverOnline ? Colors.green : Colors.red,
-                          size: 18,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          _serverOnline
-                              ? 'שרת מחובר · ${_teams.length} נבחרות'
-                              : 'שרת לא מחובר',
-                          style: theme.textTheme.bodySmall,
+                        Text(_connectionError!),
+                        const SizedBox(height: 8),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton(
+                            onPressed: _checking ? null : _refreshConnection,
+                            child: const Text('נסה שוב'),
+                          ),
                         ),
                       ],
                     ),
+                  ),
+                ),
+              ],
                     const SizedBox(height: 16),
                     TeamTextField(
                       label: teamALabel,
@@ -273,7 +340,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       width: double.infinity,
                       height: 56,
                       child: FilledButton.icon(
-                        onPressed: _predicting || !_serverOnline ? null : _predict,
+                        onPressed: _predicting || _checking || !_serverOnline
+                            ? null
+                            : _predict,
                         icon: _predicting
                             ? const SizedBox(
                                 width: 20,
@@ -284,7 +353,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               )
                             : const Icon(Icons.sports_soccer),
-                        label: Text(_predicting ? 'מחשב...' : 'חזה משחק'),
+                        label: Text(_predictButtonLabel()),
                       ),
                     ),
                     if (_error != null) ...[
@@ -407,10 +476,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         isNeutralGround: scoreLabelsNeutral,
                       ),
                     ],
-                    const SizedBox(height: 32),
-                  ],
-                ),
-              ),
+              const SizedBox(height: 32),
+            ],
+          ),
+        ),
       ),
     );
   }

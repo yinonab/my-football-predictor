@@ -104,11 +104,12 @@ class ApiService {
     return preferred;
   }
 
-  Future<bool> checkHealth(String baseUrl) async {
+  Future<bool> checkHealth(String baseUrl, {Duration? timeout}) async {
+    final effectiveTimeout = timeout ?? _timeoutFor(baseUrl, seconds: 5);
     try {
       final response = await http
           .get(Uri.parse('$baseUrl/api/health'))
-          .timeout(_timeoutFor(baseUrl, seconds: 5));
+          .timeout(effectiveTimeout);
       return response.statusCode == 200;
     } catch (_) {
       return false;
