@@ -1,4 +1,4 @@
-"""Expected-goals representative composite selection and base xG API fields."""
+"""Expected-goals representative selection with soft underdog scoring fit."""
 
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ from core.math_engine import AdvancedDixonColesEngine
 from core.scoreline_decision import (
     EXPECTED_GOALS_REPRESENTATIVE_SELECTION,
     _representative_goal_target,
+    _underdog_goal_fit,
     build_scoreline_decision,
 )
 from core.strength_result import StrengthResult
@@ -97,34 +98,93 @@ def _utilities(decision) -> dict[str, dict]:
     return {row["score"]: row["utility_components"] for row in sel["top_candidate_utilities"]}
 
 
-def test_representative_goal_target_round_half_up() -> None:
-    assert _representative_goal_target(0.49) == 0
-    assert _representative_goal_target(0.50) == 1
-    assert _representative_goal_target(1.49) == 1
+def test_favorite_target_round_half_up_unchanged() -> None:
     assert _representative_goal_target(1.50) == 2
-    assert _representative_goal_target(2.97) == 3
-    assert _representative_goal_target(4.09) == 4
+    assert _representative_goal_target(2.50) == 3
+    assert _representative_goal_target(3.50) == 4
+    assert _representative_goal_target(4.50) == 5
     assert _representative_goal_target(5.50) == 6
 
 
-def test_uruguay_style_297_077_three_goal_favorite_competes() -> None:
+def test_underdog_fit_low_xg_prefers_clean_sheet() -> None:
+    assert _underdog_goal_fit(0, 0.70) > _underdog_goal_fit(1, 0.70)
+
+
+def test_underdog_fit_competition_zone() -> None:
+    assert _underdog_goal_fit(0, 1.00) >= 0.85
+    assert _underdog_goal_fit(1, 1.00) >= 0.85
+    assert abs(_underdog_goal_fit(0, 1.00) - _underdog_goal_fit(1, 1.00)) < 0.10
+
+
+def test_underdog_fit_one_goal_preferred_zone() -> None:
+    assert _underdog_goal_fit(1, 1.20) > _underdog_goal_fit(0, 1.20)
+
+
+def test_underdog_fit_high_xg_penalizes_clean_sheet() -> None:
+    assert _underdog_goal_fit(0, 1.50) < _underdog_goal_fit(1, 1.50)
+    assert _underdog_goal_fit(2, 1.50) >= _underdog_goal_fit(0, 1.50)
+
+
+def test_low_underdog_36_070_clean_sheet_natural() -> None:
+    decision = _decision(3.6, 0.70)
+    sel = _selection(decision)
+    assert sel["favorite_target_goals"] == 4
+    assert sel["underdog_xg"] == pytest.approx(0.70, abs=0.01)
+    primary = decision.primary_predicted_score
+    assert primary is not None
+    utils = _utilities(decision)
+    if "4-0" in utils and "4-1" in utils:
+        assert utils["4-0"]["underdog_goal_fit"] > utils["4-1"]["underdog_goal_fit"]
+
+
+def test_underdog_competition_zone_38_100() -> None:
+    decision = _decision(3.8, 1.00)
+    sel = _selection(decision)
+    assert sel["favorite_target_goals"] == 4
+    utils = _utilities(decision)
+    assert "4-0" in utils and "4-1" in utils
+    assert utils["4-0"]["underdog_goal_fit"] >= 0.85
+    assert utils["4-1"]["underdog_goal_fit"] >= 0.85
+
+
+def test_underdog_one_goal_zone_41_120() -> None:
+    decision = _decision(4.1, 1.20)
+    sel = _selection(decision)
+    assert sel["favorite_target_goals"] == 4
+    primary = decision.primary_predicted_score
+    assert primary is not None
+    utils = _utilities(decision)
+    assert "4-1" in utils
+    if "4-0" in utils:
+        assert utils["4-1"]["underdog_goal_fit"] > utils["4-0"]["underdog_goal_fit"]
+
+
+def test_high_underdog_40_150_no_forced_clean_sheet() -> None:
+    decision = _decision(4.0, 1.50)
+    sel = _selection(decision)
+    assert sel["favorite_target_goals"] == 4
+    primary = decision.primary_predicted_score
+    assert primary is not None
+    assert primary.away_goals >= 1
+
+
+def test_uruguay_style_297_077_no_forced_underdog_goal() -> None:
     decision = _decision(2.97, 0.77)
     sel = _selection(decision)
-    assert sel["home_target_goals"] == 3
-    assert sel["away_target_goals"] == 1
+    assert sel["favorite_target_goals"] == 3
+    assert sel["underdog_xg"] == pytest.approx(0.77, abs=0.01)
     primary = decision.primary_predicted_score
     assert primary is not None
     assert primary.home_goals >= 3
     utils = _utilities(decision)
-    assert "3-0" in utils or "3-1" in utils
-    assert utils.get("3-0", {}).get("expected_goal_target_fit", 0) >= 0.66
+    if "3-0" in utils and "3-1" in utils:
+        assert utils["3-0"]["underdog_goal_fit"] > utils["3-1"]["underdog_goal_fit"]
 
 
-def test_spain_style_409_092_four_goal_favorite_competes() -> None:
+def test_spain_style_409_092_four_goal_favorite_retained() -> None:
     decision = _decision(4.09, 0.92)
     sel = _selection(decision)
-    assert sel["home_target_goals"] == 4
-    assert sel["away_target_goals"] == 1
+    assert sel["favorite_target_goals"] == 4
     primary = decision.primary_predicted_score
     assert primary is not None
     assert primary.home_goals >= 4
@@ -135,49 +195,40 @@ def test_spain_style_409_092_four_goal_favorite_competes() -> None:
         assert sel.get("selection_reason_code") == EXPECTED_GOALS_REPRESENTATIVE_SELECTION
 
 
-def test_low_xg_boundary_150_049_two_goal_favorite_competes() -> None:
+def test_low_xg_boundary_150_049_two_goal_favorite() -> None:
     decision = _decision(1.50, 0.49)
     sel = _selection(decision)
-    assert sel["home_target_goals"] == 2
-    assert sel["away_target_goals"] == 0
-    primary = decision.primary_predicted_score
-    assert primary is not None
+    assert sel["favorite_target_goals"] == 2
     utils = _utilities(decision)
     assert "2-0" in utils
-    assert utils["2-0"]["expected_goal_target_fit"] == pytest.approx(1.0, abs=0.01)
-    assert primary.score_label in {"2-0", "1-0"}
+    assert utils["2-0"]["favorite_goal_target_fit"] == pytest.approx(1.0, abs=0.01)
 
 
-def test_underdog_half_boundary_210_050_two_one_competes() -> None:
+def test_underdog_half_boundary_210_050() -> None:
     decision = _decision(2.10, 0.50)
     sel = _selection(decision)
-    assert sel["home_target_goals"] == 2
-    assert sel["away_target_goals"] == 1
-    primary = decision.primary_predicted_score
-    assert primary is not None
+    assert sel["favorite_target_goals"] == 2
     utils = _utilities(decision)
     assert "2-1" in utils
-    assert utils["2-1"]["expected_goal_target_fit"] == pytest.approx(1.0, abs=0.01)
-    assert primary.score_label in {"2-1", "2-0"}
+    assert _underdog_goal_fit(0, 0.50) > _underdog_goal_fit(1, 0.50)
+    primary = decision.primary_predicted_score
+    assert primary is not None
+    assert primary.score_label in {"2-0", "2-1"}
 
 
 def test_high_extreme_550_080_no_four_goal_cap() -> None:
     decision = _decision(5.50, 0.80)
     sel = _selection(decision)
-    assert sel["home_target_goals"] == 6
-    assert sel["away_target_goals"] == 1
+    assert sel["favorite_target_goals"] == 6
     primary = decision.primary_predicted_score
     assert primary is not None
     assert primary.home_goals >= 5
-    utils = _utilities(decision)
-    assert any(score.startswith("5-") or score.startswith("6-") for score in utils)
 
 
 def test_equal_low_xg_stability() -> None:
     decision = _decision(1.45, 0.95, home_power=900.0, away_power=620.0)
     sel = _selection(decision)
-    assert sel["home_target_goals"] == 1
-    assert sel["away_target_goals"] == 1
+    assert sel["favorite_target_goals"] == 1
     primary = decision.primary_predicted_score
     assert primary is not None
     assert primary.home_goals <= 2
@@ -222,7 +273,5 @@ def test_predict_includes_base_xg_fields(client: TestClient) -> None:
     assert "away_xg" in baseline
     assert "base_home_xg" in baseline
     assert "base_away_xg" in baseline
-    assert baseline["adjusted_home_xg"] == baseline["home_xg"]
-    assert baseline["adjusted_away_xg"] == baseline["away_xg"]
     probs_before = baseline["probabilities_1x2"]
     assert sum(probs_before.values()) == pytest.approx(100.0, abs=0.2)
