@@ -49,6 +49,7 @@ from api.schemas import (
     RecentFormTeamStatusResponse,
     RecentFormWarmupRequest,
     RecentFormWarmupResponse,
+    SofascoreRecentFormRefreshResponse,
     Probabilities1X2,
     ScoreCoverage,
     ScoreProbability,
@@ -104,9 +105,11 @@ from core.tournament_sim import TournamentSimulator
 from core.recent_form_warmup import (
     build_recent_form_status,
     build_recent_form_team_status,
+    extract_admin_token,
     run_recent_form_warmup,
     verify_admin_token,
 )
+from core.sofascore_recent_form_refresh import run_sofascore_recent_form_refresh
 from data.api_football import ApiFootballClient
 from data.database import FIFA_ELO_2026, LiveDataManager, compute_derived_metrics
 
@@ -1056,6 +1059,34 @@ def recent_form_warmup(
             raise HTTPException(status_code=400, detail=detail) from exc
         raise HTTPException(status_code=400, detail=detail) from exc
     return RecentFormWarmupResponse(**result)
+
+
+@app.post(
+    "/api/admin/refresh-sofascore-recent-form",
+    response_model=SofascoreRecentFormRefreshResponse,
+)
+def refresh_sofascore_recent_form(
+    authorization: str | None = Header(default=None, alias="Authorization"),
+    x_admin_token: str | None = Header(default=None, alias="X-Admin-Token"),
+) -> SofascoreRecentFormRefreshResponse:
+    """Admin-only full WC2026 Sofascore fusion cache refresh with Gist sync."""
+    token = extract_admin_token(authorization=authorization, x_admin_token=x_admin_token)
+    if not token:
+        raise HTTPException(status_code=401, detail="Admin token required")
+    if not verify_admin_token(token):
+        raise HTTPException(status_code=403, detail="Invalid admin token")
+    if not config.sofascore_enabled():
+        raise HTTPException(status_code=403, detail="Sofascore provider is disabled or not configured")
+    try:
+        result = run_sofascore_recent_form_refresh()
+    except ValueError as exc:
+        if str(exc) == "SOFASCORE_DISABLED":
+            raise HTTPException(
+                status_code=403,
+                detail="Sofascore provider is disabled or not configured",
+            ) from exc
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return SofascoreRecentFormRefreshResponse(**result)
 
 
 if __name__ == "__main__":

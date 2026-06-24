@@ -493,6 +493,24 @@ class RecentFormWarmupResponse(BaseModel):
     write_status: str = ""
 
 
+class SofascoreRecentFormRefreshResponse(BaseModel):
+    dry_run: bool = False
+    cache_written: bool = False
+    write_status: str = ""
+    cloud_persist_sync_status: str = ""
+    teams_total: int = 0
+    teams_refreshed_with_sofascore_id: int = 0
+    teams_with_10_plus_last10: int = 0
+    teams_with_under_5_last10: int = 0
+    sofascore_candidate_rows: int = 0
+    finished_rows: int = 0
+    rows_with_has_xg: int = 0
+    missing_mappings: list[str] = Field(default_factory=list)
+    cache_last_updated_utc: str | None = None
+    errors: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+
+
 class RecentFormStatusResponse(BaseModel):
     cache_exists: bool
     cache_path: str

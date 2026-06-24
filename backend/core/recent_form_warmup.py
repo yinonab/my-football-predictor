@@ -138,6 +138,23 @@ def verify_admin_token(token: str | None) -> bool:
     return token.strip() == expected
 
 
+def extract_admin_token(
+    *,
+    authorization: str | None = None,
+    x_admin_token: str | None = None,
+) -> str | None:
+    """Parse admin token from X-Admin-Token or Authorization: Bearer."""
+    if x_admin_token and x_admin_token.strip():
+        return x_admin_token.strip()
+    if authorization:
+        prefix = "bearer "
+        if authorization.lower().startswith(prefix):
+            token = authorization[len(prefix) :].strip()
+            if token:
+                return token
+    return None
+
+
 def _provider_status_apif(client: BudgetedApiFootballClient | None) -> ProviderStatus:
     if not config.api_football_recent_form_enabled():
         return "not_configured"
