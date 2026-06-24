@@ -1,0 +1,56 @@
+{
+  "events": [
+    {
+      "id": 12456789,
+      "startTimestamp": 1718046000,
+      "status": {
+        "code": 100,
+        "description": "Ended",
+        "type": "finished"
+      },
+      "tournament": {
+        "name": "International Friendly",
+        "id": 851
+      },
+      "uniqueTournament": {
+        "name": "Int. Friendly Games",
+        "id": 851
+      },
+      "season": {
+        "name": "International Friendly 2025",
+        "id": 69580
+      },
+      "roundInfo": {
+        "round": 1
+      },
+      "homeTeam": {
+        "id": 4748,
+        "name": "Brazil",
+        "nameCode": "BRA",
+        "ranking": 5
+      },
+      "awayTeam": {
+        "id": 4781,
+        "name": "Mexico",
+        "nameCode": "MEX",
+        "ranking": 14
+      },
+      "homeScore": {
+        "current": 2,
+        "display": 2,
+        "period1": 1,
+        "period2": 1
+      },
+      "awayScore": {
+        "current": 0,
+        "display": 0,
+        "period1": 0,
+        "period2": 0
+      },
+      "winnerCode": 1,
+      "hasXg": true,
+      "hasEventPlayerStatistics": true,
+      "hasEventPlayerHeatMap": false
+    }
+  ]
+}

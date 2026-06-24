@@ -1,0 +1,52 @@
+{
+  "events": [
+    {
+      "id": 12456790,
+      "startTimestamp": 1710878400,
+      "status": {
+        "code": 100,
+        "description": "Ended",
+        "type": "finished"
+      },
+      "tournament": {
+        "name": "International Friendly",
+        "id": 851
+      },
+      "uniqueTournament": {
+        "name": "Int. Friendly Games",
+        "id": 851
+      },
+      "season": {
+        "name": "International Friendly 2024",
+        "id": 65000
+      },
+      "roundInfo": {
+        "round": 1
+      },
+      "homeTeam": {
+        "id": 4781,
+        "name": "Mexico",
+        "nameCode": "MEX",
+        "ranking": 14
+      },
+      "awayTeam": {
+        "id": 4748,
+        "name": "Brazil",
+        "nameCode": "BRA",
+        "ranking": 5
+      },
+      "homeScore": {
+        "current": 1,
+        "display": 1
+      },
+      "awayScore": {
+        "current": 2,
+        "display": 2
+      },
+      "winnerCode": 2,
+      "hasXg": true,
+      "hasEventPlayerStatistics": true,
+      "hasEventPlayerHeatMap": false
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "statistics": [
+    {
+      "period": "ALL",
+      "groups": [
+        {
+          "groupName": "Match overview",
+          "statisticsItems": [
+            {
+              "name": "Ball possession",
+              "home": "58%",
+              "away": "42%",
+              "key": "ballPossession"
+            },
+            {
+              "name": "Expected goals",
+              "home": "1.82",
+              "away": "0.94",
+              "key": "expectedGoals"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

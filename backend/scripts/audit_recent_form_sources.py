@@ -13,6 +13,7 @@ BACKEND = Path(__file__).resolve().parent.parent
 if str(BACKEND) not in sys.path:
     sys.path.insert(0, str(BACKEND))
 
+from core.recent_form_fusion import load_fusion_cache, summarize_sofascore_fusion_coverage  # noqa: E402
 from core.recent_form_sources_audit import (  # noqa: E402
     audit_alias_probes,
     audit_team_coverage,
@@ -252,6 +253,16 @@ def main() -> None:
     )
     if summary["no_data_teams"]:
         print(f"No data: {', '.join(summary['no_data_teams'])}")
+
+    fusion_payload, _ = load_fusion_cache()
+    sofascore_summary = summarize_sofascore_fusion_coverage(fusion_payload)
+    print(
+        "Sofascore fusion cache: "
+        f"teams_with_id={sofascore_summary.get('teams_with_sofascore_id', 0)} "
+        f"candidates={sofascore_summary.get('sofascore_candidate_rows', 0)} "
+        f"has_xg={sofascore_summary.get('matches_with_has_xg', 0)} "
+        f"missing_mappings={len(sofascore_summary.get('missing_sofascore_mappings') or [])}"
+    )
 
 
 if __name__ == "__main__":

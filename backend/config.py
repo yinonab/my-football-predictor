@@ -308,6 +308,28 @@ def api_football_seasons_list() -> list[int]:
     return out or [2022, 2023, 2024]
 
 
+# Phase A — Sofascore RapidAPI adapter (read-only; not wired to predict/fusion by default)
+SOFASCORE_ENABLED: bool = _env_bool("SOFASCORE_ENABLED", False)
+SOFASCORE_RAPIDAPI_HOST: str = os.getenv(
+    "SOFASCORE_RAPIDAPI_HOST", "sofascore.p.rapidapi.com"
+).strip()
+SOFASCORE_RAPIDAPI_BASE: str = os.getenv(
+    "SOFASCORE_RAPIDAPI_BASE", "https://sofascore.p.rapidapi.com"
+).rstrip("/")
+SOFASCORE_TIMEOUT_SECONDS: int = int(os.getenv("SOFASCORE_TIMEOUT_SECONDS", "15"))
+
+
+def sofascore_rapidapi_key() -> str:
+    return os.getenv("SOFASCORE_RAPIDAPI_KEY", "").strip()
+
+
+def sofascore_enabled() -> bool:
+    """True when Sofascore provider flag is on and RapidAPI key is present."""
+    if not SOFASCORE_ENABLED:
+        return False
+    return bool(sofascore_rapidapi_key())
+
+
 # API
 API_HOST: str = "0.0.0.0"
 API_PORT: int = 8000

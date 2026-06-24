@@ -23,6 +23,7 @@ from core.recent_form_fusion import (  # noqa: E402
     get_fusion_cache_status,
     load_fusion_cache,
     load_fusion_cache_rows,
+    summarize_sofascore_fusion_coverage,
 )
 from core.recent_form_sources_audit import classify_confidence_bucket  # noqa: E402
 from core.recent_match_history import (  # noqa: E402
@@ -151,6 +152,7 @@ def _write_md(
     cache_meta: dict,
     fusion_meta: dict,
     improved: dict[str, list[str]],
+    sofascore_summary: dict | None = None,
 ) -> None:
     lines = [
         "# Recent Form Store Audit (Phase 4R.3)",
@@ -164,6 +166,20 @@ def _write_md(
         f"- fusion cache found: **{fusion_meta.get('cache_found', False)}**",
         f"- fusion rows: **{fusion_meta.get('cache_row_count', 0)}**",
     ]
+    if sofascore_summary:
+        lines.extend(
+            [
+                "",
+                "## Sofascore fusion coverage (offline)",
+                "",
+                f"- teams with `provider_ids.sofascore`: **{sofascore_summary.get('teams_with_sofascore_id', 0)}**",
+                f"- sofascore candidate rows: **{sofascore_summary.get('sofascore_candidate_rows', 0)}**",
+                f"- finished sofascore rows: **{sofascore_summary.get('finished_match_rows', 0)}**",
+                f"- rows with has_xg: **{sofascore_summary.get('matches_with_has_xg', 0)}**",
+                f"- source_mix sofascore_recent_form: **{sofascore_summary.get('source_mix_sofascore', 0)}**",
+                f"- missing sofascore mappings: **{len(sofascore_summary.get('missing_sofascore_mappings') or [])}**",
+            ]
+        )
 
     lines.extend(["", "## Coverage buckets by mode", ""])
     headers = ["Bucket", "Static", "FD only", "API-F only", "Fused"]
@@ -266,6 +282,8 @@ def main() -> None:
     if fusion_payload:
         fusion_meta["cache_age_hours"] = fusion_cache_age_hours(fusion_payload)
 
+    sofascore_summary = summarize_sofascore_fusion_coverage(fusion_payload)
+
     md_path = REPORTS / "recent_form_store_audit.md"
     csv_path = REPORTS / "recent_form_store_audit.csv"
     _write_md(
@@ -275,6 +293,7 @@ def main() -> None:
         cache_meta=cache_meta,
         fusion_meta=fusion_meta,
         improved=improved,
+        sofascore_summary=sofascore_summary,
     )
     fused_rows = [r for r in all_rows if r["audit_label"] == "fused"]
     _write_csv(csv_path, fused_rows)
@@ -285,6 +304,12 @@ def main() -> None:
         print(f"{mode} buckets: {buckets}")
     print(f"FD cache: found={cache_meta.get('cache_found')} rows={cache_meta.get('cache_row_count', 0)}")
     print(f"Fusion cache: found={fusion_meta.get('cache_found')} rows={fusion_meta.get('cache_row_count', 0)}")
+    print(
+        "Sofascore: "
+        f"teams_with_id={sofascore_summary.get('teams_with_sofascore_id', 0)} "
+        f"candidates={sofascore_summary.get('sofascore_candidate_rows', 0)} "
+        f"has_xg={sofascore_summary.get('matches_with_has_xg', 0)}"
+    )
 
 
 if __name__ == "__main__":

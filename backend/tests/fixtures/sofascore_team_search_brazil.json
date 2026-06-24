@@ -1,0 +1,71 @@
+{
+  "entities": [
+    {
+      "type": "team",
+      "entity": {
+        "id": 4748,
+        "name": "Brazil",
+        "slug": "brazil",
+        "shortName": "Brazil",
+        "nameCode": "BRA",
+        "gender": "M",
+        "national": true,
+        "sport": {
+          "id": 1,
+          "name": "Football",
+          "slug": "football"
+        }
+      }
+    },
+    {
+      "type": "team",
+      "entity": {
+        "id": 21896,
+        "name": "Brazil U23",
+        "slug": "brazil-u23",
+        "shortName": "Brazil U23",
+        "nameCode": "BRA",
+        "gender": "M",
+        "national": true,
+        "sport": {
+          "id": 1,
+          "name": "Football",
+          "slug": "football"
+        }
+      }
+    },
+    {
+      "type": "team",
+      "entity": {
+        "id": 7311,
+        "name": "Brazil",
+        "slug": "brazil-women",
+        "shortName": "Brazil",
+        "nameCode": "BRA",
+        "gender": "F",
+        "national": true,
+        "sport": {
+          "id": 1,
+          "name": "Football",
+          "slug": "football"
+        }
+      }
+    },
+    {
+      "type": "team",
+      "entity": {
+        "id": 8801,
+        "name": "Brazil",
+        "slug": "brazil-basketball",
+        "shortName": "Brazil",
+        "gender": "M",
+        "national": true,
+        "sport": {
+          "id": 2,
+          "name": "Basketball",
+          "slug": "basketball"
+        }
+      }
+    }
+  ]
+}

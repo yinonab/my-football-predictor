@@ -1,0 +1,47 @@
+{
+  "events": [
+    {
+      "id": 13579246,
+      "startTimestamp": 1782873600,
+      "status": {
+        "code": 0,
+        "description": "Not started",
+        "type": "notstarted"
+      },
+      "tournament": {
+        "name": "World Cup",
+        "id": 16
+      },
+      "uniqueTournament": {
+        "name": "World Cup",
+        "id": 16
+      },
+      "season": {
+        "name": "World Cup 2026",
+        "id": 71032
+      },
+      "roundInfo": {
+        "round": 1,
+        "name": "Group A"
+      },
+      "homeTeam": {
+        "id": 4748,
+        "name": "Brazil",
+        "nameCode": "BRA",
+        "ranking": 5
+      },
+      "awayTeam": {
+        "id": 4481,
+        "name": "Morocco",
+        "nameCode": "MAR",
+        "ranking": 12
+      },
+      "homeScore": {},
+      "awayScore": {},
+      "winnerCode": null,
+      "hasXg": false,
+      "hasEventPlayerStatistics": false,
+      "hasEventPlayerHeatMap": false
+    }
+  ]
+}

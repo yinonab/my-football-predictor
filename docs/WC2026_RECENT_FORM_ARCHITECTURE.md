@@ -1203,3 +1203,18 @@ Current implementation baseline to extend:
 * `backend/core/underdog_goal_gate.py` — gate levels and support scoring
 * `backend/core/scoreline_decision.py` — `representative_v1_gate` integration
 * `docs/PREDICTION_INTELLIGENCE_ARCHITECTURE.md` — broader prediction intelligence context
+
+### Phase A — Sofascore adapter (not wired to predict/fusion)
+
+* `backend/data/sofascore.py` — read-only RapidAPI client (`sofascore.p.rapidapi.com`)
+* Match enrichment endpoints require **`matchId`** (not `eventId`)
+* Verified fields: aggregate `expectedGoals` in statistics; shot-level `xg` / `xgot` in shotmap
+* Provider team IDs are namespaced as `provider_ids["sofascore"]` (e.g. Brazil men → 4748)
+* Not connected to `/api/predict` or scoreline flags
+
+### Phase B — Sofascore fusion refresh (cache-only on predict path)
+
+* `collect_sofascore_candidates()` in `recent_form_fusion.py` — last-matches → fusion candidates
+* Provider string: `sofascore_recent_form` (priority 98, below API-Football/football-data)
+* Refresh via `refresh_recent_form_fusion_cache.py --provider sofascore` when `SOFASCORE_ENABLED=true`
+* Audit: `summarize_sofascore_fusion_coverage()` in store/sources audit scripts

@@ -1,0 +1,41 @@
+{
+  "shotmap": [
+    {
+      "player": {
+        "id": 750,
+        "name": "Vinicius Junior"
+      },
+      "isHome": true,
+      "shotType": "goal",
+      "situation": "regular",
+      "bodyPart": "right-foot",
+      "xg": 0.45,
+      "xgot": 0.92,
+      "time": 23,
+      "timeSeconds": 1380,
+      "playerCoordinates": {
+        "x": 85.2,
+        "y": 45.1
+      },
+      "incidentType": "shot"
+    },
+    {
+      "player": {
+        "id": 12994,
+        "name": "Raphinha"
+      },
+      "isHome": true,
+      "shotType": "miss",
+      "situation": "regular",
+      "bodyPart": "left-foot",
+      "xg": 0.12,
+      "time": 67,
+      "timeSeconds": 4020,
+      "playerCoordinates": {
+        "x": 78.0,
+        "y": 52.3
+      },
+      "incidentType": "shot"
+    }
+  ]
+}

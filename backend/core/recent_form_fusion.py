@@ -52,6 +52,7 @@ CoverageQuality = Literal["high", "medium", "low", "unavailable"]
 PROVIDER_NUMERIC_PRIORITY: dict[str, int] = {
     "football_data_recent_form": 110,
     "api_football_recent_form": 100,
+    "sofascore_recent_form": 98,
     "recent_form_cache_football_data": 110,
     "cache_wc2026_live_matches": 100,
     "cache_nt_history_fetched": 95,
@@ -459,13 +460,132 @@ def collect_api_football_candidates(
     return out, meta
 
 
+def collect_sofascore_candidates(
+    team_registry_key: str,
+    *,
+    client=None,
+    id_map: dict[str, int] | None = None,
+    registry: set[str] | None = None,
+    force_enabled: bool = False,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    from data.sofascore import (
+        SofascoreClient,
+        known_sofascore_registry_team_id,
+        known_sofascore_nt_team_id,
+        select_national_mens_football_team,
+        sofascore_event_to_fusion_match,
+    )
+
+    meta: dict[str, Any] = {"status": "skipped", "sofascore_team_id": None}
+    if not force_enabled and not config.sofascore_enabled():
+        meta["status"] = "disabled"
+        return [], meta
+
+    client = client or SofascoreClient(enabled=True)
+    english = team_registry_key.split(" (")[0]
+    reg = registry or REGISTRY
+
+    sofa_id = (id_map or {}).get(team_registry_key)
+    if sofa_id is None:
+        sofa_id = known_sofascore_registry_team_id(team_registry_key)
+    if sofa_id is None:
+        sofa_id = known_sofascore_nt_team_id(english)
+    if sofa_id is None and client.is_available:
+        search_results = client.search_teams(english)
+        selected = select_national_mens_football_team(
+            search_results,
+            expected_name=english,
+        )
+        if selected is not None:
+            sofa_id = int(selected["id"])
+    if sofa_id is None:
+        meta["status"] = "team_id_missing"
+        return [], meta
+
+    meta["sofascore_team_id"] = int(sofa_id)
+    events = client.fetch_last_match_events(int(sofa_id))
+    if not events:
+        meta["status"] = "no_results"
+        return [], meta
+
+    out: list[dict[str, Any]] = []
+    for event in events:
+        parsed = sofascore_event_to_fusion_match(
+            event,
+            team_registry_key=team_registry_key,
+            sofascore_team_id=int(sofa_id),
+            registry=reg,
+        )
+        if parsed:
+            out.append(parsed)
+
+    meta["status"] = "ok" if out else "no_finished_results"
+    meta["raw_event_count"] = len(events)
+    return out, meta
+
+
+def summarize_sofascore_fusion_coverage(
+    payload: dict[str, Any] | None,
+    *,
+    registry_keys: set[str] | None = None,
+) -> dict[str, Any]:
+    """Offline audit summary for Sofascore rows inside fusion cache."""
+    reg = registry_keys or REGISTRY
+    summary: dict[str, Any] = {
+        "teams_with_sofascore_id": 0,
+        "sofascore_candidate_rows": 0,
+        "finished_match_rows": 0,
+        "matches_with_has_xg": 0,
+        "source_mix_sofascore": 0,
+        "missing_sofascore_mappings": [],
+    }
+    if not payload:
+        summary["missing_sofascore_mappings"] = sorted(reg)
+        return summary
+
+    teams = payload.get("teams") or {}
+    mapped_keys: set[str] = set()
+    for team_key, entry in teams.items():
+        if not isinstance(entry, dict):
+            continue
+        provider_ids = entry.get("provider_ids") or {}
+        if provider_ids.get("sofascore") is not None:
+            summary["teams_with_sofascore_id"] += 1
+            mapped_keys.add(team_key)
+
+        fusion = entry.get("fusion") or {}
+        source_mix = fusion.get("source_mix") or {}
+        summary["source_mix_sofascore"] += int(source_mix.get("sofascore_recent_form") or 0)
+
+        for raw in entry.get("candidates") or []:
+            if not isinstance(raw, dict):
+                continue
+            if str(raw.get("provider") or "") != "sofascore_recent_form":
+                continue
+            summary["sofascore_candidate_rows"] += 1
+            status = str(raw.get("status") or "").lower()
+            if status in ("finished", "ended", "ft") or raw.get("status_code") in (100, 110, 120):
+                summary["finished_match_rows"] += 1
+            if raw.get("has_xg"):
+                summary["matches_with_has_xg"] += 1
+
+    summary["missing_sofascore_mappings"] = sorted(reg - mapped_keys)
+    return summary
+
+
 def build_team_fusion(
     team_registry_key: str,
     *,
     fd_client=None,
     apif_client=None,
+    sofascore_client=None,
     id_map: dict[str, int] | None = None,
+    sofascore_id_map: dict[str, int] | None = None,
     include_live_apis: bool = True,
+    include_football_data: bool = True,
+    include_api_football: bool = True,
+    include_sofascore: bool | None = None,
+    force_sofascore: bool = False,
 ) -> TeamFusionResult:
     candidates: list[dict[str, Any]] = []
     result = TeamFusionResult(
@@ -477,32 +597,59 @@ def build_team_fusion(
     candidates.extend(static)
     result.provider_availability["static"] = "ok" if static else "empty"
 
-    if include_live_apis:
-        fd_rows, fd_meta = collect_football_data_candidates(
-            team_registry_key,
-            client=fd_client,
-            id_map=id_map,
-        )
-        candidates.extend(fd_rows)
-        result.provider_availability["football_data"] = str(fd_meta.get("status", "unknown"))
-        if fd_meta.get("football_data_team_id") is not None:
-            result.provider_ids["football_data"] = fd_meta["football_data_team_id"]
+    use_sofascore = (
+        config.sofascore_enabled() if include_sofascore is None else include_sofascore
+    )
 
-        apif_rows, apif_meta = collect_api_football_candidates(
-            team_registry_key,
-            client=apif_client,
-        )
-        candidates.extend(apif_rows)
-        result.provider_availability["api_football"] = str(apif_meta.get("status", "unknown"))
-        if apif_meta.get("api_football_team_id") is not None:
-            result.provider_ids["api_football"] = apif_meta["api_football_team_id"]
-        if apif_meta.get("ambiguous_search"):
-            result.fetch_errors.append("APIF_AMBIGUOUS_TEAM_SEARCH")
-        for key, val in (apif_meta.get("season_errors") or {}).items():
-            result.fetch_errors.append(f"APIF_SEASON_{key}:{val}")
+    if include_live_apis:
+        if include_football_data:
+            fd_rows, fd_meta = collect_football_data_candidates(
+                team_registry_key,
+                client=fd_client,
+                id_map=id_map,
+            )
+            candidates.extend(fd_rows)
+            result.provider_availability["football_data"] = str(fd_meta.get("status", "unknown"))
+            if fd_meta.get("football_data_team_id") is not None:
+                result.provider_ids["football_data"] = fd_meta["football_data_team_id"]
+        else:
+            result.provider_availability["football_data"] = "skipped"
+
+        if include_api_football:
+            apif_rows, apif_meta = collect_api_football_candidates(
+                team_registry_key,
+                client=apif_client,
+            )
+            candidates.extend(apif_rows)
+            result.provider_availability["api_football"] = str(apif_meta.get("status", "unknown"))
+            if apif_meta.get("api_football_team_id") is not None:
+                result.provider_ids["api_football"] = apif_meta["api_football_team_id"]
+            if apif_meta.get("ambiguous_search"):
+                result.fetch_errors.append("APIF_AMBIGUOUS_TEAM_SEARCH")
+            for key, val in (apif_meta.get("season_errors") or {}).items():
+                result.fetch_errors.append(f"APIF_SEASON_{key}:{val}")
+        else:
+            result.provider_availability["api_football"] = "skipped"
+
+        if use_sofascore and include_sofascore is not False:
+            ss_rows, ss_meta = collect_sofascore_candidates(
+                team_registry_key,
+                client=sofascore_client,
+                id_map=sofascore_id_map,
+                force_enabled=force_sofascore,
+            )
+            candidates.extend(ss_rows)
+            result.provider_availability["sofascore"] = str(ss_meta.get("status", "unknown"))
+            if ss_meta.get("sofascore_team_id") is not None:
+                result.provider_ids["sofascore"] = ss_meta["sofascore_team_id"]
+        else:
+            result.provider_availability["sofascore"] = (
+                "disabled" if not use_sofascore else "skipped"
+            )
     else:
         result.provider_availability["football_data"] = "cache_only"
         result.provider_availability["api_football"] = "cache_only"
+        result.provider_availability["sofascore"] = "cache_only"
 
     fused = fuse_team_matches(team_registry_key, candidates)
     fused.provider_ids = result.provider_ids
@@ -518,14 +665,17 @@ def build_fusion_cache_payload(
 ) -> dict[str, Any]:
     teams_payload = {key: tr.to_cache_entry() for key, tr in team_results.items()}
     ok_count = sum(1 for tr in team_results.values() if tr.coverage_count > 0)
+    sources: dict[str, Any] = {
+        "football-data.org": {"role": "wc2026_current"},
+        "api-football": {"role": "historical_nt", "seasons": config.api_football_seasons_list()},
+        "static": {"role": "fallback"},
+    }
+    if config.sofascore_enabled():
+        sources["sofascore"] = {"role": "recent_nt_matches", "provider_namespace": "sofascore"}
     return {
         "schema_version": FUSION_SCHEMA_VERSION,
         "last_updated_utc": _utc_now_iso(),
-        "sources": {
-            "football-data.org": {"role": "wc2026_current"},
-            "api-football": {"role": "historical_nt", "seasons": config.api_football_seasons_list()},
-            "static": {"role": "fallback"},
-        },
+        "sources": sources,
         "refresh_summary": {
             "teams_requested": len(team_results),
             "teams_with_coverage": ok_count,
