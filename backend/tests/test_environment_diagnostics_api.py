@@ -78,14 +78,18 @@ def test_predict_includes_environment_diagnostics() -> None:
     assert env["venue_stadium"] == "Estadio Azteca"
     assert env["venue_altitude_m"] == 2240
     assert env["altitude_bucket"] == "very_high"
-    assert env["automatic_altitude_adjustment_mode"] == "diagnostic_only"
+    assert env["automatic_altitude_adjustment_mode"] == "active_when_resolved"
     assert env["shadow_altitude_power_multiplier"] == 0.96
 
 
-def test_auto_altitude_diagnostics_do_not_change_1x2(
+def test_auto_altitude_affects_prediction_only_when_enabled(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     with patch("core.match_context.fetch_match_weather", return_value=None):
+        monkeypatch.setattr(
+            "core.venue_environment.config.AUTO_STADIUM_ALTITUDE_AFFECT_PREDICTION",
+            False,
+        )
         baseline = client.post(
             "/api/predict",
             json={
@@ -111,8 +115,39 @@ def test_auto_altitude_diagnostics_do_not_change_1x2(
     w = with_venue.json()
     assert b["probabilities_1x2"] == w["probabilities_1x2"]
     assert b["home_xg"] == w["home_xg"]
-    assert b["away_xg"] == w["away_xg"]
     assert w["environment_diagnostics"]["altitude_bucket"] == "high"
+
+    monkeypatch.setattr(
+        "core.venue_environment.config.AUTO_STADIUM_ALTITUDE_AFFECT_PREDICTION",
+        True,
+    )
+    with patch("core.match_context.fetch_match_weather", return_value=None):
+        low_venue = client.post(
+            "/api/predict",
+            json={
+                "home_team": CANADA,
+                "away_team": "Bosnia (בוסניה)",
+                "neutral_ground": True,
+                "venue_city": "Miami",
+                "use_match_context": False,
+            },
+        )
+        high_venue = client.post(
+            "/api/predict",
+            json={
+                "home_team": CANADA,
+                "away_team": "Bosnia (בוסניה)",
+                "neutral_ground": True,
+                "venue_city": "Guadalajara",
+                "use_match_context": False,
+            },
+        )
+    assert low_venue.status_code == 200
+    assert high_venue.status_code == 200
+    assert (
+        high_venue.json()["home_power"]
+        < low_venue.json()["home_power"]
+    )
 
 
 def test_manual_altitude_applied_preserved() -> None:

@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../utils/prediction_ui_copy.dart';
-import '../utils/score_format.dart';
 import '../models/prediction_result.dart';
 import '../models/venue_mode.dart';
 import '../services/api_service.dart';
-import '../widgets/outcome_cards.dart';
-import '../widgets/prediction_insight_sections.dart';
-import '../widgets/score_list.dart';
+import '../widgets/prediction_results_view.dart';
 import '../widgets/team_text_field.dart';
 import '../widgets/venue_city_picker.dart';
 import '../widgets/venue_mode_selector.dart';
@@ -477,103 +474,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     ],
                     if (showResults) ...[
                       const SizedBox(height: 24),
-                      Text(
-                        'תוצאות חיזוי',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '${shortTeamName(_result!.homeTeam)} נגד ${shortTeamName(_result!.awayTeam)}',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: theme.colorScheme.primary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      OutcomeCards(
-                        probabilities: _result!.probabilities,
-                        explanations: _result!.outcomeExplanations,
-                        teamALabel: _result!.homeTeam,
-                        teamBLabel: _result!.awayTeam,
-                        isNeutralGround: scoreLabelsNeutral,
-                      ),
-                      const SizedBox(height: 12),
-                      PredictionStatusBanner(result: _result!),
-                      PredictionDataLimitBanner(result: _result!),
-                      PredictionPrimaryScoreCard(
+                      PredictionResultsView(
                         result: _result!,
-                        isNeutralGround: scoreLabelsNeutral,
-                      ),
-                      if (_result!.scorelineDecision != null) ...[
-                        const SizedBox(height: 8),
-                        PredictionWhyCard(
-                          result: _result!,
-                          requestedVenueMode: _venueMode,
-                        ),
-                      ] else if (_result!.matchSummary.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        PredictionWhyCard(
-                          result: _result!,
-                          requestedVenueMode: _venueMode,
-                        ),
-                      ],
-                      if (_result!.h2hSummary.isNotEmpty) ...[
-                        const SizedBox(height: 8),
-                        Card(
-                          child: Padding(
-                            padding: const EdgeInsets.all(12),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Icon(
-                                  Icons.history,
-                                  size: 20,
-                                  color: theme.colorScheme.secondary,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    _result!.h2hSummary,
-                                    style: theme.textTheme.bodyMedium,
-                                    textAlign: TextAlign.right,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ],
-                      const SizedBox(height: 12),
-                      ExpectedGoalsCard(result: _result!),
-                      const SizedBox(height: 16),
-                      Text(
-                        'תוצאות אפשריות מובילות',
-                        style: theme.textTheme.titleMedium,
-                        textAlign: TextAlign.right,
-                      ),
-                      const SizedBox(height: 8),
-                      ScoreList(
-                        scores: _result!.topScores,
-                        teamAName: _result!.homeTeam,
-                        teamBName: _result!.awayTeam,
-                        isNeutralGround: scoreLabelsNeutral,
-                        initialVisibleCount: 3,
-                      ),
-                      const SizedBox(height: 12),
-                      PredictionContextCard(
-                        result: _result!,
-                        requestedVenueMode: _venueMode,
-                      ),
-                      const SizedBox(height: 8),
-                      PredictionEnvironmentDataCard(result: _result!),
-                      const SizedBox(height: 8),
-                      PredictionTechnicalDetails(
-                        result: _result!,
-                        requestedVenueMode: _venueMode,
+                        venueMode: _venueMode,
                         isNeutralGround: scoreLabelsNeutral,
                       ),
                     ],

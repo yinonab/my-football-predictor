@@ -115,6 +115,29 @@ class MatchContextDiagnosticsResponse(BaseModel):
     warnings: list[str] = Field(default_factory=list)
 
 
+class BookmakerQuoteResponse(BaseModel):
+    id: str
+    display_name: str
+    region: str = ""
+    home_decimal_odds: float | None = None
+    draw_decimal_odds: float | None = None
+    away_decimal_odds: float | None = None
+    implied_1x2_percent: dict[str, float] = Field(default_factory=dict)
+    source_key: str = "the_odds_api"
+
+
+class MarketDiagnosticsResponse(BaseModel):
+    available: bool = False
+    status: str = "unavailable"
+    primary_source: str | None = None
+    fetched_at_utc: str | None = None
+    bookmakers: list[BookmakerQuoteResponse] = Field(default_factory=list)
+    consensus_1x2_percent: dict[str, float] | None = None
+    blend_mode: str = "diagnostic_only"
+    odds_affect_prediction: bool = False
+    notes: list[str] = Field(default_factory=list)
+
+
 class EnvironmentDiagnosticsResponse(BaseModel):
     """Phase W1+W2 — venue/weather/altitude transparency (diagnostics only)."""
 
@@ -395,6 +418,7 @@ class PredictResponse(BaseModel):
     probability_coherence: ProbabilityCoherenceResponse | None = None
     match_context_diagnostics: MatchContextDiagnosticsResponse | None = None
     environment_diagnostics: EnvironmentDiagnosticsResponse | None = None
+    market_diagnostics: MarketDiagnosticsResponse | None = None
     recent_form_provider_diagnostics: RecentFormProviderDiagnosticsResponse | None = None
     scoreline_decision: ScorelineDecisionResponse | None = None
 

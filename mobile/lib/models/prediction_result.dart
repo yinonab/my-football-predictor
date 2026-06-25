@@ -1,4 +1,5 @@
 import '../config/api_config.dart';
+import 'market_diagnostics.dart';
 import 'venue_mode.dart';
 
 class ScoreProbability {
@@ -510,6 +511,14 @@ class PredictionResult {
   final MatchContextDiagnostics? matchContextDiagnostics;
   final EnvironmentDiagnostics? environmentDiagnostics;
   final RecentFormProviderDiagnostics? recentFormProviderDiagnostics;
+  final ProbabilityDiagnostics? probabilityDiagnostics;
+  final MarketDiagnosticsPayload? marketDiagnostics;
+
+  bool get oddsAffectPrediction =>
+      probabilityDiagnostics?.oddsAffectPrediction ?? false;
+
+  bool get oddsBlendApplied =>
+      probabilityDiagnostics?.oddsBlendApplied ?? false;
 
   const PredictionResult({
     required this.homeTeam,
@@ -536,6 +545,8 @@ class PredictionResult {
     this.matchContextDiagnostics,
     this.environmentDiagnostics,
     this.recentFormProviderDiagnostics,
+    this.probabilityDiagnostics,
+    this.marketDiagnostics,
   });
 
   factory PredictionResult.fromJson(Map<String, dynamic> json) {
@@ -599,6 +610,16 @@ class PredictionResult {
                       as Map<String, dynamic>,
                 )
               : null,
+      probabilityDiagnostics: json['probability_diagnostics'] != null
+          ? ProbabilityDiagnostics.fromJson(
+              json['probability_diagnostics'] as Map<String, dynamic>,
+            )
+          : null,
+      marketDiagnostics: json['market_diagnostics'] != null
+          ? MarketDiagnosticsPayload.fromJson(
+              json['market_diagnostics'] as Map<String, dynamic>,
+            )
+          : null,
     );
   }
 }

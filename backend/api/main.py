@@ -37,6 +37,7 @@ from api.schemas import (
     OutcomeExplanations,
     MatchContextResponse,
     MatchContextDiagnosticsResponse,
+    MarketDiagnosticsResponse,
     ActualScoreResponse,
     VenueDiagnosticsResponse,
     EnvironmentDiagnosticsResponse,
@@ -96,6 +97,7 @@ from core.maher import blend_maher_with_power, floor_underdog_xg, mismatch_gap, 
 from core.opponent_maher import build_opponent_index, estimate_xg_opponent_aware
 from core.team_ratings import build_all_matches, build_and_save_ratings
 from core.math_engine import AdvancedDixonColesEngine
+from core.market_diagnostics import build_market_diagnostics
 from core.odds_ensemble import OddsClient
 from core.probability_coherence import favorite_from_1x2
 from core.probability_pipeline import finalize_probability_pipeline
@@ -113,7 +115,10 @@ from core.recent_form_warmup import (
 )
 from core.recent_form_provider_diagnostics import build_recent_form_provider_diagnostics
 from core.sofascore_recent_form_refresh import run_sofascore_recent_form_refresh
-from core.venue_environment import build_environment_diagnostics
+from core.venue_environment import (
+    build_environment_diagnostics,
+    resolve_effective_altitude_m,
+)
 from data.api_football import ApiFootballClient
 from data.database import FIFA_ELO_2026, LiveDataManager, compute_derived_metrics
 
@@ -345,6 +350,15 @@ def predict(request: PredictRequest) -> PredictResponse:
         match_date=request.match_date,
     )
 
+    effective_altitude_m, auto_stadium_altitude_applied, _alt_source = (
+        resolve_effective_altitude_m(
+            request_altitude=request.altitude,
+            venue_city=request.venue_city,
+            fixture_venue_city=fixture_state.venue_city,
+            fixture_venue_name=fixture_state.venue_name,
+        )
+    )
+
     venue_advantage = resolve_venue_advantage(
         home_team=home_resolved,
         away_team=away_resolved,
@@ -365,12 +379,12 @@ def predict(request: PredictRequest) -> PredictResponse:
 
     home_power = _power_evaluator.apply_environmental_modifiers(
         home_power,
-        altitude=request.altitude,
+        altitude=effective_altitude_m,
         star_absent=request.star_absent,
     )
     away_power = _power_evaluator.apply_environmental_modifiers(
         away_power,
-        altitude=request.altitude,
+        altitude=effective_altitude_m,
         star_absent=request.away_star_absent,
     )
 
@@ -443,6 +457,8 @@ def predict(request: PredictRequest) -> PredictResponse:
         ctx_info=ctx_info,
         active_weather_xg_delta=ctx_adj.xg_total_delta,
         weather_fetched_at=ctx_info.weather_fetched_at,
+        effective_altitude_m=effective_altitude_m,
+        auto_stadium_altitude_applied=auto_stadium_altitude_applied,
     )
     recent_form_provider_diagnostics = build_recent_form_provider_diagnostics(
         home_resolved,
@@ -589,9 +605,16 @@ def predict(request: PredictRequest) -> PredictResponse:
 
     model_probs_raw = dict(result["probabilities_1x2"])
 
-    market_odds = _odds_client.fetch_match_odds(
-        home_name := request.home_team.strip(),
-        away_name := request.away_team.strip(),
+    home_name = request.home_team.strip()
+    away_name = request.away_team.strip()
+
+    market_fetch = _odds_client.fetch_match_market(home_name, away_name)
+    market_odds = market_fetch.legacy_consensus_percent() if market_fetch else None
+    market_diagnostics_payload = build_market_diagnostics(
+        home_team=home_name,
+        away_team=away_name,
+        odds_client=_odds_client,
+        fetch=market_fetch,
     )
 
     pipeline = finalize_probability_pipeline(
@@ -783,6 +806,7 @@ def predict(request: PredictRequest) -> PredictResponse:
         recent_form_provider_diagnostics=RecentFormProviderDiagnosticsResponse(
             **recent_form_provider_diagnostics
         ),
+        market_diagnostics=MarketDiagnosticsResponse(**market_diagnostics_payload.to_dict()),
         scoreline_decision=_scoreline_decision_response(scoreline_decision),
     )
 

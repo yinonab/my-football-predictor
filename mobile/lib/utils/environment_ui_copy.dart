@@ -91,8 +91,18 @@ List<String> buildEnvironmentSummaryLines(PredictionResult result) {
       );
     }
     if (env.manualAltitudeApplied) {
+      final isManual = env.requestAltitudeM != null && env.requestAltitudeM! > 0;
+      final label = isManual ? 'גובה ידני בחישוב' : 'גובה אצטדיון בחישוב';
+      final alt = env.requestAltitudeM ?? env.venueAltitudeM;
       lines.add(
-        'גובה ידני בחישוב: ${env.requestAltitudeM} מ\' (מעל ${env.activeAltitudeThresholdM} מ\')',
+        '$label: ${alt ?? "?"} מ\' (מעל ${env.activeAltitudeThresholdM} מ\')',
+      );
+    } else if (env.automaticAltitudeAdjustmentMode == 'active_when_resolved' &&
+        env.shadowAltitudePowerMultiplier != null &&
+        env.shadowAltitudePowerMultiplier! < 1.0) {
+      lines.add(
+        'גובה אצטדיון פעיל בחישוב (הפחתת כוח '
+        '${((1 - env.shadowAltitudePowerMultiplier!) * 100).toStringAsFixed(0)}%)',
       );
     } else if (env.shadowAltitudePowerMultiplier != null &&
         env.shadowAltitudePowerMultiplier! < 1.0) {

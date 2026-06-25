@@ -24,7 +24,7 @@ WeatherSource = Literal["open-meteo", "not_requested", "unavailable", "disabled"
 WeatherAdjustmentMode = Literal[
     "none", "active_existing", "shadow_only", "unavailable", "disabled"
 ]
-AutomaticAltitudeMode = Literal["diagnostic_only"]
+AutomaticAltitudeMode = Literal["diagnostic_only", "active_when_resolved"]
 
 
 def normalize_venue_key(value: str | None) -> str:
@@ -130,6 +130,41 @@ def resolve_wc2026_venue_environment(
     )
 
 
+def resolve_effective_altitude_m(
+    *,
+    request_altitude: int,
+    venue_city: str | None,
+    fixture_venue_city: str | None = None,
+    fixture_venue_name: str | None = None,
+) -> tuple[int, bool, str]:
+    """
+    Effective altitude for power modifiers.
+
+    Manual request.altitude wins. Otherwise, when enabled, use WC2026 stadium
+    metadata elevation from venue_city / fixture hints.
+    """
+    if request_altitude > 0:
+        return request_altitude, False, "request_override"
+
+    if not config.AUTO_STADIUM_ALTITUDE_AFFECT_PREDICTION:
+        return 0, False, "disabled"
+
+    resolved = resolve_wc2026_venue_environment(
+        venue_city=venue_city,
+        fixture_venue_city=fixture_venue_city,
+        fixture_venue_name=fixture_venue_name,
+    )
+    if resolved.elevation_m is None:
+        return 0, False, "unknown"
+    return resolved.elevation_m, True, "static_metadata"
+
+
+def _automatic_altitude_mode(*, auto_stadium_applied: bool) -> AutomaticAltitudeMode:
+    if not config.AUTO_STADIUM_ALTITUDE_AFFECT_PREDICTION:
+        return "diagnostic_only"
+    return "active_when_resolved"
+
+
 def _shadow_altitude_power_multiplier(elevation_m: int | None) -> float | None:
     if elevation_m is None:
         return None
@@ -165,6 +200,8 @@ def build_environment_diagnostics(
     ctx_info: MatchContextInfo,
     active_weather_xg_delta: float,
     weather_fetched_at: str | None = None,
+    effective_altitude_m: int = 0,
+    auto_stadium_altitude_applied: bool = False,
 ) -> dict[str, Any]:
     resolved = resolve_wc2026_venue_environment(
         venue_city=request_venue_city,
@@ -208,7 +245,13 @@ def build_environment_diagnostics(
         active_xg_delta=active_weather_xg_delta if use_match_context else 0.0,
     )
 
-    manual_altitude_applied = request_altitude > config.ALTITUDE_THRESHOLD_M
+    manual_altitude_applied = (
+        request_altitude > config.ALTITUDE_THRESHOLD_M
+        or (
+            auto_stadium_altitude_applied
+            and effective_altitude_m > config.ALTITUDE_THRESHOLD_M
+        )
+    )
     request_elevation = request_altitude if request_altitude > 0 else None
 
     display_elevation = resolved.elevation_m
@@ -218,16 +261,32 @@ def build_environment_diagnostics(
         display_elevation = request_elevation
         altitude_source = "request_override"
         altitude_bucket = altitude_bucket_for_elevation(request_elevation)
+    elif auto_stadium_altitude_applied and effective_altitude_m > 0:
+        display_elevation = effective_altitude_m
+        altitude_source = "static_metadata"
+        altitude_bucket = altitude_bucket_for_elevation(effective_altitude_m)
 
-    shadow_alt_mult = _shadow_altitude_power_multiplier(resolved.elevation_m)
+    shadow_alt_mult = _shadow_altitude_power_multiplier(
+        display_elevation or resolved.elevation_m
+    )
+
+    auto_alt_mode = _automatic_altitude_mode(
+        auto_stadium_applied=auto_stadium_altitude_applied
+    )
 
     notes: list[str] = []
     if resolved.altitude_source == "static_metadata" and resolved.elevation_m:
         if resolved.elevation_m > config.ALTITUDE_THRESHOLD_M:
-            notes.append(
-                f"High-altitude venue ({resolved.elevation_m}m) — "
-                "automatic altitude adjustment is diagnostic-only in this phase"
-            )
+            if auto_stadium_altitude_applied:
+                notes.append(
+                    f"High-altitude venue ({resolved.elevation_m}m) — "
+                    "stadium altitude power adjustment is active"
+                )
+            else:
+                notes.append(
+                    f"High-altitude venue ({resolved.elevation_m}m) — "
+                    "automatic altitude adjustment is disabled"
+                )
     if weather_mode == "shadow_only":
         notes.append(
             "Weather data available but match context disabled — "
@@ -254,7 +313,7 @@ def build_environment_diagnostics(
         "request_altitude_m": request_elevation,
         "manual_altitude_applied": manual_altitude_applied,
         "active_altitude_threshold_m": config.ALTITUDE_THRESHOLD_M,
-        "automatic_altitude_adjustment_mode": "diagnostic_only",
+        "automatic_altitude_adjustment_mode": auto_alt_mode,
         "weather_source": weather_source,
         "weather_fetched_at": weather_fetched_at,
         "temperature_c": ctx_info.weather_temp_c,

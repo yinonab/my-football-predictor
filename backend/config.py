@@ -34,6 +34,11 @@ POWER_WEIGHT_DEFENSE: float = WEIGHT_DEFENSE
 # Environmental rule-based modifiers (not ML)
 ALTITUDE_THRESHOLD_M: int = 1200
 ALTITUDE_PENALTY: float = 0.04
+# When venue_city resolves to WC2026 stadium elevation, apply altitude power penalty
+# (same rule as manual altitude slider) unless request.altitude is explicitly set.
+AUTO_STADIUM_ALTITUDE_AFFECT_PREDICTION: bool = _env_bool(
+    "AUTO_STADIUM_ALTITUDE_AFFECT_PREDICTION", True
+)
 STAR_ABSENT_PENALTY: float = 0.08
 MIN_MODIFIER: float = 0.70
 MAX_MODIFIER: float = 1.30
