@@ -89,6 +89,7 @@ def finalize_probability_pipeline(
     score_coverage: float | dict[str, Any] | None,
     market_odds: dict[str, float] | None = None,
     odds_available: bool | None = None,
+    odds_affect_prediction: bool | None = None,
 ) -> FinalizedProbabilityPipeline:
     """
     MatchFeatures/Strength → score matrix → optional odds → coherence gate → optional calibration.
@@ -97,7 +98,11 @@ def finalize_probability_pipeline(
     """
     raw = {k: float(v) for k, v in raw_probabilities_1x2.items()}
     odds_available = market_odds is not None if odds_available is None else odds_available
-    odds_affect = config.ODDS_AFFECT_PREDICTION
+    odds_affect = (
+        config.ODDS_AFFECT_PREDICTION
+        if odds_affect_prediction is None
+        else odds_affect_prediction
+    )
 
     if odds_affect and market_odds:
         final_probs = blend_1x2(raw, market_odds)

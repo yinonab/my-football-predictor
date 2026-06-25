@@ -62,6 +62,10 @@ class ApiService {
       apiBaseUrl: apiUrl,
       venueCity: prefs.getString('venueCity'),
       matchDate: prefs.getString('matchDate'),
+      oddsAffectPrediction: prefs.getBool('oddsAffectPrediction') ?? false,
+      fusionBlowoutEnabled: prefs.getBool('fusionBlowoutEnabled') ?? false,
+      useMatchContext: prefs.getBool('useMatchContext') ?? true,
+      autoStadiumAltitude: prefs.getBool('autoStadiumAltitude') ?? true,
     );
   }
 
@@ -78,6 +82,10 @@ class ApiService {
     await prefs.setBool('neutralGround', settings.neutralGround);
     await prefs.setBool('useLiveStats', settings.useLiveStats);
     await prefs.setString('apiBaseUrl', settings.apiBaseUrl);
+    await prefs.setBool('oddsAffectPrediction', settings.oddsAffectPrediction);
+    await prefs.setBool('fusionBlowoutEnabled', settings.fusionBlowoutEnabled);
+    await prefs.setBool('useMatchContext', settings.useMatchContext);
+    await prefs.setBool('autoStadiumAltitude', settings.autoStadiumAltitude);
     if (settings.venueCity != null) {
       await prefs.setString('venueCity', settings.venueCity!);
     } else {
@@ -181,6 +189,10 @@ class ApiService {
         starAbsent: settings.starAbsent,
         awayStarAbsent: settings.awayStarAbsent,
         useLiveStats: settings.useLiveStats,
+        oddsAffectPrediction: settings.oddsAffectPrediction,
+        fusionBlowoutEnabled: settings.fusionBlowoutEnabled,
+        useMatchContext: settings.useMatchContext,
+        autoStadiumAltitude: settings.autoStadiumAltitude,
         venueCity: settings.venueCity,
         matchDate: settings.matchDate,
       ),

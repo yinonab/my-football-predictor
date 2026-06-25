@@ -136,6 +136,7 @@ def resolve_effective_altitude_m(
     venue_city: str | None,
     fixture_venue_city: str | None = None,
     fixture_venue_name: str | None = None,
+    auto_stadium_altitude: bool = True,
 ) -> tuple[int, bool, str]:
     """
     Effective altitude for power modifiers.
@@ -146,8 +147,8 @@ def resolve_effective_altitude_m(
     if request_altitude > 0:
         return request_altitude, False, "request_override"
 
-    if not config.AUTO_STADIUM_ALTITUDE_AFFECT_PREDICTION:
-        return 0, False, "disabled"
+    if not auto_stadium_altitude:
+        return 0, False, "user_disabled"
 
     resolved = resolve_wc2026_venue_environment(
         venue_city=venue_city,
@@ -160,7 +161,7 @@ def resolve_effective_altitude_m(
 
 
 def _automatic_altitude_mode(*, auto_stadium_applied: bool) -> AutomaticAltitudeMode:
-    if not config.AUTO_STADIUM_ALTITUDE_AFFECT_PREDICTION:
+    if not auto_stadium_applied:
         return "diagnostic_only"
     return "active_when_resolved"
 

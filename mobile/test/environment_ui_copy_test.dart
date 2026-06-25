@@ -44,6 +44,31 @@ void main() {
     expect(body.containsKey('match_date'), isFalse);
   });
 
+  test('buildPredictRequestBody sends fusion and market flags', () {
+    final body = buildPredictRequestBody(
+      homeTeam: 'A',
+      awayTeam: 'B',
+      venueMode: VenueMode.neutral,
+      rho: -0.15,
+      avgGoals: 2.6,
+      homeAdvantage: 0,
+      alpha: 0,
+      altitude: 0,
+      starAbsent: false,
+      awayStarAbsent: false,
+      useLiveStats: false,
+      oddsAffectPrediction: true,
+      fusionBlowoutEnabled: true,
+      useMatchContext: false,
+      autoStadiumAltitude: false,
+    );
+
+    expect(body['odds_affect_prediction'], isTrue);
+    expect(body['fusion_blowout_enabled'], isTrue);
+    expect(body['use_match_context'], isFalse);
+    expect(body['auto_stadium_altitude'], isFalse);
+  });
+
   test('environment summary includes stadium altitude and provider', () {
     final result = PredictionResult.fromJson({
       'home_team': 'A',

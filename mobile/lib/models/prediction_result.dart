@@ -677,6 +677,10 @@ class PredictionSettings {
   final String apiBaseUrl;
   final String? venueCity;
   final String? matchDate;
+  final bool oddsAffectPrediction;
+  final bool fusionBlowoutEnabled;
+  final bool useMatchContext;
+  final bool autoStadiumAltitude;
 
   const PredictionSettings({
     this.rho = -0.15,
@@ -691,6 +695,10 @@ class PredictionSettings {
     this.apiBaseUrl = productionApiUrl,
     this.venueCity,
     this.matchDate,
+    this.oddsAffectPrediction = false,
+    this.fusionBlowoutEnabled = false,
+    this.useMatchContext = true,
+    this.autoStadiumAltitude = true,
   });
 
   bool get neutralGround => venueMode.isNeutralGround;
@@ -709,6 +717,10 @@ class PredictionSettings {
     String? apiBaseUrl,
     String? venueCity,
     String? matchDate,
+    bool? oddsAffectPrediction,
+    bool? fusionBlowoutEnabled,
+    bool? useMatchContext,
+    bool? autoStadiumAltitude,
     bool clearVenueCity = false,
     bool clearMatchDate = false,
   }) {
@@ -729,6 +741,10 @@ class PredictionSettings {
       apiBaseUrl: apiBaseUrl ?? this.apiBaseUrl,
       venueCity: clearVenueCity ? null : (venueCity ?? this.venueCity),
       matchDate: clearMatchDate ? null : (matchDate ?? this.matchDate),
+      oddsAffectPrediction: oddsAffectPrediction ?? this.oddsAffectPrediction,
+      fusionBlowoutEnabled: fusionBlowoutEnabled ?? this.fusionBlowoutEnabled,
+      useMatchContext: useMatchContext ?? this.useMatchContext,
+      autoStadiumAltitude: autoStadiumAltitude ?? this.autoStadiumAltitude,
     );
   }
 }

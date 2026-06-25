@@ -40,8 +40,8 @@ class MarketDiagnostics:
         }
 
 
-def _blend_mode_label() -> str:
-    if config.ODDS_AFFECT_PREDICTION:
+def _blend_mode_label(*, odds_affect: bool) -> str:
+    if odds_affect:
         return "active_blend"
     return "diagnostic_only"
 
@@ -52,17 +52,22 @@ def build_market_diagnostics(
     away_team: str,
     odds_client: OddsClient | None = None,
     fetch: OddsMarketFetch | None = None,
+    odds_affect_prediction: bool | None = None,
 ) -> MarketDiagnostics:
     """Build market_diagnostics block for API responses."""
     client = odds_client or OddsClient()
     notes: list[str] = []
-    odds_affect = config.ODDS_AFFECT_PREDICTION
+    odds_affect = (
+        config.ODDS_AFFECT_PREDICTION
+        if odds_affect_prediction is None
+        else odds_affect_prediction
+    )
 
     if not client.is_available:
         notes.append("THE_ODDS_API_KEY not configured on server")
         return MarketDiagnostics(
             status="not_configured",
-            blend_mode=_blend_mode_label(),
+            blend_mode=_blend_mode_label(odds_affect=odds_affect),
             odds_affect_prediction=odds_affect,
             notes=notes,
         )
@@ -75,7 +80,7 @@ def build_market_diagnostics(
         return MarketDiagnostics(
             status="no_odds_for_matchup",
             primary_source="the_odds_api",
-            blend_mode=_blend_mode_label(),
+            blend_mode=_blend_mode_label(odds_affect=odds_affect),
             odds_affect_prediction=odds_affect,
             notes=notes,
         )
@@ -90,7 +95,7 @@ def build_market_diagnostics(
         )
     else:
         notes.append(
-            "Market shown for comparison only — ODDS_AFFECT_PREDICTION is off"
+            "Market shown for comparison only — odds blend disabled in request"
         )
 
     return MarketDiagnostics(
@@ -100,7 +105,7 @@ def build_market_diagnostics(
         fetched_at_utc=utc_now_iso(),
         bookmakers=bookmakers,
         consensus_1x2_percent=consensus,
-        blend_mode=_blend_mode_label(),
+        blend_mode=_blend_mode_label(odds_affect=odds_affect),
         odds_affect_prediction=odds_affect,
         notes=notes,
     )

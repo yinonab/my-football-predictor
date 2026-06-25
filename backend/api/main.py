@@ -40,6 +40,7 @@ from api.schemas import (
     MarketDiagnosticsResponse,
     ActualScoreResponse,
     VenueDiagnosticsResponse,
+    FusionBlowoutDiagnosticsResponse,
     EnvironmentDiagnosticsResponse,
     RecentFormProviderDiagnosticsResponse,
     ModelDiagnosticsResponse,
@@ -77,7 +78,7 @@ from core.explanations import (
 )
 from core.h2h_adjustment import H2HStore, apply_h2h_adjustment, load_h2h_index
 from core.match_store import append_live_match, load_live_matches
-from core.blowout import apply_blowout_adjustment
+from core.blowout import BlowoutAdjustment, apply_blowout_adjustment
 from core.global_ratings import (
     apply_experimental_power_nudge,
     build_match_diagnostics,
@@ -97,6 +98,7 @@ from core.maher import blend_maher_with_power, floor_underdog_xg, mismatch_gap, 
 from core.opponent_maher import build_opponent_index, estimate_xg_opponent_aware
 from core.team_ratings import build_all_matches, build_and_save_ratings
 from core.math_engine import AdvancedDixonColesEngine
+from core.fusion_blowout import apply_fusion_blowout, compute_fusion_blowout_signal
 from core.market_diagnostics import build_market_diagnostics
 from core.odds_ensemble import OddsClient
 from core.probability_coherence import favorite_from_1x2
@@ -356,6 +358,7 @@ def predict(request: PredictRequest) -> PredictResponse:
             venue_city=request.venue_city,
             fixture_venue_city=fixture_state.venue_city,
             fixture_venue_name=fixture_state.venue_name,
+            auto_stadium_altitude=request.auto_stadium_altitude,
         )
     )
 
@@ -568,16 +571,25 @@ def predict(request: PredictRequest) -> PredictResponse:
         )
     base_home_xg = round(home_xg, 2)
     base_away_xg = round(away_xg, 2)
-    blowout = apply_blowout_adjustment(
-        home_xg,
-        away_xg,
-        home_power,
-        away_power,
-        advantage,
-        base_alpha=request.alpha,
-        home_elo=home_elo,
-        away_elo=away_elo,
-    )
+    if request.fusion_blowout_enabled:
+        blowout = BlowoutAdjustment(
+            home_xg=home_xg,
+            away_xg=away_xg,
+            alpha=request.alpha,
+            max_goals=6,
+            active=False,
+        )
+    else:
+        blowout = apply_blowout_adjustment(
+            home_xg,
+            away_xg,
+            home_power,
+            away_power,
+            advantage,
+            base_alpha=request.alpha,
+            home_elo=home_elo,
+            away_elo=away_elo,
+        )
     home_xg, away_xg = blowout.home_xg, blowout.away_xg
 
     gap_for_rho = mismatch_gap(
@@ -615,6 +627,7 @@ def predict(request: PredictRequest) -> PredictResponse:
         away_team=away_name,
         odds_client=_odds_client,
         fetch=market_fetch,
+        odds_affect_prediction=request.odds_affect_prediction,
     )
 
     pipeline = finalize_probability_pipeline(
@@ -626,9 +639,86 @@ def predict(request: PredictRequest) -> PredictResponse:
         top_scores=result["top_scores"],
         score_coverage=result["score_coverage"],
         market_odds=market_odds,
+        odds_affect_prediction=request.odds_affect_prediction,
     )
     probs = pipeline.final_probabilities_1x2
     result["probabilities_1x2"] = probs
+
+    fusion_blowout_response: FusionBlowoutDiagnosticsResponse | None = None
+    fusion_note = ""
+    if request.fusion_blowout_enabled:
+        weather_delta = (
+            ctx_adj.xg_total_delta if request.use_match_context else 0.0
+        )
+        power_gap = strength.final_home_power - strength.final_away_power
+        fusion_signal = compute_fusion_blowout_signal(
+            probs,
+            market_odds,
+            power_gap=power_gap,
+            weather_xg_delta=weather_delta,
+        )
+        xg_before = {
+            "home": float(result["home_xg"]),
+            "away": float(result["away_xg"]),
+        }
+        fusion_blowout = apply_fusion_blowout(
+            result["home_xg"],
+            result["away_xg"],
+            fusion_signal,
+            base_alpha=blowout.alpha,
+        )
+        matrix_regenerated = False
+        if fusion_blowout.active:
+            home_xg, away_xg = fusion_blowout.home_xg, fusion_blowout.away_xg
+            blowout = fusion_blowout
+            gap_for_rho = mismatch_gap(
+                home_power,
+                away_power,
+                advantage,
+                home_elo=home_elo,
+                away_elo=away_elo,
+            )
+            fusion_engine = AdvancedDixonColesEngine(
+                rho=scale_rho_for_gap(request.rho, gap_for_rho),
+                global_avg=request.avg_goals,
+                alpha=fusion_blowout.alpha,
+            )
+            result = fusion_engine.generate_match_prediction(
+                home_power,
+                away_power,
+                advantage,
+                top_n=request.top_n,
+                max_goals=fusion_blowout.max_goals,
+                home_xg_override=home_xg,
+                away_xg_override=away_xg,
+                include_all_scores=True,
+            )
+            result["probabilities_1x2"] = probs
+            matrix_regenerated = True
+            fusion_note = fusion_blowout.note
+
+        fusion_blowout_response = FusionBlowoutDiagnosticsResponse(
+            enabled=True,
+            active=fusion_blowout.active,
+            blowout_t=fusion_signal.blowout_t,
+            favorite_side=fusion_signal.favorite_side,
+            favorite_outcome=fusion_signal.favorite_outcome,
+            favorite_probability=fusion_signal.favorite_probability,
+            underdog_probability=fusion_signal.underdog_probability,
+            margin_pp=fusion_signal.margin_pp,
+            weather_factor=fusion_signal.weather_factor,
+            triggers=fusion_signal.triggers,
+            suppressed_by=fusion_signal.suppressed_by,
+            xg_before=xg_before,
+            xg_after={
+                "home": float(result["home_xg"]),
+                "away": float(result["away_xg"]),
+            }
+            if fusion_blowout.active
+            else None,
+            matrix_regenerated=matrix_regenerated,
+            note=fusion_note,
+        )
 
     explanation_context = ExplanationContext(
         odds_blend_applied=pipeline.probability_result.odds_blend_applied,
@@ -761,7 +851,8 @@ def predict(request: PredictRequest) -> PredictResponse:
         )
         + (f"\n{h2h_note}" if h2h_note else "")
         + (f"\n{maher_note}" if maher_note else "")
-        + (f"\n{blowout.note}" if blowout.active else "")
+        + (f"\n{blowout.note}" if blowout.active and not fusion_note else "")
+        + (f"\n{fusion_note}" if fusion_note else "")
         + (
             "\nהקשר משחק: " + "; ".join(ctx_notes)
             if request.use_match_context and ctx_notes
@@ -807,6 +898,7 @@ def predict(request: PredictRequest) -> PredictResponse:
             **recent_form_provider_diagnostics
         ),
         market_diagnostics=MarketDiagnosticsResponse(**market_diagnostics_payload.to_dict()),
+        fusion_blowout_diagnostics=fusion_blowout_response,
         scoreline_decision=_scoreline_decision_response(scoreline_decision),
     )
 

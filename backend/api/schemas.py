@@ -47,6 +47,9 @@ class PredictRequest(BaseModel):
     away_star_absent: bool = False
     top_n: int = Field(default=3, ge=1, le=15)
     use_match_context: bool = True
+    odds_affect_prediction: bool = False
+    fusion_blowout_enabled: bool = False
+    auto_stadium_altitude: bool = True
     match_date: str | None = Field(
         default=None,
         description="ISO date YYYY-MM-DD for weather/rest reference",
@@ -391,6 +394,24 @@ class ProbabilityDiagnosticsResponse(BaseModel):
     calibration_blocked_reason: str | None = None
 
 
+class FusionBlowoutDiagnosticsResponse(BaseModel):
+    enabled: bool = False
+    active: bool = False
+    blowout_t: float = 0.0
+    favorite_side: str | None = None
+    favorite_outcome: str | None = None
+    favorite_probability: float | None = None
+    underdog_probability: float | None = None
+    margin_pp: float | None = None
+    weather_factor: float = 1.0
+    triggers: list[str] = Field(default_factory=list)
+    suppressed_by: list[str] = Field(default_factory=list)
+    xg_before: dict[str, float] | None = None
+    xg_after: dict[str, float] | None = None
+    matrix_regenerated: bool = False
+    note: str = ""
+
+
 class PredictResponse(BaseModel):
     home_team: str
     away_team: str
@@ -419,6 +440,7 @@ class PredictResponse(BaseModel):
     match_context_diagnostics: MatchContextDiagnosticsResponse | None = None
     environment_diagnostics: EnvironmentDiagnosticsResponse | None = None
     market_diagnostics: MarketDiagnosticsResponse | None = None
+    fusion_blowout_diagnostics: FusionBlowoutDiagnosticsResponse | None = None
     recent_form_provider_diagnostics: RecentFormProviderDiagnosticsResponse | None = None
     scoreline_decision: ScorelineDecisionResponse | None = None
 

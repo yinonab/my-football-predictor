@@ -54,6 +54,10 @@ Map<String, dynamic> buildPredictRequestBody({
   required bool starAbsent,
   required bool awayStarAbsent,
   required bool useLiveStats,
+  bool oddsAffectPrediction = false,
+  bool fusionBlowoutEnabled = false,
+  bool useMatchContext = true,
+  bool autoStadiumAltitude = true,
   String? venueCity,
   String? matchDate,
   int topN = 3,
@@ -71,7 +75,10 @@ Map<String, dynamic> buildPredictRequestBody({
     'star_absent': starAbsent,
     'away_star_absent': awayStarAbsent,
     'use_live_stats': useLiveStats,
-    'use_match_context': true,
+    'use_match_context': useMatchContext,
+    'odds_affect_prediction': oddsAffectPrediction,
+    'fusion_blowout_enabled': fusionBlowoutEnabled,
+    'auto_stadium_altitude': autoStadiumAltitude,
     'top_n': topN,
   };
   if (venueCity != null && venueCity.trim().isNotEmpty) {
