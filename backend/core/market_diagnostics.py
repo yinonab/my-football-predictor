@@ -127,6 +127,9 @@ def build_market_diagnostics(
 
     bookmakers = [b.to_dict() for b in fetch.bookmakers]
     consensus = fetch.consensus_1x2_percent
+    primary_source = "the_odds_api"
+    if fetch.sport_key.startswith("oddspapi"):
+        primary_source = "oddspapi"
 
     if odds_affect and consensus:
         notes.append(
@@ -141,7 +144,7 @@ def build_market_diagnostics(
     return MarketDiagnostics(
         available=True,
         status="ok",
-        primary_source="the_odds_api",
+        primary_source=primary_source,
         fetched_at_utc=utc_now_iso(),
         bookmakers=bookmakers,
         consensus_1x2_percent=consensus,

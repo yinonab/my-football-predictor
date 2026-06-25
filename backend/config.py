@@ -201,6 +201,25 @@ ACTIVATION_LARGE_SHIFT_REVIEWS_PATH: str = "data/activation_large_shift_reviews.
 
 # Phase 4H — Probability coherence + odds safety (default: odds diagnostics-only)
 ODDS_AFFECT_PREDICTION: bool = _env_bool("ODDS_AFFECT_PREDICTION", False)
+ODDS_PROVIDER: str = os.getenv("ODDS_PROVIDER", "auto").strip().lower()
+
+# OddsPapi via RapidAPI (primary when ODDS_PROVIDER=auto|oddspapi)
+ODDSPAPI_RAPIDAPI_HOST: str = os.getenv(
+    "ODDSPAPI_RAPIDAPI_HOST", "odds-api1.p.rapidapi.com"
+).strip()
+ODDSPAPI_RAPIDAPI_BASE: str = os.getenv(
+    "ODDSPAPI_RAPIDAPI_BASE", "https://odds-api1.p.rapidapi.com"
+).rstrip("/")
+ODDSPAPI_WC_TOURNAMENT_ID: int = int(os.getenv("ODDSPAPI_WC_TOURNAMENT_ID", "16"))
+ODDSPAPI_TIMEOUT_SECONDS: int = int(os.getenv("ODDSPAPI_TIMEOUT_SECONDS", "20"))
+
+
+def oddspapi_rapidapi_key() -> str:
+    return (
+        os.getenv("ODDSPAPI_RAPIDAPI_KEY")
+        or os.getenv("ODDS_RAPIDAPI_KEY")
+        or ""
+    ).strip()
 
 # Phase 4H — Calibration readiness (default off; no live transform until enabled)
 PROBABILITY_CALIBRATION_ENABLED: bool = _env_bool("PROBABILITY_CALIBRATION_ENABLED", False)

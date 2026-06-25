@@ -1,0 +1,63 @@
+[
+  {
+    "fixtureId": "id1000001666457078",
+    "participants": {
+      "participant1Name": "Ecuador",
+      "participant2Name": "Germany"
+    },
+    "odds": {
+      "pinnacle": {
+        "q1": {
+          "outcomeId": 101,
+          "price": 5.2,
+          "active": true,
+          "marketId": 101,
+          "mainLine": true,
+          "bookmaker": "pinnacle"
+        },
+        "q2": {
+          "outcomeId": 102,
+          "price": 4.1,
+          "active": true,
+          "marketId": 101,
+          "mainLine": true,
+          "bookmaker": "pinnacle"
+        },
+        "q3": {
+          "outcomeId": 103,
+          "price": 1.62,
+          "active": true,
+          "marketId": 101,
+          "mainLine": true,
+          "bookmaker": "pinnacle"
+        }
+      },
+      "bet365": {
+        "q1": {
+          "outcomeId": 101,
+          "price": 5.0,
+          "active": true,
+          "marketId": 101,
+          "mainLine": true,
+          "bookmaker": "bet365"
+        },
+        "q2": {
+          "outcomeId": 102,
+          "price": 4.0,
+          "active": true,
+          "marketId": 101,
+          "mainLine": true,
+          "bookmaker": "bet365"
+        },
+        "q3": {
+          "outcomeId": 103,
+          "price": 1.65,
+          "active": true,
+          "marketId": 101,
+          "mainLine": true,
+          "bookmaker": "bet365"
+        }
+      }
+    }
+  }
+]

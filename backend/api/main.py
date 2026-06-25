@@ -100,6 +100,7 @@ from core.team_ratings import build_all_matches, build_and_save_ratings
 from core.math_engine import AdvancedDixonColesEngine
 from core.fusion_blowout import apply_fusion_blowout, compute_fusion_blowout_signal
 from core.market_diagnostics import build_market_diagnostics
+from core.odds_provider import create_odds_client
 from core.odds_ensemble import OddsClient
 from core.probability_coherence import favorite_from_1x2
 from core.probability_pipeline import finalize_probability_pipeline
@@ -151,7 +152,7 @@ _data_manager = LiveDataManager()
 _power_evaluator = TeamPowerEvaluator(_data_manager)
 _api_client = ApiFootballClient()
 _h2h_store = H2HStore()
-_odds_client = OddsClient()
+_odds_client = create_odds_client()
 _context_gatherer = MatchContextGatherer(_api_client)
 _fixture_state_resolver = FixtureStateResolver(_api_client)
 
