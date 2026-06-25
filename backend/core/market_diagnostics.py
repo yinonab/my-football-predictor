@@ -7,7 +7,13 @@ from datetime import datetime, timezone
 from typing import Any
 
 import config
-from core.odds_ensemble import MODEL_WEIGHT, MARKET_WEIGHT, OddsClient, OddsMarketFetch
+from core.odds_ensemble import (
+    MODEL_WEIGHT,
+    MARKET_WEIGHT,
+    OddsClient,
+    OddsLookupResult,
+    OddsMarketFetch,
+)
 
 
 def utc_now_iso() -> str:
@@ -24,6 +30,8 @@ class MarketDiagnostics:
     consensus_1x2_percent: dict[str, float] | None = None
     blend_mode: str = "diagnostic_only"
     odds_affect_prediction: bool = False
+    odds_key_configured: bool = False
+    requests_remaining: int | None = None
     notes: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict[str, Any]:
@@ -36,6 +44,8 @@ class MarketDiagnostics:
             "consensus_1x2_percent": self.consensus_1x2_percent,
             "blend_mode": self.blend_mode,
             "odds_affect_prediction": self.odds_affect_prediction,
+            "odds_key_configured": self.odds_key_configured,
+            "requests_remaining": self.requests_remaining,
             "notes": list(self.notes),
         }
 
@@ -52,6 +62,7 @@ def build_market_diagnostics(
     away_team: str,
     odds_client: OddsClient | None = None,
     fetch: OddsMarketFetch | None = None,
+    lookup: OddsLookupResult | None = None,
     odds_affect_prediction: bool | None = None,
 ) -> MarketDiagnostics:
     """Build market_diagnostics block for API responses."""
@@ -62,26 +73,55 @@ def build_market_diagnostics(
         if odds_affect_prediction is None
         else odds_affect_prediction
     )
+    odds_key_configured = client.is_available
+    requests_remaining: int | None = None
+    status = "unavailable"
 
-    if not client.is_available:
+    if lookup is None and fetch is None and client.is_available:
+        lookup = client.lookup_match_market(home_team, away_team)
+    if lookup is not None:
+        odds_key_configured = lookup.odds_key_configured
+        requests_remaining = lookup.requests_remaining
+        status = lookup.status
+        notes.extend(lookup.notes)
+        if fetch is None:
+            fetch = lookup.fetch
+
+    if not odds_key_configured:
         notes.append("THE_ODDS_API_KEY not configured on server")
         return MarketDiagnostics(
             status="not_configured",
             blend_mode=_blend_mode_label(odds_affect=odds_affect),
             odds_affect_prediction=odds_affect,
+            odds_key_configured=False,
             notes=notes,
         )
 
-    if fetch is None:
-        fetch = client.fetch_match_market(home_team, away_team)
-
-    if fetch is None or not fetch.bookmakers:
-        notes.append("No betting odds found for this matchup in The Odds API")
+    if status in ("quota_exceeded", "api_error"):
         return MarketDiagnostics(
-            status="no_odds_for_matchup",
+            status=status,
             primary_source="the_odds_api",
             blend_mode=_blend_mode_label(odds_affect=odds_affect),
             odds_affect_prediction=odds_affect,
+            odds_key_configured=True,
+            requests_remaining=requests_remaining,
+            notes=notes,
+        )
+
+    if fetch is None or not fetch.bookmakers:
+        if lookup is None and fetch is not None:
+            status = "ok"
+        if status == "unavailable":
+            status = "no_odds_for_matchup"
+        if not any("No betting odds" in n for n in notes):
+            notes.append("No betting odds found for this matchup in The Odds API")
+        return MarketDiagnostics(
+            status=status,
+            primary_source="the_odds_api",
+            blend_mode=_blend_mode_label(odds_affect=odds_affect),
+            odds_affect_prediction=odds_affect,
+            odds_key_configured=True,
+            requests_remaining=requests_remaining,
             notes=notes,
         )
 
@@ -107,5 +147,7 @@ def build_market_diagnostics(
         consensus_1x2_percent=consensus,
         blend_mode=_blend_mode_label(odds_affect=odds_affect),
         odds_affect_prediction=odds_affect,
+        odds_key_configured=True,
+        requests_remaining=requests_remaining,
         notes=notes,
     )

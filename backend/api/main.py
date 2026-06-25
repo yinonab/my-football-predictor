@@ -620,13 +620,15 @@ def predict(request: PredictRequest) -> PredictResponse:
     home_name = request.home_team.strip()
     away_name = request.away_team.strip()
 
-    market_fetch = _odds_client.fetch_match_market(home_name, away_name)
+    market_lookup = _odds_client.lookup_match_market(home_name, away_name)
+    market_fetch = market_lookup.fetch
     market_odds = market_fetch.legacy_consensus_percent() if market_fetch else None
     market_diagnostics_payload = build_market_diagnostics(
         home_team=home_name,
         away_team=away_name,
         odds_client=_odds_client,
         fetch=market_fetch,
+        lookup=market_lookup,
         odds_affect_prediction=request.odds_affect_prediction,
     )
 

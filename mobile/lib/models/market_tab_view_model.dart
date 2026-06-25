@@ -36,17 +36,6 @@ class MarketTabViewModel {
   static MarketTabViewModel fromPredictionResult(PredictionResult result) {
     final prob = result.probabilityDiagnostics;
     final marketPayload = result.marketDiagnostics;
-    final notes = <String>[
-      ...?marketPayload?.notes,
-      if (prob != null && !prob.oddsAvailable)
-        'מפתח שוק לא מוגדר בשרת (THE_ODDS_API_KEY) או שאין יחסים למשחק זה.',
-      if (prob != null &&
-          prob.oddsAvailable &&
-          prob.marketProbabilities1x2 == null)
-        'השרת מחובר לשוק אך לא נמצאו יחסים לזוג נבחרות זה.',
-      if (!result.oddsAffectPrediction)
-        'שקלול שוק בחיזוי כבוי — מוצגים מודל ושוק זה לצד זה.',
-    ];
 
     Map<String, double>? marketMap;
     List<BookmakerQuote> quotes = List.of(marketPayload?.bookmakers ?? []);
@@ -72,16 +61,36 @@ class MarketTabViewModel {
       ];
     }
 
+    final available = marketMap != null && marketMap.isNotEmpty;
+    final notes = <String>[
+      ...?marketPayload?.notes,
+      if (marketPayload?.status == 'quota_exceeded')
+        'מכסת The Odds API נגמרה לחודש — בדוק בלוח הבקרה של הספק או המתן לאיפוס.',
+      if (marketPayload != null &&
+          marketPayload.oddsKeyConfigured &&
+          !available &&
+          marketPayload.status == 'no_odds_for_matchup')
+        'השרת מחובר לשוק אך אין יחסים לזוג הנבחרות הזה כרגע.',
+      if (marketPayload != null &&
+          !marketPayload.oddsKeyConfigured &&
+          marketPayload.status == 'not_configured')
+        'מפתח שוק לא מוגדר בשרת (THE_ODDS_API_KEY).',
+      if (!result.oddsAffectPrediction)
+        'שקלול שוק בחיזוי כבוי — מוצגים מודל ושוק זה לצד זה.',
+    ];
+
     final modelRaw = prob?.rawProbabilities1x2;
     final modelForCompare = (modelRaw != null && modelRaw.isNotEmpty)
         ? modelRaw
         : _probsFrom1x2(result.probabilities);
 
-    final available = marketMap != null && marketMap.isNotEmpty;
+    final keyConfigured = marketPayload?.oddsKeyConfigured ?? false;
     String status;
     if (available) {
       status = 'זמין';
-    } else if (prob?.oddsAvailable == true) {
+    } else if (marketPayload?.status == 'quota_exceeded') {
+      status = 'מכסה נגמרה';
+    } else if (keyConfigured) {
       status = 'אין יחסים למשחק';
     } else {
       status = 'לא מחובר';

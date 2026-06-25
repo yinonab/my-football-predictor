@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -14,13 +15,15 @@ logger = logging.getLogger(__name__)
 THE_ODDS_API = "https://api.the-odds-api.com/v4"
 MODEL_WEIGHT = 0.70
 MARKET_WEIGHT = 0.30
+EVENTS_CACHE_TTL_SEC = 15 * 60
 
-# Try WC / international soccer keys (The Odds API sport slugs).
+# H2H match odds only — outright winner keys waste quota and lack h2h markets.
 MATCH_SPORT_KEYS: tuple[str, ...] = (
     "soccer_fifa_world_cup",
-    "soccer_fifa_world_cup_winner",
     "soccer_international_friendlies",
 )
+
+_EVENTS_CACHE: dict[str, tuple[float, list[dict[str, Any]], dict[str, str]]] = {}
 
 
 def _normalize(probs: dict[str, float]) -> dict[str, float]:
@@ -136,6 +139,15 @@ class OddsMarketFetch:
         return {k: round(v, 1) for k, v in self.consensus_1x2_percent.items()}
 
 
+@dataclass
+class OddsLookupResult:
+    fetch: OddsMarketFetch | None = None
+    status: str = "unavailable"
+    notes: list[str] = field(default_factory=list)
+    odds_key_configured: bool = False
+    requests_remaining: int | None = None
+
+
 def _consensus_from_bookmakers(
     lines: list[BookmakerOddsLine],
 ) -> dict[str, float] | None:
@@ -150,6 +162,52 @@ def _consensus_from_bookmakers(
     avg = {k: totals[k] / n for k in keys}
     normalized = _normalize(avg)
     return {k: round(v * 100.0, 2) for k, v in normalized.items()}
+
+
+def _event_matches_teams(
+    event: dict[str, Any],
+    home_team: str,
+    away_team: str,
+) -> tuple[bool, bool]:
+    """Return (matched, swapped_home_away)."""
+    eh = str(event.get("home_team", ""))
+    ea = str(event.get("away_team", ""))
+    if _names_match(eh, home_team) and _names_match(ea, away_team):
+        return True, False
+    if _names_match(eh, away_team) and _names_match(ea, home_team):
+        return True, True
+    return False, False
+
+
+def _market_from_event(
+    event: dict[str, Any],
+    *,
+    home_team: str,
+    away_team: str,
+    swapped: bool,
+    sport_key: str,
+) -> OddsMarketFetch | None:
+    parse_home = away_team if swapped else home_team
+    parse_away = home_team if swapped else away_team
+    lines = _bookmakers_from_event(event, parse_home, parse_away)
+    if not lines:
+        return None
+    if swapped:
+        for line in lines:
+            hw = line.implied_1x2_percent.get("home_win", 0.0)
+            aw = line.implied_1x2_percent.get("away_win", 0.0)
+            line.implied_1x2_percent["home_win"] = aw
+            line.implied_1x2_percent["away_win"] = hw
+            line.home_decimal_odds, line.away_decimal_odds = (
+                line.away_decimal_odds,
+                line.home_decimal_odds,
+            )
+    consensus = _consensus_from_bookmakers(lines)
+    return OddsMarketFetch(
+        sport_key=sport_key,
+        bookmakers=lines,
+        consensus_1x2_percent=consensus,
+    )
 
 
 def _bookmakers_from_event(
@@ -208,20 +266,153 @@ class OddsClient:
             return None
         return fetch.legacy_consensus_percent()
 
+    def lookup_match_market(
+        self,
+        home_team: str,
+        away_team: str,
+    ) -> OddsLookupResult:
+        """Fetch market data with explicit status for diagnostics."""
+        if not self.is_available:
+            return OddsLookupResult(
+                status="not_configured",
+                notes=["THE_ODDS_API_KEY not configured on server"],
+                odds_key_configured=False,
+            )
+
+        notes: list[str] = []
+        requests_remaining: int | None = None
+        saw_events = False
+
+        for sport_key in MATCH_SPORT_KEYS:
+            events, headers, error = self._load_sport_events(sport_key)
+            if error:
+                if error == "quota_exceeded":
+                    return OddsLookupResult(
+                        status="quota_exceeded",
+                        notes=[
+                            "The Odds API monthly quota exhausted — "
+                            "upgrade plan or wait for reset"
+                        ],
+                        odds_key_configured=True,
+                        requests_remaining=requests_remaining,
+                    )
+                if error == "auth_failed":
+                    return OddsLookupResult(
+                        status="api_error",
+                        notes=["The Odds API rejected the server API key"],
+                        odds_key_configured=True,
+                    )
+                notes.append(f"{sport_key}: {error}")
+                continue
+
+            remaining = headers.get("x-requests-remaining")
+            if remaining is not None:
+                try:
+                    requests_remaining = int(remaining)
+                except ValueError:
+                    pass
+
+            if events:
+                saw_events = True
+            for event in events:
+                matched, swapped = _event_matches_teams(event, home_team, away_team)
+                if not matched:
+                    continue
+                fetch = _market_from_event(
+                    event,
+                    home_team=home_team,
+                    away_team=away_team,
+                    swapped=swapped,
+                    sport_key=sport_key,
+                )
+                if fetch is None:
+                    continue
+                if requests_remaining is not None:
+                    notes.append(
+                        f"The Odds API requests remaining this month: "
+                        f"{requests_remaining}"
+                    )
+                return OddsLookupResult(
+                    fetch=fetch,
+                    status="ok",
+                    notes=notes,
+                    odds_key_configured=True,
+                    requests_remaining=requests_remaining,
+                )
+
+        if not saw_events:
+            notes.append("No upcoming FIFA World Cup events returned by The Odds API")
+            return OddsLookupResult(
+                status="no_events_in_feed",
+                notes=notes,
+                odds_key_configured=True,
+                requests_remaining=requests_remaining,
+            )
+
+        notes.append("No betting odds found for this matchup in The Odds API")
+        return OddsLookupResult(
+            status="no_odds_for_matchup",
+            notes=notes,
+            odds_key_configured=True,
+            requests_remaining=requests_remaining,
+        )
+
     def fetch_match_market(
         self,
         home_team: str,
         away_team: str,
     ) -> OddsMarketFetch | None:
         """All bookmaker lines + consensus for market_diagnostics."""
-        if not self.is_available:
-            return None
+        return self.lookup_match_market(home_team, away_team).fetch
 
-        for sport_key in MATCH_SPORT_KEYS:
-            result = self._fetch_sport_market(sport_key, home_team, away_team)
-            if result is not None:
-                return result
-        return None
+    def _load_sport_events(
+        self,
+        sport_key: str,
+    ) -> tuple[list[dict[str, Any]], dict[str, str], str | None]:
+        now = time.time()
+        cached = _EVENTS_CACHE.get(sport_key)
+        if cached and cached[0] > now:
+            return cached[1], cached[2], None
+
+        try:
+            response = requests.get(
+                f"{THE_ODDS_API}/sports/{sport_key}/odds",
+                params={
+                    "apiKey": self.api_key,
+                    "regions": "eu,uk,us",
+                    "markets": "h2h",
+                    "oddsFormat": "decimal",
+                },
+                timeout=12,
+            )
+            headers = {
+                k.lower(): v
+                for k, v in response.headers.items()
+                if k.lower().startswith("x-requests")
+            }
+            if response.status_code == 404:
+                _EVENTS_CACHE[sport_key] = (now + EVENTS_CACHE_TTL_SEC, [], headers)
+                return [], headers, None
+            if response.status_code in (401, 403):
+                body = response.text.lower()
+                if "usage" in body or "quota" in body or "exceeded" in body:
+                    return [], headers, "quota_exceeded"
+                return [], headers, "auth_failed"
+            if response.status_code == 429:
+                return [], headers, "quota_exceeded"
+            response.raise_for_status()
+            events = response.json()
+            if not isinstance(events, list):
+                return [], headers, "invalid_response"
+            _EVENTS_CACHE[sport_key] = (
+                now + EVENTS_CACHE_TTL_SEC,
+                events,
+                headers,
+            )
+            return events, headers, None
+        except requests.RequestException as exc:
+            logger.warning("Odds fetch %s failed: %s", sport_key, exc)
+            return [], {}, str(exc)
 
     def _fetch_sport_market(
         self,
@@ -229,37 +420,22 @@ class OddsClient:
         home_team: str,
         away_team: str,
     ) -> OddsMarketFetch | None:
-        try:
-            response = requests.get(
-                f"{THE_ODDS_API}/sports/{sport_key}/odds",
-                params={
-                    "apiKey": self.api_key,
-                    "regions": "eu,uk",
-                    "markets": "h2h",
-                    "oddsFormat": "decimal",
-                },
-                timeout=12,
+        events, _, error = self._load_sport_events(sport_key)
+        if error:
+            return None
+        for event in events:
+            matched, swapped = _event_matches_teams(event, home_team, away_team)
+            if not matched:
+                continue
+            fetch = _market_from_event(
+                event,
+                home_team=home_team,
+                away_team=away_team,
+                swapped=swapped,
+                sport_key=sport_key,
             )
-            if response.status_code == 404:
-                return None
-            response.raise_for_status()
-            events = response.json()
-            for event in events:
-                eh = event.get("home_team", "")
-                ea = event.get("away_team", "")
-                if not (_names_match(eh, home_team) and _names_match(ea, away_team)):
-                    continue
-                lines = _bookmakers_from_event(event, home_team, away_team)
-                if not lines:
-                    continue
-                consensus = _consensus_from_bookmakers(lines)
-                return OddsMarketFetch(
-                    sport_key=sport_key,
-                    bookmakers=lines,
-                    consensus_1x2_percent=consensus,
-                )
-        except Exception as exc:
-            logger.debug("Odds fetch %s: %s", sport_key, exc)
+            if fetch is not None:
+                return fetch
         return None
 
     def _fetch_sport_odds(

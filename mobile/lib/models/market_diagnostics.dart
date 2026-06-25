@@ -55,6 +55,8 @@ class MarketDiagnosticsPayload {
   final List<BookmakerQuote> bookmakers;
   final Map<String, double>? consensus1x2Percent;
   final String blendMode;
+  final bool oddsKeyConfigured;
+  final int? requestsRemaining;
   final List<String> notes;
 
   const MarketDiagnosticsPayload({
@@ -65,6 +67,8 @@ class MarketDiagnosticsPayload {
     this.bookmakers = const [],
     this.consensus1x2Percent,
     this.blendMode = 'diagnostic_only',
+    this.oddsKeyConfigured = false,
+    this.requestsRemaining,
     this.notes = const [],
   });
 
@@ -88,6 +92,8 @@ class MarketDiagnosticsPayload {
       bookmakers: quotes,
       consensus1x2Percent: consensus,
       blendMode: json['blend_mode'] as String? ?? 'diagnostic_only',
+      oddsKeyConfigured: json['odds_key_configured'] as bool? ?? false,
+      requestsRemaining: (json['requests_remaining'] as num?)?.toInt(),
       notes: List<String>.from(json['notes'] as List<dynamic>? ?? []),
     );
   }

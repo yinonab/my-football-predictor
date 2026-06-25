@@ -138,6 +138,8 @@ class MarketDiagnosticsResponse(BaseModel):
     consensus_1x2_percent: dict[str, float] | None = None
     blend_mode: str = "diagnostic_only"
     odds_affect_prediction: bool = False
+    odds_key_configured: bool = False
+    requests_remaining: int | None = None
     notes: list[str] = Field(default_factory=list)
 
 

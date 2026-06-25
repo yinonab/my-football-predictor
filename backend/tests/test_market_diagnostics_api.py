@@ -15,6 +15,7 @@ from core.market_diagnostics import build_market_diagnostics
 from core.odds_ensemble import (
     BookmakerOddsLine,
     OddsClient,
+    OddsLookupResult,
     OddsMarketFetch,
     _consensus_from_bookmakers,
 )
@@ -124,6 +125,11 @@ def test_predict_includes_market_diagnostics_block() -> None:
     )
     mock_client = MagicMock()
     mock_client.is_available = True
+    mock_client.lookup_match_market.return_value = OddsLookupResult(
+        fetch=fetch,
+        status="ok",
+        odds_key_configured=True,
+    )
     mock_client.fetch_match_market.return_value = fetch
     mock_client.fetch_match_odds.return_value = fetch.legacy_consensus_percent()
 

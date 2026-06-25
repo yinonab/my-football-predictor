@@ -8,6 +8,8 @@ String marketStatusLabelHe(String status) {
       return 'נתוני שוק זמינים';
     case 'אין יחסים למשחק':
       return 'אין יחסים לזוג נבחרות זה';
+    case 'מכסה נגמרה':
+      return 'מכסת The Odds API נגמרה';
     case 'לא מחובר':
       return 'שוק לא מחובר בשרת';
     default:
