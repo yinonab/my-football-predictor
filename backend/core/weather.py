@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, timezone
 
 import requests
 
@@ -23,6 +23,7 @@ class WeatherSnapshot:
     temperature_c: float | None
     rain_mm: float | None
     summary_he: str
+    fetched_at: str | None = None
 
 
 def fetch_match_weather(
@@ -69,12 +70,14 @@ def fetch_match_weather(
         elif temp <= 5:
             parts.append("קור")
 
+        fetched_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
         return WeatherSnapshot(
             city=city,
             match_date=day,
             temperature_c=temp,
             rain_mm=rain_total,
             summary_he=", ".join(parts),
+            fetched_at=fetched_at,
         )
     except Exception as exc:
         logger.warning("Weather fetch failed for %s: %s", city, exc)

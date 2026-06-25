@@ -100,6 +100,70 @@ void main() {
     expect(result.matchContextDiagnostics?.predictionValid, isTrue);
     expect(result.matchContextDiagnostics?.venueMode, 'neutral');
     expect(result.matchContextDiagnostics?.homeAdvantagePowerDelta, 0);
+    expect(result.environmentDiagnostics, isNull);
+    expect(result.recentFormProviderDiagnostics, isNull);
+  });
+
+  test('PredictionResult parses environment and provider diagnostics', () {
+    final result = PredictionResult.fromJson({
+      'home_team': 'Canada',
+      'away_team': 'Mexico',
+      'home_power': 712.0,
+      'away_power': 664.0,
+      'home_breakdown': {
+        'name': 'Canada',
+        'power_score': 712.0,
+        'elo': 1487.0,
+        'breakdown': 'test',
+      },
+      'away_breakdown': {
+        'name': 'Mexico',
+        'power_score': 664.0,
+        'elo': 1380.0,
+        'breakdown': 'test',
+      },
+      'home_xg': 1.6,
+      'away_xg': 1.0,
+      'probabilities_1x2': {
+        'home_win': 49.8,
+        'draw': 27.7,
+        'away_win': 22.5,
+      },
+      'outcome_explanations': {
+        'home_win': 'home',
+        'draw': 'draw',
+        'away_win': 'away',
+      },
+      'top_scores': [
+        {'score': '1-1', 'probability': 13.2, 'explanation': ''},
+      ],
+      'score_coverage': {
+        'target_percent': 50.0,
+        'achieved_percent': 51.8,
+        'scores': ['1-1'],
+      },
+      'environment_diagnostics': {
+        'venue_city': 'Mexico City',
+        'venue_stadium': 'Estadio Azteca',
+        'venue_altitude_m': 2240,
+        'altitude_bucket': 'very_high',
+        'weather_source': 'disabled',
+        'weather_adjustment_mode': 'disabled',
+      },
+      'recent_form_provider_diagnostics': {
+        'source_mix': {'sofascore_recent_form': 8},
+        'primary_provider': 'sofascore_recent_form',
+        'confidence_bucket': 'high',
+        'provider_notes': ['test note'],
+      },
+    });
+
+    expect(result.environmentDiagnostics?.venueStadium, 'Estadio Azteca');
+    expect(result.environmentDiagnostics?.altitudeBucket, 'very_high');
+    expect(
+      result.recentFormProviderDiagnostics?.primaryProvider,
+      'sofascore_recent_form',
+    );
   });
 
   test('PredictionResult works without scoreline_decision', () {

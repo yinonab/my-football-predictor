@@ -38,4 +38,6 @@ def lookup_coordinates(city: str | None) -> tuple[float, float] | None:
     for label, coords in VENUE_COORDINATES.items():
         if label in key or key in label:
             return coords
-    return None
+    from data.wc2026_stadiums import lookup_coordinates_from_stadiums
+
+    return lookup_coordinates_from_stadiums(city)

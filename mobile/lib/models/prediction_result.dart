@@ -288,6 +288,137 @@ class ActualScore {
   }
 }
 
+class EnvironmentDiagnostics {
+  final String? venueCity;
+  final String? venueCountry;
+  final String? venueStadium;
+  final double? venueLatitude;
+  final double? venueLongitude;
+  final int? venueAltitudeM;
+  final String altitudeBucket;
+  final String altitudeSource;
+  final int? requestAltitudeM;
+  final bool manualAltitudeApplied;
+  final int activeAltitudeThresholdM;
+  final String automaticAltitudeAdjustmentMode;
+  final String weatherSource;
+  final String? weatherFetchedAt;
+  final double? temperatureC;
+  final double? precipitationMm;
+  final String? weatherSummary;
+  final String weatherAdjustmentMode;
+  final double activeWeatherXgDelta;
+  final double shadowWeatherXgDelta;
+  final double? shadowAltitudePowerMultiplier;
+  final List<String> environmentNotes;
+  final List<String> environmentWarnings;
+
+  const EnvironmentDiagnostics({
+    this.venueCity,
+    this.venueCountry,
+    this.venueStadium,
+    this.venueLatitude,
+    this.venueLongitude,
+    this.venueAltitudeM,
+    this.altitudeBucket = 'unknown',
+    this.altitudeSource = 'unknown',
+    this.requestAltitudeM,
+    this.manualAltitudeApplied = false,
+    this.activeAltitudeThresholdM = 1200,
+    this.automaticAltitudeAdjustmentMode = 'diagnostic_only',
+    this.weatherSource = 'not_requested',
+    this.weatherFetchedAt,
+    this.temperatureC,
+    this.precipitationMm,
+    this.weatherSummary,
+    this.weatherAdjustmentMode = 'none',
+    this.activeWeatherXgDelta = 0,
+    this.shadowWeatherXgDelta = 0,
+    this.shadowAltitudePowerMultiplier,
+    this.environmentNotes = const [],
+    this.environmentWarnings = const [],
+  });
+
+  factory EnvironmentDiagnostics.fromJson(Map<String, dynamic> json) {
+    return EnvironmentDiagnostics(
+      venueCity: json['venue_city'] as String?,
+      venueCountry: json['venue_country'] as String?,
+      venueStadium: json['venue_stadium'] as String?,
+      venueLatitude: (json['venue_latitude'] as num?)?.toDouble(),
+      venueLongitude: (json['venue_longitude'] as num?)?.toDouble(),
+      venueAltitudeM: json['venue_altitude_m'] as int?,
+      altitudeBucket: json['altitude_bucket'] as String? ?? 'unknown',
+      altitudeSource: json['altitude_source'] as String? ?? 'unknown',
+      requestAltitudeM: json['request_altitude_m'] as int?,
+      manualAltitudeApplied: json['manual_altitude_applied'] as bool? ?? false,
+      activeAltitudeThresholdM:
+          json['active_altitude_threshold_m'] as int? ?? 1200,
+      automaticAltitudeAdjustmentMode:
+          json['automatic_altitude_adjustment_mode'] as String? ??
+          'diagnostic_only',
+      weatherSource: json['weather_source'] as String? ?? 'not_requested',
+      weatherFetchedAt: json['weather_fetched_at'] as String?,
+      temperatureC: (json['temperature_c'] as num?)?.toDouble(),
+      precipitationMm: (json['precipitation_mm'] as num?)?.toDouble(),
+      weatherSummary: json['weather_summary'] as String?,
+      weatherAdjustmentMode:
+          json['weather_adjustment_mode'] as String? ?? 'none',
+      activeWeatherXgDelta:
+          (json['active_weather_xg_delta'] as num?)?.toDouble() ?? 0,
+      shadowWeatherXgDelta:
+          (json['shadow_weather_xg_delta'] as num?)?.toDouble() ?? 0,
+      shadowAltitudePowerMultiplier:
+          (json['shadow_altitude_power_multiplier'] as num?)?.toDouble(),
+      environmentNotes: List<String>.from(
+        json['environment_notes'] as List<dynamic>? ?? [],
+      ),
+      environmentWarnings: List<String>.from(
+        json['environment_warnings'] as List<dynamic>? ?? [],
+      ),
+    );
+  }
+}
+
+class RecentFormProviderDiagnostics {
+  final Map<String, int> sourceMix;
+  final String primaryProvider;
+  final String? cacheLastUpdatedUtc;
+  final Map<String, Map<String, dynamic>> teamsWithProviderIds;
+  final String confidenceBucket;
+  final List<String> providerNotes;
+
+  const RecentFormProviderDiagnostics({
+    this.sourceMix = const {},
+    this.primaryProvider = 'unavailable',
+    this.cacheLastUpdatedUtc,
+    this.teamsWithProviderIds = const {},
+    this.confidenceBucket = 'unknown',
+    this.providerNotes = const [],
+  });
+
+  factory RecentFormProviderDiagnostics.fromJson(Map<String, dynamic> json) {
+    final rawMix = json['source_mix'] as Map<String, dynamic>? ?? {};
+    return RecentFormProviderDiagnostics(
+      sourceMix: rawMix.map(
+        (key, value) => MapEntry(key, (value as num).toInt()),
+      ),
+      primaryProvider: json['primary_provider'] as String? ?? 'unavailable',
+      cacheLastUpdatedUtc: json['cache_last_updated_utc'] as String?,
+      teamsWithProviderIds:
+          (json['teams_with_provider_ids'] as Map<String, dynamic>? ?? {}).map(
+        (key, value) => MapEntry(
+          key,
+          Map<String, dynamic>.from(value as Map<String, dynamic>),
+        ),
+      ),
+      confidenceBucket: json['confidence_bucket'] as String? ?? 'unknown',
+      providerNotes: List<String>.from(
+        json['provider_notes'] as List<dynamic>? ?? [],
+      ),
+    );
+  }
+}
+
 class MatchContextDiagnostics {
   final String fixtureStatus;
   final bool predictionValid;
@@ -377,6 +508,8 @@ class PredictionResult {
   final MatchContextInfo? matchContext;
   final ScorelineDecision? scorelineDecision;
   final MatchContextDiagnostics? matchContextDiagnostics;
+  final EnvironmentDiagnostics? environmentDiagnostics;
+  final RecentFormProviderDiagnostics? recentFormProviderDiagnostics;
 
   const PredictionResult({
     required this.homeTeam,
@@ -401,6 +534,8 @@ class PredictionResult {
     this.matchContext,
     this.scorelineDecision,
     this.matchContextDiagnostics,
+    this.environmentDiagnostics,
+    this.recentFormProviderDiagnostics,
   });
 
   factory PredictionResult.fromJson(Map<String, dynamic> json) {
@@ -452,6 +587,18 @@ class PredictionResult {
               json['match_context_diagnostics'] as Map<String, dynamic>,
             )
           : null,
+      environmentDiagnostics: json['environment_diagnostics'] != null
+          ? EnvironmentDiagnostics.fromJson(
+              json['environment_diagnostics'] as Map<String, dynamic>,
+            )
+          : null,
+      recentFormProviderDiagnostics:
+          json['recent_form_provider_diagnostics'] != null
+              ? RecentFormProviderDiagnostics.fromJson(
+                  json['recent_form_provider_diagnostics']
+                      as Map<String, dynamic>,
+                )
+              : null,
     );
   }
 }
@@ -507,6 +654,8 @@ class PredictionSettings {
   final VenueMode venueMode;
   final bool useLiveStats;
   final String apiBaseUrl;
+  final String? venueCity;
+  final String? matchDate;
 
   const PredictionSettings({
     this.rho = -0.15,
@@ -519,6 +668,8 @@ class PredictionSettings {
     this.venueMode = VenueMode.neutral,
     this.useLiveStats = false,
     this.apiBaseUrl = productionApiUrl,
+    this.venueCity,
+    this.matchDate,
   });
 
   bool get neutralGround => venueMode.isNeutralGround;
@@ -535,6 +686,10 @@ class PredictionSettings {
     bool? neutralGround,
     bool? useLiveStats,
     String? apiBaseUrl,
+    String? venueCity,
+    String? matchDate,
+    bool clearVenueCity = false,
+    bool clearMatchDate = false,
   }) {
     VenueMode resolved = venueMode ?? this.venueMode;
     if (neutralGround != null) {
@@ -551,6 +706,8 @@ class PredictionSettings {
       venueMode: resolved,
       useLiveStats: useLiveStats ?? this.useLiveStats,
       apiBaseUrl: apiBaseUrl ?? this.apiBaseUrl,
+      venueCity: clearVenueCity ? null : (venueCity ?? this.venueCity),
+      matchDate: clearMatchDate ? null : (matchDate ?? this.matchDate),
     );
   }
 }

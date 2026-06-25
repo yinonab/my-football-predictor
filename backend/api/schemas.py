@@ -72,6 +72,7 @@ class MatchContextResponse(BaseModel):
     weather_summary: str | None = None
     weather_temp_c: float | None = None
     weather_rain_mm: float | None = None
+    weather_fetched_at: str | None = None
     home_power_mult: float = 1.0
     away_power_mult: float = 1.0
     xg_total_delta: float = 0.0
@@ -112,6 +113,45 @@ class MatchContextDiagnosticsResponse(BaseModel):
     venue_context_available: bool = False
     altitude_applied: bool = False
     warnings: list[str] = Field(default_factory=list)
+
+
+class EnvironmentDiagnosticsResponse(BaseModel):
+    """Phase W1+W2 — venue/weather/altitude transparency (diagnostics only)."""
+
+    venue_city: str | None = None
+    venue_country: str | None = None
+    venue_stadium: str | None = None
+    venue_latitude: float | None = None
+    venue_longitude: float | None = None
+    venue_altitude_m: int | None = None
+    altitude_bucket: str = "unknown"
+    altitude_source: str = "unknown"
+    request_altitude_m: int | None = None
+    manual_altitude_applied: bool = False
+    active_altitude_threshold_m: int = config.ALTITUDE_THRESHOLD_M
+    automatic_altitude_adjustment_mode: str = "diagnostic_only"
+    weather_source: str = "not_requested"
+    weather_fetched_at: str | None = None
+    temperature_c: float | None = None
+    precipitation_mm: float | None = None
+    weather_summary: str | None = None
+    weather_adjustment_mode: str = "none"
+    active_weather_xg_delta: float = 0.0
+    shadow_weather_xg_delta: float = 0.0
+    shadow_altitude_power_multiplier: float | None = None
+    environment_notes: list[str] = Field(default_factory=list)
+    environment_warnings: list[str] = Field(default_factory=list)
+
+
+class RecentFormProviderDiagnosticsResponse(BaseModel):
+    """Recent-form data source transparency for predict diagnostics."""
+
+    source_mix: dict[str, int] = Field(default_factory=dict)
+    primary_provider: str = "unavailable"
+    cache_last_updated_utc: str | None = None
+    teams_with_provider_ids: dict[str, dict[str, Any]] = Field(default_factory=dict)
+    confidence_bucket: str = "unknown"
+    provider_notes: list[str] = Field(default_factory=list)
 
 
 class ScoreProbability(BaseModel):
@@ -354,6 +394,8 @@ class PredictResponse(BaseModel):
     probability_diagnostics: ProbabilityDiagnosticsResponse | None = None
     probability_coherence: ProbabilityCoherenceResponse | None = None
     match_context_diagnostics: MatchContextDiagnosticsResponse | None = None
+    environment_diagnostics: EnvironmentDiagnosticsResponse | None = None
+    recent_form_provider_diagnostics: RecentFormProviderDiagnosticsResponse | None = None
     scoreline_decision: ScorelineDecisionResponse | None = None
 
 

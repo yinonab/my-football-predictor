@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/prediction_result.dart';
 import '../models/venue_mode.dart';
+import '../utils/environment_ui_copy.dart';
 import '../utils/prediction_ui_copy.dart';
 import '../utils/score_format.dart';
 
@@ -290,6 +291,78 @@ class PredictionContextCard extends StatelessWidget {
   }
 }
 
+class PredictionEnvironmentDataCard extends StatelessWidget {
+  final PredictionResult result;
+
+  const PredictionEnvironmentDataCard({super.key, required this.result});
+
+  @override
+  Widget build(BuildContext context) {
+    if (!shouldShowEnvironmentDataCard(result)) {
+      return const SizedBox.shrink();
+    }
+
+    final theme = Theme.of(context);
+    final lines = buildEnvironmentSummaryLines(result);
+    final env = result.environmentDiagnostics;
+    final isDiagnosticOnly = env?.automaticAltitudeAdjustmentMode ==
+            'diagnostic_only' &&
+        env?.weatherAdjustmentMode != 'active_existing';
+
+    return Card(
+      color: theme.colorScheme.tertiaryContainer.withValues(alpha: 0.35),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  Icons.eco_outlined,
+                  size: 20,
+                  color: theme.colorScheme.onTertiaryContainer,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'סביבה ומקורות נתונים',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.right,
+                  ),
+                ),
+              ],
+            ),
+            if (isDiagnosticOnly) ...[
+              const SizedBox(height: 6),
+              Text(
+                'הנתונים מוצגים לשקיפות — רובם עדיין לא משנים את החיזוי',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.right,
+              ),
+            ],
+            const SizedBox(height: 8),
+            ...lines.map(
+              (line) => Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Text(
+                  '• $line',
+                  style: theme.textTheme.bodyMedium,
+                  textAlign: TextAlign.right,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class PredictionTechnicalDetails extends StatelessWidget {
   final PredictionResult result;
   final VenueMode? requestedVenueMode;
@@ -401,6 +474,23 @@ class PredictionTechnicalDetails extends StatelessWidget {
                   textAlign: TextAlign.right,
                 ),
               ],
+            ],
+            if (result.environmentDiagnostics != null ||
+                result.recentFormProviderDiagnostics != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                'סביבה ומקורות',
+                style: theme.textTheme.labelLarge,
+                textAlign: TextAlign.right,
+              ),
+              const SizedBox(height: 4),
+              ...buildEnvironmentSummaryLines(result).map(
+                (line) => Text(
+                  line,
+                  style: theme.textTheme.bodySmall,
+                  textAlign: TextAlign.right,
+                ),
+              ),
             ],
             if (diag != null || ctx != null) ...[
               const SizedBox(height: 12),

@@ -39,6 +39,8 @@ from api.schemas import (
     MatchContextDiagnosticsResponse,
     ActualScoreResponse,
     VenueDiagnosticsResponse,
+    EnvironmentDiagnosticsResponse,
+    RecentFormProviderDiagnosticsResponse,
     ModelDiagnosticsResponse,
     PredictRequest,
     PredictResponse,
@@ -109,7 +111,9 @@ from core.recent_form_warmup import (
     run_recent_form_warmup,
     verify_admin_token,
 )
+from core.recent_form_provider_diagnostics import build_recent_form_provider_diagnostics
 from core.sofascore_recent_form_refresh import run_sofascore_recent_form_refresh
+from core.venue_environment import build_environment_diagnostics
 from data.api_football import ApiFootballClient
 from data.database import FIFA_ELO_2026, LiveDataManager, compute_derived_metrics
 
@@ -416,6 +420,7 @@ def predict(request: PredictRequest) -> PredictResponse:
         weather_summary=ctx_info.weather_summary,
         weather_temp_c=ctx_info.weather_temp_c,
         weather_rain_mm=ctx_info.weather_rain_mm,
+        weather_fetched_at=ctx_info.weather_fetched_at,
         home_power_mult=round(ctx_adj.home_power_mult, 3),
         away_power_mult=round(ctx_adj.away_power_mult, 3),
         xg_total_delta=round(ctx_adj.xg_total_delta, 3),
@@ -428,6 +433,20 @@ def predict(request: PredictRequest) -> PredictResponse:
         venue_advantage=venue_advantage,
         request_venue_city=request.venue_city or ctx_info.venue_city,
         request_altitude=request.altitude,
+    )
+
+    environment_diagnostics = build_environment_diagnostics(
+        request_venue_city=request.venue_city or ctx_info.venue_city,
+        request_altitude=request.altitude,
+        use_match_context=request.use_match_context,
+        fixture_state=fixture_state,
+        ctx_info=ctx_info,
+        active_weather_xg_delta=ctx_adj.xg_total_delta,
+        weather_fetched_at=ctx_info.weather_fetched_at,
+    )
+    recent_form_provider_diagnostics = build_recent_form_provider_diagnostics(
+        home_resolved,
+        away_resolved,
     )
 
     home_data = match_features.home_team_data
@@ -757,6 +776,12 @@ def predict(request: PredictRequest) -> PredictResponse:
         ),
         match_context_diagnostics=_match_context_diagnostics_response(
             match_context_diagnostics
+        ),
+        environment_diagnostics=EnvironmentDiagnosticsResponse(
+            **environment_diagnostics
+        ),
+        recent_form_provider_diagnostics=RecentFormProviderDiagnosticsResponse(
+            **recent_form_provider_diagnostics
         ),
         scoreline_decision=_scoreline_decision_response(scoreline_decision),
     )

@@ -9,6 +9,7 @@ import '../widgets/outcome_cards.dart';
 import '../widgets/prediction_insight_sections.dart';
 import '../widgets/score_list.dart';
 import '../widgets/team_text_field.dart';
+import '../widgets/venue_city_picker.dart';
 import '../widgets/venue_mode_selector.dart';
 import 'settings_screen.dart';
 
@@ -29,6 +30,8 @@ class _HomeScreenState extends State<HomeScreen> {
   PredictionSettings _settings = const PredictionSettings();
   List<String> _teams = [];
   VenueMode _venueMode = VenueMode.neutral;
+  String? _venueCity;
+  DateTime? _matchDate;
   PredictionResult? _result;
   bool _serverOnline = false;
   bool _checking = true;
@@ -76,6 +79,8 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       _settings = settings;
       _venueMode = settings.venueMode;
+      _venueCity = settings.venueCity;
+      _matchDate = _parseMatchDate(settings.matchDate);
     });
     await _refreshConnection();
   }
@@ -124,6 +129,44 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  DateTime? _parseMatchDate(String? iso) {
+    if (iso == null || iso.isEmpty) return null;
+    return DateTime.tryParse(iso);
+  }
+
+  String _formatIsoDate(DateTime date) {
+    final y = date.year;
+    final m = date.month.toString().padLeft(2, '0');
+    final d = date.day.toString().padLeft(2, '0');
+    return '$y-$m-$d';
+  }
+
+  Future<void> _persistVenueSettings() async {
+    final updated = _settings.copyWith(
+      venueCity: _venueCity,
+      matchDate: _venueCity != null
+          ? _formatIsoDate(_matchDate ?? DateTime.now())
+          : null,
+      clearVenueCity: _venueCity == null,
+      clearMatchDate: _venueCity == null,
+    );
+    await _apiService.saveSettings(updated);
+    if (mounted) setState(() => _settings = updated);
+  }
+
+  Future<void> _pickMatchDate() async {
+    final initial = _matchDate ?? DateTime(2026, 6, 15);
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2026, 6, 1),
+      lastDate: DateTime(2026, 7, 20),
+    );
+    if (picked == null || !mounted) return;
+    setState(() => _matchDate = picked);
+    await _persistVenueSettings();
+  }
+
   Future<void> _predict() async {
     FocusScope.of(context).unfocus();
 
@@ -145,11 +188,18 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
+      final predictSettings = _settings.copyWith(
+        venueMode: _venueMode,
+        venueCity: _venueCity,
+        matchDate: _venueCity != null
+            ? _formatIsoDate(_matchDate ?? DateTime.now())
+            : null,
+      );
       final result = await _apiService.predict(
         baseUrl: _settings.apiBaseUrl,
         homeTeam: teamA,
         awayTeam: teamB,
-        settings: _settings.copyWith(venueMode: _venueMode),
+        settings: predictSettings,
       );
       if (!mounted) return;
       setState(() {
@@ -185,6 +235,8 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() {
         _settings = updated;
         _venueMode = updated.venueMode;
+        _venueCity = updated.venueCity;
+        _matchDate = _parseMatchDate(updated.matchDate);
       });
       await _refreshConnection();
     }
@@ -315,6 +367,53 @@ class _HomeScreenState extends State<HomeScreen> {
                       team2: _teamBController.text.trim(),
                       onChanged: (mode) => setState(() => _venueMode = mode),
                     ),
+                    const SizedBox(height: 12),
+                    VenueCityPicker(
+                      value: _venueCity,
+                      onChanged: (city) async {
+                        setState(() {
+                          _venueCity = city;
+                          if (city != null && _matchDate == null) {
+                            _matchDate = DateTime(2026, 6, 15);
+                          }
+                          if (city == null) {
+                            _matchDate = null;
+                          }
+                        });
+                        await _apiService.saveSettings(
+                          _settings.copyWith(
+                            venueCity: city,
+                            matchDate: city != null
+                                ? _formatIsoDate(_matchDate ?? DateTime.now())
+                                : null,
+                            clearVenueCity: city == null,
+                            clearMatchDate: city == null,
+                          ),
+                        );
+                        if (mounted) {
+                          setState(() {
+                            _settings = _settings.copyWith(
+                              venueCity: city,
+                              matchDate: city != null
+                                  ? _formatIsoDate(_matchDate ?? DateTime.now())
+                                  : null,
+                              clearVenueCity: city == null,
+                              clearMatchDate: city == null,
+                            );
+                          });
+                        }
+                      },
+                    ),
+                    if (_venueCity != null) ...[
+                      const SizedBox(height: 8),
+                      OutlinedButton.icon(
+                        onPressed: _pickMatchDate,
+                        icon: const Icon(Icons.calendar_today, size: 18),
+                        label: Text(
+                          'תאריך משחק: ${_formatIsoDate(_matchDate ?? DateTime.now())}',
+                        ),
+                      ),
+                    ],
                     if (showResults) ...[
                       Builder(
                         builder: (context) {
@@ -469,6 +568,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         result: _result!,
                         requestedVenueMode: _venueMode,
                       ),
+                      const SizedBox(height: 8),
+                      PredictionEnvironmentDataCard(result: _result!),
                       const SizedBox(height: 8),
                       PredictionTechnicalDetails(
                         result: _result!,

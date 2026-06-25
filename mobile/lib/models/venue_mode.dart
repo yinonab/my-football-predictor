@@ -54,9 +54,11 @@ Map<String, dynamic> buildPredictRequestBody({
   required bool starAbsent,
   required bool awayStarAbsent,
   required bool useLiveStats,
+  String? venueCity,
+  String? matchDate,
   int topN = 3,
 }) {
-  return {
+  final body = <String, dynamic>{
     'home_team': homeTeam,
     'away_team': awayTeam,
     'venue_mode': venueMode.apiValue,
@@ -72,4 +74,11 @@ Map<String, dynamic> buildPredictRequestBody({
     'use_match_context': true,
     'top_n': topN,
   };
+  if (venueCity != null && venueCity.trim().isNotEmpty) {
+    body['venue_city'] = venueCity.trim();
+  }
+  if (matchDate != null && matchDate.trim().isNotEmpty) {
+    body['match_date'] = matchDate.trim();
+  }
+  return body;
 }

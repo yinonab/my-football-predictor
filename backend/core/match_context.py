@@ -37,6 +37,7 @@ class MatchContextInfo:
     weather_summary: str | None = None
     weather_temp_c: float | None = None
     weather_rain_mm: float | None = None
+    weather_fetched_at: str | None = None
     data_source: str = "offline"
     notes: list[str] | None = None
 
@@ -264,6 +265,7 @@ class MatchContextGatherer:
             weather_summary=weather.summary_he if weather else None,
             weather_temp_c=weather.temperature_c if weather else None,
             weather_rain_mm=weather.rain_mm if weather else None,
+            weather_fetched_at=weather.fetched_at if weather else None,
             data_source=source,
             notes=notes,
         )

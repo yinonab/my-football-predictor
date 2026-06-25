@@ -60,6 +60,8 @@ class ApiService {
       venueMode: venueMode,
       useLiveStats: prefs.getBool('useLiveStats') ?? false,
       apiBaseUrl: apiUrl,
+      venueCity: prefs.getString('venueCity'),
+      matchDate: prefs.getString('matchDate'),
     );
   }
 
@@ -76,6 +78,16 @@ class ApiService {
     await prefs.setBool('neutralGround', settings.neutralGround);
     await prefs.setBool('useLiveStats', settings.useLiveStats);
     await prefs.setString('apiBaseUrl', settings.apiBaseUrl);
+    if (settings.venueCity != null) {
+      await prefs.setString('venueCity', settings.venueCity!);
+    } else {
+      await prefs.remove('venueCity');
+    }
+    if (settings.matchDate != null) {
+      await prefs.setString('matchDate', settings.matchDate!);
+    } else {
+      await prefs.remove('matchDate');
+    }
   }
 
   static String defaultBaseUrl() {
@@ -169,6 +181,8 @@ class ApiService {
         starAbsent: settings.starAbsent,
         awayStarAbsent: settings.awayStarAbsent,
         useLiveStats: settings.useLiveStats,
+        venueCity: settings.venueCity,
+        matchDate: settings.matchDate,
       ),
     );
 
