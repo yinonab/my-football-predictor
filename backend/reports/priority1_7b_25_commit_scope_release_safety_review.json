@@ -1,0 +1,2757 @@
+{
+  "phase": "P1.7B.25",
+  "review_only": true,
+  "review_subject": "P1.7B.23/P1.7B.24 shadow wiring commit scope and release safety",
+  "review_status": "REVIEW_COMPLETE",
+  "activation_allowed": false,
+  "production_activation_allowed": false,
+  "deploy_allowed": false,
+  "commit_executed": false,
+  "commit_recommended_now": false,
+  "git_add_all_forbidden": true,
+  "workspace_dirty": true,
+  "tracked_modified_files": [
+    "backend/.env.example",
+    "backend/api/main.py",
+    "backend/api/schemas.py",
+    "backend/config.py",
+    "backend/core/market_xg_calibration.py",
+    "backend/core/priority1_backtest.py",
+    "backend/core/priority1_diagnostics.py",
+    "backend/core/priority1_options.py",
+    "backend/core/temporal_backtest.py",
+    "backend/data/activation_large_shift_reviews.json",
+    "backend/data/cache/nt_ratings.json",
+    "docs/PRIORITY1_2_LOCAL_MARKET_XG_VALIDATION.md"
+  ],
+  "untracked_files_summary": {
+    "count": 182,
+    "paths": [
+      "backend/core/activation_readiness_gate_context_audit.py",
+      "backend/core/commit_scope_release_safety_review.py",
+      "backend/core/conditional_spread_governance.py",
+      "backend/core/controlled_activation_plan_draft.py",
+      "backend/core/disabled_shadow_wiring_design.py",
+      "backend/core/disabled_shadow_wiring_runtime.py",
+      "backend/core/dual_regime_favorite_confidence_governance.py",
+      "backend/core/dynamic_goals_bounded.py",
+      "backend/core/dynamic_goals_v3.py",
+      "backend/core/dynamic_goals_v3_gates.py",
+      "backend/core/dynamic_goals_v3_rolling.py",
+      "backend/core/favorite_confidence_curve_audit.py",
+      "backend/core/favorite_confidence_curve_prototype.py",
+      "backend/core/favorite_direction_root_cause_audit.py",
+      "backend/core/favorite_direction_safety_gate.py",
+      "backend/core/favorite_direction_safety_gate_validation.py",
+      "backend/core/favorite_spread_too_small_decomposition.py",
+      "backend/core/favorite_trust_calibration.py",
+      "backend/core/favorite_trust_validation.py",
+      "backend/core/final_activation_readiness_audit.py",
+      "backend/core/hybrid_balance_tuning.py",
+      "backend/core/hybrid_balance_validation.py",
+      "backend/core/independent_signal_wiring_audit.py",
+      "backend/core/independent_signal_wiring_prototype.py",
+      "backend/core/latent_xg_bias_audit.py",
+      "backend/core/market_calibration_v2.py",
+      "backend/core/power_v3.py",
+      "backend/core/power_zscore_residual.py",
+      "backend/core/priority1_4_gates.py",
+      "backend/core/priority1_4_validation.py",
+      "backend/core/priority1_5_validation.py",
+      "backend/core/priority1_6_validation.py",
+      "backend/core/scoreline_ranking_topk_robustness_audit.py",
+      "backend/core/shadow_wiring_verification_diff_review.py",
+      "backend/core/strength_activation_readiness_audit.py",
+      "backend/core/strength_based_xg_gates.py",
+      "backend/core/strength_based_xg_generator.py",
+      "backend/core/strength_based_xg_micro_probes.py",
+      "backend/core/strength_based_xg_p1c_analysis.py",
+      "backend/core/strength_based_xg_p1c_refinement.py",
+      "backend/core/strength_based_xg_refinement.py",
+      "backend/core/strength_based_xg_stage_diagnosis.py",
+      "backend/core/strength_based_xg_validation.py",
+      "backend/core/strength_recovery_diagnostics.py",
+      "backend/core/strength_signal_weight_calibration.py",
+      "backend/core/strength_signal_weight_calibration_validation.py",
+      "backend/core/strength_signal_weight_narrow_refinement.py",
+      "backend/core/strength_signal_weight_narrow_refinement_validation.py",
+      "backend/core/strength_spread_residual_correction.py",
+      "backend/core/strength_spread_residual_validation.py"
+    ],
+    "truncated": true
+  },
+  "p1_7b23_scope_files": [
+    "backend/core/disabled_shadow_wiring_runtime.py",
+    "backend/tests/test_disabled_shadow_wiring_runtime.py",
+    "backend/scripts/run_priority1_7b_23_disabled_shadow_wiring_implementation.py",
+    "docs/PRIORITY1_7B_23_DISABLED_SHADOW_WIRING_IMPLEMENTATION.md",
+    "backend/reports/priority1_7b_23_disabled_shadow_wiring_implementation.json",
+    "backend/core/priority1_options.py",
+    "backend/core/priority1_backtest.py"
+  ],
+  "p1_7b24_scope_files": [
+    "backend/core/shadow_wiring_verification_diff_review.py",
+    "backend/scripts/run_priority1_7b_24_shadow_wiring_verification_diff_review.py",
+    "backend/tests/test_shadow_wiring_verification_diff_review.py",
+    "docs/PRIORITY1_7B_24_SHADOW_WIRING_VERIFICATION_DIFF_REVIEW.md",
+    "backend/reports/priority1_7b_24_shadow_wiring_verification_diff_review.json"
+  ],
+  "p1_7b25_scope_files": [
+    "backend/core/commit_scope_release_safety_review.py",
+    "backend/scripts/run_priority1_7b_25_commit_scope_release_safety_review.py",
+    "backend/tests/test_commit_scope_release_safety_review.py",
+    "docs/PRIORITY1_7B_25_COMMIT_SCOPE_RELEASE_SAFETY_REVIEW.md",
+    "backend/reports/priority1_7b_25_commit_scope_release_safety_review.json"
+  ],
+  "pre_existing_production_diffs": [
+    "backend/.env.example",
+    "backend/api/main.py",
+    "backend/api/schemas.py",
+    "backend/config.py",
+    "backend/core/market_xg_calibration.py",
+    "backend/core/priority1_diagnostics.py",
+    "backend/core/temporal_backtest.py",
+    "backend/data/activation_large_shift_reviews.json",
+    "backend/data/cache/nt_ratings.json",
+    "docs/PRIORITY1_2_LOCAL_MARKET_XG_VALIDATION.md",
+    "backend/core/priority1_options.py",
+    "backend/core/priority1_backtest.py"
+  ],
+  "manual_review_required_files": [
+    "backend/core/priority1_backtest.py",
+    "backend/core/priority1_options.py",
+    "backend/core/activation_readiness_gate_context_audit.py",
+    "backend/core/conditional_spread_governance.py",
+    "backend/core/controlled_activation_plan_draft.py",
+    "backend/core/disabled_shadow_wiring_design.py",
+    "backend/core/dual_regime_favorite_confidence_governance.py",
+    "backend/core/dynamic_goals_bounded.py",
+    "backend/core/dynamic_goals_v3.py",
+    "backend/core/dynamic_goals_v3_gates.py",
+    "backend/core/dynamic_goals_v3_rolling.py",
+    "backend/core/favorite_confidence_curve_audit.py",
+    "backend/core/favorite_confidence_curve_prototype.py",
+    "backend/core/favorite_direction_root_cause_audit.py",
+    "backend/core/favorite_direction_safety_gate.py",
+    "backend/core/favorite_direction_safety_gate_validation.py",
+    "backend/core/favorite_spread_too_small_decomposition.py",
+    "backend/core/favorite_trust_calibration.py",
+    "backend/core/favorite_trust_validation.py",
+    "backend/core/final_activation_readiness_audit.py",
+    "backend/core/hybrid_balance_tuning.py",
+    "backend/core/hybrid_balance_validation.py",
+    "backend/core/independent_signal_wiring_audit.py",
+    "backend/core/independent_signal_wiring_prototype.py",
+    "backend/core/latent_xg_bias_audit.py",
+    "backend/core/market_calibration_v2.py",
+    "backend/core/power_v3.py",
+    "backend/core/power_zscore_residual.py",
+    "backend/core/priority1_4_gates.py",
+    "backend/core/priority1_4_validation.py",
+    "backend/core/priority1_5_validation.py",
+    "backend/core/priority1_6_validation.py",
+    "backend/core/scoreline_ranking_topk_robustness_audit.py",
+    "backend/core/strength_activation_readiness_audit.py",
+    "backend/core/strength_based_xg_gates.py",
+    "backend/core/strength_based_xg_generator.py",
+    "backend/core/strength_based_xg_micro_probes.py",
+    "backend/core/strength_based_xg_p1c_analysis.py",
+    "backend/core/strength_based_xg_p1c_refinement.py",
+    "backend/core/strength_based_xg_refinement.py",
+    "backend/core/strength_based_xg_stage_diagnosis.py",
+    "backend/core/strength_based_xg_validation.py",
+    "backend/core/strength_recovery_diagnostics.py",
+    "backend/core/strength_signal_weight_calibration.py",
+    "backend/core/strength_signal_weight_calibration_validation.py",
+    "backend/core/strength_signal_weight_narrow_refinement.py",
+    "backend/core/strength_signal_weight_narrow_refinement_validation.py",
+    "backend/core/strength_spread_residual_correction.py",
+    "backend/core/strength_spread_residual_validation.py",
+    "backend/core/strength_stage_recovery.py",
+    "backend/core/strength_stage_recovery_total_focus_validation.py",
+    "backend/core/strength_stage_recovery_validation.py",
+    "backend/core/trust_gated_spread_hybrid.py",
+    "backend/core/trust_gated_spread_hybrid_validation.py",
+    "backend/core/validation_metrology_redesign.py",
+    "backend/core/wc2018_residual_decomposition.py",
+    "backend/core/wc2022_top5_robustness_blocker_decomposition.py",
+    "backend/core/xg_coherent_pipeline.py",
+    "backend/scripts/audit_prediction_quality_root_cause.py",
+    "backend/scripts/audit_recent_form_shadow_influence.py",
+    "backend/scripts/run_priority1_3_combined_validation.py",
+    "backend/scripts/run_priority1_4_architecture_validation.py",
+    "backend/scripts/run_priority1_5_coherent_model_validation.py",
+    "backend/scripts/run_priority1_6_dynamic_goals_v3_validation.py",
+    "backend/scripts/run_priority1_7a_latent_xg_bias_audit.py",
+    "backend/scripts/run_priority1_7b_10_1_independent_signal_wiring_prototype.py",
+    "backend/scripts/run_priority1_7b_10_independent_signal_wiring_audit.py",
+    "backend/scripts/run_priority1_7b_11_validation_metrology_redesign.py",
+    "backend/scripts/run_priority1_7b_12_conditional_spread_governance.py",
+    "backend/scripts/run_priority1_7b_13_dual_regime_favorite_confidence_governance.py",
+    "backend/scripts/run_priority1_7b_14_favorite_spread_too_small_decomposition.py",
+    "backend/scripts/run_priority1_7b_15_favorite_confidence_curve_audit.py",
+    "backend/scripts/run_priority1_7b_16_favorite_confidence_curve_prototype.py",
+    "backend/scripts/run_priority1_7b_17_wc2022_top5_robustness_blocker_decomposition.py",
+    "backend/scripts/run_priority1_7b_18_scoreline_ranking_topk_robustness_audit.py",
+    "backend/scripts/run_priority1_7b_19_activation_readiness_gate_context_audit.py",
+    "backend/scripts/run_priority1_7b_1_strength_xg_refinement.py",
+    "backend/scripts/run_priority1_7b_20_final_activation_readiness_audit.py",
+    "backend/scripts/run_priority1_7b_21_controlled_activation_plan_draft.py",
+    "backend/scripts/run_priority1_7b_22_disabled_shadow_wiring_design.py",
+    "backend/scripts/run_priority1_7b_2_p1c_stability_refinement.py",
+    "backend/scripts/run_priority1_7b_3_stage_aware_diagnosis.py",
+    "backend/scripts/run_priority1_7b_4_1_r16_total_recovery_focus.py",
+    "backend/scripts/run_priority1_7b_4_r16_stage_aware_recovery.py",
+    "backend/scripts/run_priority1_7b_5_wc2018_residual_decomposition.py",
+    "backend/scripts/run_priority1_7b_6_1_generic_favorite_trust_calibration.py",
+    "backend/scripts/run_priority1_7b_6_2_trust_gated_spread_damping_hybrid.py",
+    "backend/scripts/run_priority1_7b_6_3_hybrid_balance_tuning.py",
+    "backend/scripts/run_priority1_7b_6_spread_share_residual_correction.py",
+    "backend/scripts/run_priority1_7b_7_favorite_direction_root_cause_audit.py",
+    "backend/scripts/run_priority1_7b_8_favorite_direction_safety_gate.py",
+    "backend/scripts/run_priority1_7b_9_1_narrow_sw3_sw6_signal_weight_refinement.py",
+    "backend/scripts/run_priority1_7b_9_2_activation_readiness_regression_protection_audit.py",
+    "backend/scripts/run_priority1_7b_9_p1c2_signal_weight_calibration.py",
+    "backend/scripts/run_priority1_7b_strength_based_xg_validation.py",
+    "backend/tests/test_activation_readiness_gate_context_audit.py",
+    "backend/tests/test_conditional_spread_governance.py",
+    "backend/tests/test_controlled_activation_plan_draft.py",
+    "backend/tests/test_disabled_shadow_wiring_design.py",
+    "backend/tests/test_dual_regime_favorite_confidence_governance.py",
+    "backend/tests/test_dynamic_goals_v3.py",
+    "backend/tests/test_favorite_confidence_curve_audit.py",
+    "backend/tests/test_favorite_confidence_curve_prototype.py",
+    "backend/tests/test_favorite_direction_root_cause_audit.py",
+    "backend/tests/test_favorite_direction_safety_gate.py",
+    "backend/tests/test_favorite_spread_too_small_decomposition.py",
+    "backend/tests/test_favorite_trust_calibration.py",
+    "backend/tests/test_final_activation_readiness_audit.py",
+    "backend/tests/test_hybrid_balance_tuning.py",
+    "backend/tests/test_independent_signal_wiring_audit.py",
+    "backend/tests/test_independent_signal_wiring_prototype.py",
+    "backend/tests/test_priority1_4_architecture.py",
+    "backend/tests/test_priority1_5_coherent_model.py",
+    "backend/tests/test_priority1_6_dynamic_goals_v3_pipeline.py",
+    "backend/tests/test_priority1_7a_latent_xg_bias_audit.py",
+    "backend/tests/test_scoreline_ranking_topk_robustness_audit.py",
+    "backend/tests/test_spread_residual_correction.py",
+    "backend/tests/test_strength_activation_readiness_audit.py",
+    "backend/tests/test_strength_based_xg_generator.py",
+    "backend/tests/test_strength_signal_weight_calibration.py",
+    "backend/tests/test_strength_signal_weight_narrow_refinement.py",
+    "backend/tests/test_trust_gated_spread_hybrid.py",
+    "backend/tests/test_validation_metrology_redesign.py",
+    "backend/tests/test_wc2018_residual_decomposition.py",
+    "backend/tests/test_wc2022_top5_robustness_blocker_decomposition.py",
+    "docs/PRIORITY1_3_COMBINED_CANDIDATE_VALIDATION.md",
+    "docs/PRIORITY1_4_ARCHITECTURE_VALIDATION.md",
+    "docs/PRIORITY1_4_PIPELINE_AUDIT.md",
+    "docs/PRIORITY1_5_COHERENT_MODEL_UPGRADE.md",
+    "docs/PRIORITY1_5_PIPELINE_AUDIT.md",
+    "docs/PRIORITY1_6_DYNAMIC_GOALS_V3.md",
+    "docs/PRIORITY1_6_DYNAMIC_GOALS_V3_AUDIT.md",
+    "docs/PRIORITY1_7A_LATENT_XG_BIAS_AUDIT.md",
+    "docs/PRIORITY1_7A_LATENT_XG_BIAS_AUDIT_DESIGN.md",
+    "docs/PRIORITY1_7B_10_1_INDEPENDENT_SIGNAL_WIRING_PROTOTYPE.md",
+    "docs/PRIORITY1_7B_10_INDEPENDENT_SIGNAL_WIRING_AUDIT.md",
+    "docs/PRIORITY1_7B_11_VALIDATION_METROLOGY_REDESIGN.md",
+    "docs/PRIORITY1_7B_12_CONDITIONAL_SPREAD_GOVERNANCE.md",
+    "docs/PRIORITY1_7B_13_DUAL_REGIME_FAVORITE_CONFIDENCE_GOVERNANCE.md",
+    "docs/PRIORITY1_7B_14_FAVORITE_SPREAD_TOO_SMALL_ROOT_CAUSE_DECOMPOSITION.md",
+    "docs/PRIORITY1_7B_15_FAVORITE_CONFIDENCE_CURVE_AUDIT.md",
+    "docs/PRIORITY1_7B_16_FAVORITE_CONFIDENCE_CURVE_PROTOTYPE.md",
+    "docs/PRIORITY1_7B_17_WC2022_TOP5_ROBUSTNESS_BLOCKER_DECOMPOSITION.md",
+    "docs/PRIORITY1_7B_18_SCORELINE_RANKING_TOPK_ROBUSTNESS_AUDIT.md",
+    "docs/PRIORITY1_7B_19_ACTIVATION_READINESS_GATE_CONTEXT_AUDIT.md",
+    "docs/PRIORITY1_7B_1_STRENGTH_XG_REFINEMENT.md",
+    "docs/PRIORITY1_7B_1_STRENGTH_XG_REFINEMENT_AUDIT.md",
+    "docs/PRIORITY1_7B_20_FINAL_ACTIVATION_READINESS_AUDIT.md",
+    "docs/PRIORITY1_7B_21_CONTROLLED_ACTIVATION_PLAN_DRAFT.md",
+    "docs/PRIORITY1_7B_22_DISABLED_SHADOW_WIRING_DESIGN.md",
+    "docs/PRIORITY1_7B_2_P1C_STABILITY_ANALYSIS.md",
+    "docs/PRIORITY1_7B_2_P1C_STABILITY_REFINEMENT.md",
+    "docs/PRIORITY1_7B_3_STAGE_AWARE_MICRO_PROBES.md",
+    "docs/PRIORITY1_7B_3_STAGE_AWARE_STABILITY_DIAGNOSIS.md",
+    "docs/PRIORITY1_7B_4_1_R16_TOTAL_RECOVERY_AUDIT.md",
+    "docs/PRIORITY1_7B_4_1_R16_TOTAL_RECOVERY_FOCUS.md",
+    "docs/PRIORITY1_7B_4_R16_STAGE_AWARE_RECOVERY.md",
+    "docs/PRIORITY1_7B_5_WC2018_RESIDUAL_DECOMPOSITION.md",
+    "docs/PRIORITY1_7B_6_1_GENERIC_FAVORITE_TRUST_CALIBRATION.md",
+    "docs/PRIORITY1_7B_6_2_TRUST_GATED_SPREAD_DAMPING_HYBRID.md",
+    "docs/PRIORITY1_7B_6_3_HYBRID_BALANCE_TUNING.md",
+    "docs/PRIORITY1_7B_6_STAGE_AWARE_SPREAD_SHARE_RESIDUAL_CORRECTION.md",
+    "docs/PRIORITY1_7B_7_FAVORITE_DIRECTION_ROOT_CAUSE_AUDIT.md",
+    "docs/PRIORITY1_7B_8_FAVORITE_DIRECTION_SAFETY_GATE.md",
+    "docs/PRIORITY1_7B_9_1_NARROW_SW3_SW6_SIGNAL_WEIGHT_REFINEMENT.md",
+    "docs/PRIORITY1_7B_9_2_ACTIVATION_READINESS_REGRESSION_PROTECTION_AUDIT.md",
+    "docs/PRIORITY1_7B_9_P1C2_SIGNAL_WEIGHT_CALIBRATION.md",
+    "docs/PRIORITY1_7B_STRENGTH_BASED_XG_AUDIT.md",
+    "docs/PRIORITY1_7B_STRENGTH_BASED_XG_GENERATOR.md",
+    "docs/RAPIDAPI_FREE_LIVE_FOOTBALL_EVALUATION.md",
+    "docs/priority1_5_validation_output.json"
+  ],
+  "safe_for_commit_review_files": [
+    "backend/core/commit_scope_release_safety_review.py",
+    "backend/core/disabled_shadow_wiring_runtime.py",
+    "backend/core/shadow_wiring_verification_diff_review.py",
+    "backend/scripts/run_priority1_7b_23_disabled_shadow_wiring_implementation.py",
+    "backend/scripts/run_priority1_7b_24_shadow_wiring_verification_diff_review.py",
+    "backend/scripts/run_priority1_7b_25_commit_scope_release_safety_review.py",
+    "backend/tests/test_commit_scope_release_safety_review.py",
+    "backend/tests/test_disabled_shadow_wiring_runtime.py",
+    "backend/tests/test_shadow_wiring_verification_diff_review.py",
+    "docs/PRIORITY1_7B_23_DISABLED_SHADOW_WIRING_IMPLEMENTATION.md",
+    "docs/PRIORITY1_7B_24_SHADOW_WIRING_VERIFICATION_DIFF_REVIEW.md",
+    "docs/PRIORITY1_7B_25_COMMIT_SCOPE_RELEASE_SAFETY_REVIEW.md"
+  ],
+  "excluded_from_commit_files": [
+    "backend/.env.example",
+    "backend/api/main.py",
+    "backend/api/schemas.py",
+    "backend/config.py",
+    "backend/core/market_xg_calibration.py",
+    "backend/core/priority1_diagnostics.py",
+    "backend/core/temporal_backtest.py",
+    "backend/data/activation_large_shift_reviews.json",
+    "backend/data/cache/nt_ratings.json",
+    "docs/PRIORITY1_2_LOCAL_MARKET_XG_VALIDATION.md",
+    "backend/data/cache/recent_form_fusion_cache.json.before_refresh"
+  ],
+  "file_classifications": [
+    {
+      "path": "backend/.env.example",
+      "status": "tracked_modified",
+      "bucket": "E_pre_existing_production",
+      "commit_readiness": "exclude_for_now",
+      "reason": "API/config/env deployment surface; not P1.7B.23 scope",
+      "risk_level": "critical",
+      "required_action": "Exclude from shadow-wiring commits; separate product review"
+    },
+    {
+      "path": "backend/api/main.py",
+      "status": "tracked_modified",
+      "bucket": "E_pre_existing_production",
+      "commit_readiness": "exclude_for_now",
+      "reason": "API/config/env deployment surface; not P1.7B.23 scope",
+      "risk_level": "critical",
+      "required_action": "Exclude from shadow-wiring commits; separate product review"
+    },
+    {
+      "path": "backend/api/schemas.py",
+      "status": "tracked_modified",
+      "bucket": "E_pre_existing_production",
+      "commit_readiness": "exclude_for_now",
+      "reason": "API/config/env deployment surface; not P1.7B.23 scope",
+      "risk_level": "critical",
+      "required_action": "Exclude from shadow-wiring commits; separate product review"
+    },
+    {
+      "path": "backend/config.py",
+      "status": "tracked_modified",
+      "bucket": "E_pre_existing_production",
+      "commit_readiness": "exclude_for_now",
+      "reason": "API/config/env deployment surface; not P1.7B.23 scope",
+      "risk_level": "critical",
+      "required_action": "Exclude from shadow-wiring commits; separate product review"
+    },
+    {
+      "path": "backend/core/market_xg_calibration.py",
+      "status": "tracked_modified",
+      "bucket": "E_pre_existing_production",
+      "commit_readiness": "exclude_for_now",
+      "reason": "Pre-existing production-path diff unrelated to shadow wiring",
+      "risk_level": "high",
+      "required_action": "Exclude unless separately reviewed (Commit E)"
+    },
+    {
+      "path": "backend/core/priority1_backtest.py",
+      "status": "tracked_modified",
+      "bucket": "A_P1_7B_23_partial",
+      "commit_readiness": "manual_review_required",
+      "reason": "Mixed P1.7B.23 hunks + pre-existing research diffs",
+      "risk_level": "high",
+      "required_action": "git add -p required; stage only P1.7B.23 hunks"
+    },
+    {
+      "path": "backend/core/priority1_diagnostics.py",
+      "status": "tracked_modified",
+      "bucket": "E_pre_existing_production",
+      "commit_readiness": "exclude_for_now",
+      "reason": "Pre-existing production-path diff unrelated to shadow wiring",
+      "risk_level": "high",
+      "required_action": "Exclude unless separately reviewed (Commit E)"
+    },
+    {
+      "path": "backend/core/priority1_options.py",
+      "status": "tracked_modified",
+      "bucket": "A_P1_7B_23_partial",
+      "commit_readiness": "manual_review_required",
+      "reason": "Mixed P1.7B.23 hunks + pre-existing research diffs",
+      "risk_level": "high",
+      "required_action": "git add -p required; stage only P1.7B.23 hunks"
+    },
+    {
+      "path": "backend/core/temporal_backtest.py",
+      "status": "tracked_modified",
+      "bucket": "E_pre_existing_production",
+      "commit_readiness": "exclude_for_now",
+      "reason": "Pre-existing production-path diff unrelated to shadow wiring",
+      "risk_level": "high",
+      "required_action": "Exclude unless separately reviewed (Commit E)"
+    },
+    {
+      "path": "backend/data/activation_large_shift_reviews.json",
+      "status": "tracked_modified",
+      "bucket": "E_pre_existing_production",
+      "commit_readiness": "exclude_for_now",
+      "reason": "Pre-existing production-path diff unrelated to shadow wiring",
+      "risk_level": "high",
+      "required_action": "Exclude unless separately reviewed (Commit E)"
+    },
+    {
+      "path": "backend/data/cache/nt_ratings.json",
+      "status": "tracked_modified",
+      "bucket": "E_pre_existing_production",
+      "commit_readiness": "exclude_for_now",
+      "reason": "Pre-existing production-path diff unrelated to shadow wiring",
+      "risk_level": "high",
+      "required_action": "Exclude unless separately reviewed (Commit E)"
+    },
+    {
+      "path": "docs/PRIORITY1_2_LOCAL_MARKET_XG_VALIDATION.md",
+      "status": "tracked_modified",
+      "bucket": "E_pre_existing_production",
+      "commit_readiness": "exclude_for_now",
+      "reason": "Pre-existing production-path diff unrelated to shadow wiring",
+      "risk_level": "high",
+      "required_action": "Exclude unless separately reviewed (Commit E)"
+    },
+    {
+      "path": "backend/core/activation_readiness_gate_context_audit.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/commit_scope_release_safety_review.py",
+      "status": "untracked",
+      "bucket": "C_P1_7B_25",
+      "commit_readiness": "safe_for_commit_review",
+      "reason": "P1.7B.25 review artifact",
+      "risk_level": "low",
+      "required_action": "Include in Commit C after review"
+    },
+    {
+      "path": "backend/core/conditional_spread_governance.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/controlled_activation_plan_draft.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/disabled_shadow_wiring_design.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/disabled_shadow_wiring_runtime.py",
+      "status": "untracked",
+      "bucket": "A_P1_7B_23",
+      "commit_readiness": "safe_for_commit_review",
+      "reason": "P1.7B.23 shadow wiring implementation",
+      "risk_level": "low",
+      "required_action": "Include in Commit A"
+    },
+    {
+      "path": "backend/core/dual_regime_favorite_confidence_governance.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/dynamic_goals_bounded.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/dynamic_goals_v3.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/dynamic_goals_v3_gates.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/dynamic_goals_v3_rolling.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/favorite_confidence_curve_audit.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/favorite_confidence_curve_prototype.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/favorite_direction_root_cause_audit.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/favorite_direction_safety_gate.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/favorite_direction_safety_gate_validation.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/favorite_spread_too_small_decomposition.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/favorite_trust_calibration.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/favorite_trust_validation.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/final_activation_readiness_audit.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/hybrid_balance_tuning.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/hybrid_balance_validation.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/independent_signal_wiring_audit.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/independent_signal_wiring_prototype.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/latent_xg_bias_audit.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/market_calibration_v2.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/power_v3.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/power_zscore_residual.py",
+      "status": "untracked",
+      "bucket": "F_excluded",
+      "commit_readiness": "manual_review_required",
+      "reason": "Unclassified; requires manual bucket assignment",
+      "risk_level": "medium",
+      "required_action": "Review manually before any commit"
+    },
+    {
+      "path": "backend/core/priority1_4_gates.py",
+      "status": "untracked",
+      "bucket": "F_excluded",
+      "commit_readiness": "manual_review_required",
+      "reason": "Unclassified; requires manual bucket assignment",
+      "risk_level": "medium",
+      "required_action": "Review manually before any commit"
+    },
+    {
+      "path": "backend/core/priority1_4_validation.py",
+      "status": "untracked",
+      "bucket": "F_excluded",
+      "commit_readiness": "manual_review_required",
+      "reason": "Unclassified; requires manual bucket assignment",
+      "risk_level": "medium",
+      "required_action": "Review manually before any commit"
+    },
+    {
+      "path": "backend/core/priority1_5_validation.py",
+      "status": "untracked",
+      "bucket": "F_excluded",
+      "commit_readiness": "manual_review_required",
+      "reason": "Unclassified; requires manual bucket assignment",
+      "risk_level": "medium",
+      "required_action": "Review manually before any commit"
+    },
+    {
+      "path": "backend/core/priority1_6_validation.py",
+      "status": "untracked",
+      "bucket": "F_excluded",
+      "commit_readiness": "manual_review_required",
+      "reason": "Unclassified; requires manual bucket assignment",
+      "risk_level": "medium",
+      "required_action": "Review manually before any commit"
+    },
+    {
+      "path": "backend/core/scoreline_ranking_topk_robustness_audit.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/shadow_wiring_verification_diff_review.py",
+      "status": "untracked",
+      "bucket": "B_P1_7B_24",
+      "commit_readiness": "safe_for_commit_review",
+      "reason": "P1.7B.24 verification scope",
+      "risk_level": "low",
+      "required_action": "Include in Commit B after hunk review complete"
+    },
+    {
+      "path": "backend/core/strength_activation_readiness_audit.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/strength_based_xg_gates.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/strength_based_xg_generator.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/strength_based_xg_micro_probes.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/strength_based_xg_p1c_analysis.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/strength_based_xg_p1c_refinement.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/strength_based_xg_refinement.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/strength_based_xg_stage_diagnosis.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/strength_based_xg_validation.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/strength_recovery_diagnostics.py",
+      "status": "untracked",
+      "bucket": "F_excluded",
+      "commit_readiness": "manual_review_required",
+      "reason": "Unclassified; requires manual bucket assignment",
+      "risk_level": "medium",
+      "required_action": "Review manually before any commit"
+    },
+    {
+      "path": "backend/core/strength_signal_weight_calibration.py",
+      "status": "untracked",
+      "bucket": "F_excluded",
+      "commit_readiness": "manual_review_required",
+      "reason": "Unclassified; requires manual bucket assignment",
+      "risk_level": "medium",
+      "required_action": "Review manually before any commit"
+    },
+    {
+      "path": "backend/core/strength_signal_weight_calibration_validation.py",
+      "status": "untracked",
+      "bucket": "F_excluded",
+      "commit_readiness": "manual_review_required",
+      "reason": "Unclassified; requires manual bucket assignment",
+      "risk_level": "medium",
+      "required_action": "Review manually before any commit"
+    },
+    {
+      "path": "backend/core/strength_signal_weight_narrow_refinement.py",
+      "status": "untracked",
+      "bucket": "F_excluded",
+      "commit_readiness": "manual_review_required",
+      "reason": "Unclassified; requires manual bucket assignment",
+      "risk_level": "medium",
+      "required_action": "Review manually before any commit"
+    },
+    {
+      "path": "backend/core/strength_signal_weight_narrow_refinement_validation.py",
+      "status": "untracked",
+      "bucket": "F_excluded",
+      "commit_readiness": "manual_review_required",
+      "reason": "Unclassified; requires manual bucket assignment",
+      "risk_level": "medium",
+      "required_action": "Review manually before any commit"
+    },
+    {
+      "path": "backend/core/strength_spread_residual_correction.py",
+      "status": "untracked",
+      "bucket": "F_excluded",
+      "commit_readiness": "manual_review_required",
+      "reason": "Unclassified; requires manual bucket assignment",
+      "risk_level": "medium",
+      "required_action": "Review manually before any commit"
+    },
+    {
+      "path": "backend/core/strength_spread_residual_validation.py",
+      "status": "untracked",
+      "bucket": "F_excluded",
+      "commit_readiness": "manual_review_required",
+      "reason": "Unclassified; requires manual bucket assignment",
+      "risk_level": "medium",
+      "required_action": "Review manually before any commit"
+    },
+    {
+      "path": "backend/core/strength_stage_recovery.py",
+      "status": "untracked",
+      "bucket": "F_excluded",
+      "commit_readiness": "manual_review_required",
+      "reason": "Unclassified; requires manual bucket assignment",
+      "risk_level": "medium",
+      "required_action": "Review manually before any commit"
+    },
+    {
+      "path": "backend/core/strength_stage_recovery_total_focus_validation.py",
+      "status": "untracked",
+      "bucket": "F_excluded",
+      "commit_readiness": "manual_review_required",
+      "reason": "Unclassified; requires manual bucket assignment",
+      "risk_level": "medium",
+      "required_action": "Review manually before any commit"
+    },
+    {
+      "path": "backend/core/strength_stage_recovery_validation.py",
+      "status": "untracked",
+      "bucket": "F_excluded",
+      "commit_readiness": "manual_review_required",
+      "reason": "Unclassified; requires manual bucket assignment",
+      "risk_level": "medium",
+      "required_action": "Review manually before any commit"
+    },
+    {
+      "path": "backend/core/trust_gated_spread_hybrid.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/trust_gated_spread_hybrid_validation.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/validation_metrology_redesign.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/wc2018_residual_decomposition.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/wc2022_top5_robustness_blocker_decomposition.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/core/xg_coherent_pipeline.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/data/cache/recent_form_fusion_cache.json.before_refresh",
+      "status": "untracked",
+      "bucket": "F_excluded",
+      "commit_readiness": "exclude_for_now",
+      "reason": "Generated/cache data; not source commit scope",
+      "risk_level": "medium",
+      "required_action": "Do not commit"
+    },
+    {
+      "path": "backend/scripts/audit_prediction_quality_root_cause.py",
+      "status": "untracked",
+      "bucket": "F_excluded",
+      "commit_readiness": "manual_review_required",
+      "reason": "Unclassified; requires manual bucket assignment",
+      "risk_level": "medium",
+      "required_action": "Review manually before any commit"
+    },
+    {
+      "path": "backend/scripts/audit_recent_form_shadow_influence.py",
+      "status": "untracked",
+      "bucket": "F_excluded",
+      "commit_readiness": "manual_review_required",
+      "reason": "Unclassified; requires manual bucket assignment",
+      "risk_level": "medium",
+      "required_action": "Review manually before any commit"
+    },
+    {
+      "path": "backend/scripts/run_priority1_3_combined_validation.py",
+      "status": "untracked",
+      "bucket": "F_excluded",
+      "commit_readiness": "manual_review_required",
+      "reason": "Unclassified; requires manual bucket assignment",
+      "risk_level": "medium",
+      "required_action": "Review manually before any commit"
+    },
+    {
+      "path": "backend/scripts/run_priority1_4_architecture_validation.py",
+      "status": "untracked",
+      "bucket": "F_excluded",
+      "commit_readiness": "manual_review_required",
+      "reason": "Unclassified; requires manual bucket assignment",
+      "risk_level": "medium",
+      "required_action": "Review manually before any commit"
+    },
+    {
+      "path": "backend/scripts/run_priority1_5_coherent_model_validation.py",
+      "status": "untracked",
+      "bucket": "F_excluded",
+      "commit_readiness": "manual_review_required",
+      "reason": "Unclassified; requires manual bucket assignment",
+      "risk_level": "medium",
+      "required_action": "Review manually before any commit"
+    },
+    {
+      "path": "backend/scripts/run_priority1_6_dynamic_goals_v3_validation.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7a_latent_xg_bias_audit.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_10_1_independent_signal_wiring_prototype.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_10_independent_signal_wiring_audit.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_11_validation_metrology_redesign.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_12_conditional_spread_governance.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_13_dual_regime_favorite_confidence_governance.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_14_favorite_spread_too_small_decomposition.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_15_favorite_confidence_curve_audit.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_16_favorite_confidence_curve_prototype.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_17_wc2022_top5_robustness_blocker_decomposition.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_18_scoreline_ranking_topk_robustness_audit.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_19_activation_readiness_gate_context_audit.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_1_strength_xg_refinement.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_20_final_activation_readiness_audit.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_21_controlled_activation_plan_draft.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_22_disabled_shadow_wiring_design.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_23_disabled_shadow_wiring_implementation.py",
+      "status": "untracked",
+      "bucket": "A_P1_7B_23",
+      "commit_readiness": "safe_for_commit_review",
+      "reason": "P1.7B.23 shadow wiring implementation",
+      "risk_level": "low",
+      "required_action": "Include in Commit A"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_24_shadow_wiring_verification_diff_review.py",
+      "status": "untracked",
+      "bucket": "B_P1_7B_24",
+      "commit_readiness": "safe_for_commit_review",
+      "reason": "P1.7B.24 verification scope",
+      "risk_level": "low",
+      "required_action": "Include in Commit B after hunk review complete"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_25_commit_scope_release_safety_review.py",
+      "status": "untracked",
+      "bucket": "C_P1_7B_25",
+      "commit_readiness": "safe_for_commit_review",
+      "reason": "P1.7B.25 review artifact",
+      "risk_level": "low",
+      "required_action": "Include in Commit C after review"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_2_p1c_stability_refinement.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_3_stage_aware_diagnosis.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_4_1_r16_total_recovery_focus.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_4_r16_stage_aware_recovery.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_5_wc2018_residual_decomposition.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_6_1_generic_favorite_trust_calibration.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_6_2_trust_gated_spread_damping_hybrid.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_6_3_hybrid_balance_tuning.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_6_spread_share_residual_correction.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_7_favorite_direction_root_cause_audit.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_8_favorite_direction_safety_gate.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_9_1_narrow_sw3_sw6_signal_weight_refinement.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_9_2_activation_readiness_regression_protection_audit.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_9_p1c2_signal_weight_calibration.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/scripts/run_priority1_7b_strength_based_xg_validation.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/tests/test_activation_readiness_gate_context_audit.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/tests/test_commit_scope_release_safety_review.py",
+      "status": "untracked",
+      "bucket": "C_P1_7B_25",
+      "commit_readiness": "safe_for_commit_review",
+      "reason": "P1.7B.25 review artifact",
+      "risk_level": "low",
+      "required_action": "Include in Commit C after review"
+    },
+    {
+      "path": "backend/tests/test_conditional_spread_governance.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/tests/test_controlled_activation_plan_draft.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/tests/test_disabled_shadow_wiring_design.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/tests/test_disabled_shadow_wiring_runtime.py",
+      "status": "untracked",
+      "bucket": "A_P1_7B_23",
+      "commit_readiness": "safe_for_commit_review",
+      "reason": "P1.7B.23 shadow wiring implementation",
+      "risk_level": "low",
+      "required_action": "Include in Commit A"
+    },
+    {
+      "path": "backend/tests/test_dual_regime_favorite_confidence_governance.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/tests/test_dynamic_goals_v3.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/tests/test_favorite_confidence_curve_audit.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/tests/test_favorite_confidence_curve_prototype.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/tests/test_favorite_direction_root_cause_audit.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/tests/test_favorite_direction_safety_gate.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/tests/test_favorite_spread_too_small_decomposition.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/tests/test_favorite_trust_calibration.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/tests/test_final_activation_readiness_audit.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/tests/test_hybrid_balance_tuning.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/tests/test_independent_signal_wiring_audit.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/tests/test_independent_signal_wiring_prototype.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/tests/test_priority1_4_architecture.py",
+      "status": "untracked",
+      "bucket": "F_excluded",
+      "commit_readiness": "manual_review_required",
+      "reason": "Unclassified; requires manual bucket assignment",
+      "risk_level": "medium",
+      "required_action": "Review manually before any commit"
+    },
+    {
+      "path": "backend/tests/test_priority1_5_coherent_model.py",
+      "status": "untracked",
+      "bucket": "F_excluded",
+      "commit_readiness": "manual_review_required",
+      "reason": "Unclassified; requires manual bucket assignment",
+      "risk_level": "medium",
+      "required_action": "Review manually before any commit"
+    },
+    {
+      "path": "backend/tests/test_priority1_6_dynamic_goals_v3_pipeline.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/tests/test_priority1_7a_latent_xg_bias_audit.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/tests/test_scoreline_ranking_topk_robustness_audit.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/tests/test_shadow_wiring_verification_diff_review.py",
+      "status": "untracked",
+      "bucket": "B_P1_7B_24",
+      "commit_readiness": "safe_for_commit_review",
+      "reason": "P1.7B.24 verification scope",
+      "risk_level": "low",
+      "required_action": "Include in Commit B after hunk review complete"
+    },
+    {
+      "path": "backend/tests/test_spread_residual_correction.py",
+      "status": "untracked",
+      "bucket": "F_excluded",
+      "commit_readiness": "manual_review_required",
+      "reason": "Unclassified; requires manual bucket assignment",
+      "risk_level": "medium",
+      "required_action": "Review manually before any commit"
+    },
+    {
+      "path": "backend/tests/test_strength_activation_readiness_audit.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/tests/test_strength_based_xg_generator.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/tests/test_strength_signal_weight_calibration.py",
+      "status": "untracked",
+      "bucket": "F_excluded",
+      "commit_readiness": "manual_review_required",
+      "reason": "Unclassified; requires manual bucket assignment",
+      "risk_level": "medium",
+      "required_action": "Review manually before any commit"
+    },
+    {
+      "path": "backend/tests/test_strength_signal_weight_narrow_refinement.py",
+      "status": "untracked",
+      "bucket": "F_excluded",
+      "commit_readiness": "manual_review_required",
+      "reason": "Unclassified; requires manual bucket assignment",
+      "risk_level": "medium",
+      "required_action": "Review manually before any commit"
+    },
+    {
+      "path": "backend/tests/test_trust_gated_spread_hybrid.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/tests/test_validation_metrology_redesign.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/tests/test_wc2018_residual_decomposition.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "backend/tests/test_wc2022_top5_robustness_blocker_decomposition.py",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_3_COMBINED_CANDIDATE_VALIDATION.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Research documentation artifact",
+      "risk_level": "low",
+      "required_action": "Optional Commit D"
+    },
+    {
+      "path": "docs/PRIORITY1_4_ARCHITECTURE_VALIDATION.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Research documentation artifact",
+      "risk_level": "low",
+      "required_action": "Optional Commit D"
+    },
+    {
+      "path": "docs/PRIORITY1_4_PIPELINE_AUDIT.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Research documentation artifact",
+      "risk_level": "low",
+      "required_action": "Optional Commit D"
+    },
+    {
+      "path": "docs/PRIORITY1_5_COHERENT_MODEL_UPGRADE.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Research documentation artifact",
+      "risk_level": "low",
+      "required_action": "Optional Commit D"
+    },
+    {
+      "path": "docs/PRIORITY1_5_PIPELINE_AUDIT.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Research documentation artifact",
+      "risk_level": "low",
+      "required_action": "Optional Commit D"
+    },
+    {
+      "path": "docs/PRIORITY1_6_DYNAMIC_GOALS_V3.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_6_DYNAMIC_GOALS_V3_AUDIT.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7A_LATENT_XG_BIAS_AUDIT.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7A_LATENT_XG_BIAS_AUDIT_DESIGN.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_10_1_INDEPENDENT_SIGNAL_WIRING_PROTOTYPE.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_10_INDEPENDENT_SIGNAL_WIRING_AUDIT.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_11_VALIDATION_METROLOGY_REDESIGN.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_12_CONDITIONAL_SPREAD_GOVERNANCE.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_13_DUAL_REGIME_FAVORITE_CONFIDENCE_GOVERNANCE.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_14_FAVORITE_SPREAD_TOO_SMALL_ROOT_CAUSE_DECOMPOSITION.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_15_FAVORITE_CONFIDENCE_CURVE_AUDIT.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_16_FAVORITE_CONFIDENCE_CURVE_PROTOTYPE.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_17_WC2022_TOP5_ROBUSTNESS_BLOCKER_DECOMPOSITION.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_18_SCORELINE_RANKING_TOPK_ROBUSTNESS_AUDIT.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_19_ACTIVATION_READINESS_GATE_CONTEXT_AUDIT.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_1_STRENGTH_XG_REFINEMENT.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_1_STRENGTH_XG_REFINEMENT_AUDIT.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_20_FINAL_ACTIVATION_READINESS_AUDIT.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_21_CONTROLLED_ACTIVATION_PLAN_DRAFT.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_22_DISABLED_SHADOW_WIRING_DESIGN.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_23_DISABLED_SHADOW_WIRING_IMPLEMENTATION.md",
+      "status": "untracked",
+      "bucket": "A_P1_7B_23",
+      "commit_readiness": "safe_for_commit_review",
+      "reason": "P1.7B.23 shadow wiring implementation",
+      "risk_level": "low",
+      "required_action": "Include in Commit A"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_24_SHADOW_WIRING_VERIFICATION_DIFF_REVIEW.md",
+      "status": "untracked",
+      "bucket": "B_P1_7B_24",
+      "commit_readiness": "safe_for_commit_review",
+      "reason": "P1.7B.24 verification scope",
+      "risk_level": "low",
+      "required_action": "Include in Commit B after hunk review complete"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_25_COMMIT_SCOPE_RELEASE_SAFETY_REVIEW.md",
+      "status": "untracked",
+      "bucket": "C_P1_7B_25",
+      "commit_readiness": "safe_for_commit_review",
+      "reason": "P1.7B.25 review artifact",
+      "risk_level": "low",
+      "required_action": "Include in Commit C after review"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_2_P1C_STABILITY_ANALYSIS.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_2_P1C_STABILITY_REFINEMENT.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_3_STAGE_AWARE_MICRO_PROBES.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_3_STAGE_AWARE_STABILITY_DIAGNOSIS.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_4_1_R16_TOTAL_RECOVERY_AUDIT.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_4_1_R16_TOTAL_RECOVERY_FOCUS.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_4_R16_STAGE_AWARE_RECOVERY.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_5_WC2018_RESIDUAL_DECOMPOSITION.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_6_1_GENERIC_FAVORITE_TRUST_CALIBRATION.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_6_2_TRUST_GATED_SPREAD_DAMPING_HYBRID.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_6_3_HYBRID_BALANCE_TUNING.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_6_STAGE_AWARE_SPREAD_SHARE_RESIDUAL_CORRECTION.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_7_FAVORITE_DIRECTION_ROOT_CAUSE_AUDIT.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_8_FAVORITE_DIRECTION_SAFETY_GATE.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_9_1_NARROW_SW3_SW6_SIGNAL_WEIGHT_REFINEMENT.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_9_2_ACTIVATION_READINESS_REGRESSION_PROTECTION_AUDIT.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_9_P1C2_SIGNAL_WEIGHT_CALIBRATION.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_STRENGTH_BASED_XG_AUDIT.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/PRIORITY1_7B_STRENGTH_BASED_XG_GENERATOR.md",
+      "status": "untracked",
+      "bucket": "D_prior_research",
+      "commit_readiness": "manual_review_required",
+      "reason": "Prior P1.7B research/audit artifact",
+      "risk_level": "medium",
+      "required_action": "Optional Commit D after separate review; not with shadow wiring"
+    },
+    {
+      "path": "docs/RAPIDAPI_FREE_LIVE_FOOTBALL_EVALUATION.md",
+      "status": "untracked",
+      "bucket": "F_excluded",
+      "commit_readiness": "manual_review_required",
+      "reason": "Unclassified; requires manual bucket assignment",
+      "risk_level": "medium",
+      "required_action": "Review manually before any commit"
+    },
+    {
+      "path": "docs/priority1_5_validation_output.json",
+      "status": "untracked",
+      "bucket": "F_excluded",
+      "commit_readiness": "manual_review_required",
+      "reason": "Unclassified; requires manual bucket assignment",
+      "risk_level": "medium",
+      "required_action": "Review manually before any commit"
+    }
+  ],
+  "file_classification_by_bucket": {
+    "E_pre_existing_production": [
+      "backend/.env.example",
+      "backend/api/main.py",
+      "backend/api/schemas.py",
+      "backend/config.py",
+      "backend/core/market_xg_calibration.py",
+      "backend/core/priority1_diagnostics.py",
+      "backend/core/temporal_backtest.py",
+      "backend/data/activation_large_shift_reviews.json",
+      "backend/data/cache/nt_ratings.json",
+      "docs/PRIORITY1_2_LOCAL_MARKET_XG_VALIDATION.md"
+    ],
+    "A_P1_7B_23_partial": [
+      "backend/core/priority1_backtest.py",
+      "backend/core/priority1_options.py"
+    ],
+    "D_prior_research": [
+      "backend/core/activation_readiness_gate_context_audit.py",
+      "backend/core/conditional_spread_governance.py",
+      "backend/core/controlled_activation_plan_draft.py",
+      "backend/core/disabled_shadow_wiring_design.py",
+      "backend/core/dual_regime_favorite_confidence_governance.py",
+      "backend/core/dynamic_goals_bounded.py",
+      "backend/core/dynamic_goals_v3.py",
+      "backend/core/dynamic_goals_v3_gates.py",
+      "backend/core/dynamic_goals_v3_rolling.py",
+      "backend/core/favorite_confidence_curve_audit.py",
+      "backend/core/favorite_confidence_curve_prototype.py",
+      "backend/core/favorite_direction_root_cause_audit.py",
+      "backend/core/favorite_direction_safety_gate.py",
+      "backend/core/favorite_direction_safety_gate_validation.py",
+      "backend/core/favorite_spread_too_small_decomposition.py",
+      "backend/core/favorite_trust_calibration.py",
+      "backend/core/favorite_trust_validation.py",
+      "backend/core/final_activation_readiness_audit.py",
+      "backend/core/hybrid_balance_tuning.py",
+      "backend/core/hybrid_balance_validation.py",
+      "backend/core/independent_signal_wiring_audit.py",
+      "backend/core/independent_signal_wiring_prototype.py",
+      "backend/core/latent_xg_bias_audit.py",
+      "backend/core/market_calibration_v2.py",
+      "backend/core/power_v3.py",
+      "backend/core/scoreline_ranking_topk_robustness_audit.py",
+      "backend/core/strength_activation_readiness_audit.py",
+      "backend/core/strength_based_xg_gates.py",
+      "backend/core/strength_based_xg_generator.py",
+      "backend/core/strength_based_xg_micro_probes.py",
+      "backend/core/strength_based_xg_p1c_analysis.py",
+      "backend/core/strength_based_xg_p1c_refinement.py",
+      "backend/core/strength_based_xg_refinement.py",
+      "backend/core/strength_based_xg_stage_diagnosis.py",
+      "backend/core/strength_based_xg_validation.py",
+      "backend/core/trust_gated_spread_hybrid.py",
+      "backend/core/trust_gated_spread_hybrid_validation.py",
+      "backend/core/validation_metrology_redesign.py",
+      "backend/core/wc2018_residual_decomposition.py",
+      "backend/core/wc2022_top5_robustness_blocker_decomposition.py",
+      "backend/core/xg_coherent_pipeline.py",
+      "backend/scripts/run_priority1_6_dynamic_goals_v3_validation.py",
+      "backend/scripts/run_priority1_7a_latent_xg_bias_audit.py",
+      "backend/scripts/run_priority1_7b_10_1_independent_signal_wiring_prototype.py",
+      "backend/scripts/run_priority1_7b_10_independent_signal_wiring_audit.py",
+      "backend/scripts/run_priority1_7b_11_validation_metrology_redesign.py",
+      "backend/scripts/run_priority1_7b_12_conditional_spread_governance.py",
+      "backend/scripts/run_priority1_7b_13_dual_regime_favorite_confidence_governance.py",
+      "backend/scripts/run_priority1_7b_14_favorite_spread_too_small_decomposition.py",
+      "backend/scripts/run_priority1_7b_15_favorite_confidence_curve_audit.py",
+      "backend/scripts/run_priority1_7b_16_favorite_confidence_curve_prototype.py",
+      "backend/scripts/run_priority1_7b_17_wc2022_top5_robustness_blocker_decomposition.py",
+      "backend/scripts/run_priority1_7b_18_scoreline_ranking_topk_robustness_audit.py",
+      "backend/scripts/run_priority1_7b_19_activation_readiness_gate_context_audit.py",
+      "backend/scripts/run_priority1_7b_1_strength_xg_refinement.py",
+      "backend/scripts/run_priority1_7b_20_final_activation_readiness_audit.py",
+      "backend/scripts/run_priority1_7b_21_controlled_activation_plan_draft.py",
+      "backend/scripts/run_priority1_7b_22_disabled_shadow_wiring_design.py",
+      "backend/scripts/run_priority1_7b_2_p1c_stability_refinement.py",
+      "backend/scripts/run_priority1_7b_3_stage_aware_diagnosis.py",
+      "backend/scripts/run_priority1_7b_4_1_r16_total_recovery_focus.py",
+      "backend/scripts/run_priority1_7b_4_r16_stage_aware_recovery.py",
+      "backend/scripts/run_priority1_7b_5_wc2018_residual_decomposition.py",
+      "backend/scripts/run_priority1_7b_6_1_generic_favorite_trust_calibration.py",
+      "backend/scripts/run_priority1_7b_6_2_trust_gated_spread_damping_hybrid.py",
+      "backend/scripts/run_priority1_7b_6_3_hybrid_balance_tuning.py",
+      "backend/scripts/run_priority1_7b_6_spread_share_residual_correction.py",
+      "backend/scripts/run_priority1_7b_7_favorite_direction_root_cause_audit.py",
+      "backend/scripts/run_priority1_7b_8_favorite_direction_safety_gate.py",
+      "backend/scripts/run_priority1_7b_9_1_narrow_sw3_sw6_signal_weight_refinement.py",
+      "backend/scripts/run_priority1_7b_9_2_activation_readiness_regression_protection_audit.py",
+      "backend/scripts/run_priority1_7b_9_p1c2_signal_weight_calibration.py",
+      "backend/scripts/run_priority1_7b_strength_based_xg_validation.py",
+      "backend/tests/test_activation_readiness_gate_context_audit.py",
+      "backend/tests/test_conditional_spread_governance.py",
+      "backend/tests/test_controlled_activation_plan_draft.py",
+      "backend/tests/test_disabled_shadow_wiring_design.py",
+      "backend/tests/test_dual_regime_favorite_confidence_governance.py",
+      "backend/tests/test_dynamic_goals_v3.py",
+      "backend/tests/test_favorite_confidence_curve_audit.py",
+      "backend/tests/test_favorite_confidence_curve_prototype.py",
+      "backend/tests/test_favorite_direction_root_cause_audit.py",
+      "backend/tests/test_favorite_direction_safety_gate.py",
+      "backend/tests/test_favorite_spread_too_small_decomposition.py",
+      "backend/tests/test_favorite_trust_calibration.py",
+      "backend/tests/test_final_activation_readiness_audit.py",
+      "backend/tests/test_hybrid_balance_tuning.py",
+      "backend/tests/test_independent_signal_wiring_audit.py",
+      "backend/tests/test_independent_signal_wiring_prototype.py",
+      "backend/tests/test_priority1_6_dynamic_goals_v3_pipeline.py",
+      "backend/tests/test_priority1_7a_latent_xg_bias_audit.py",
+      "backend/tests/test_scoreline_ranking_topk_robustness_audit.py",
+      "backend/tests/test_strength_activation_readiness_audit.py",
+      "backend/tests/test_strength_based_xg_generator.py",
+      "backend/tests/test_trust_gated_spread_hybrid.py",
+      "backend/tests/test_validation_metrology_redesign.py",
+      "backend/tests/test_wc2018_residual_decomposition.py",
+      "backend/tests/test_wc2022_top5_robustness_blocker_decomposition.py",
+      "docs/PRIORITY1_3_COMBINED_CANDIDATE_VALIDATION.md",
+      "docs/PRIORITY1_4_ARCHITECTURE_VALIDATION.md",
+      "docs/PRIORITY1_4_PIPELINE_AUDIT.md",
+      "docs/PRIORITY1_5_COHERENT_MODEL_UPGRADE.md",
+      "docs/PRIORITY1_5_PIPELINE_AUDIT.md",
+      "docs/PRIORITY1_6_DYNAMIC_GOALS_V3.md",
+      "docs/PRIORITY1_6_DYNAMIC_GOALS_V3_AUDIT.md",
+      "docs/PRIORITY1_7A_LATENT_XG_BIAS_AUDIT.md",
+      "docs/PRIORITY1_7A_LATENT_XG_BIAS_AUDIT_DESIGN.md",
+      "docs/PRIORITY1_7B_10_1_INDEPENDENT_SIGNAL_WIRING_PROTOTYPE.md",
+      "docs/PRIORITY1_7B_10_INDEPENDENT_SIGNAL_WIRING_AUDIT.md",
+      "docs/PRIORITY1_7B_11_VALIDATION_METROLOGY_REDESIGN.md",
+      "docs/PRIORITY1_7B_12_CONDITIONAL_SPREAD_GOVERNANCE.md",
+      "docs/PRIORITY1_7B_13_DUAL_REGIME_FAVORITE_CONFIDENCE_GOVERNANCE.md",
+      "docs/PRIORITY1_7B_14_FAVORITE_SPREAD_TOO_SMALL_ROOT_CAUSE_DECOMPOSITION.md",
+      "docs/PRIORITY1_7B_15_FAVORITE_CONFIDENCE_CURVE_AUDIT.md",
+      "docs/PRIORITY1_7B_16_FAVORITE_CONFIDENCE_CURVE_PROTOTYPE.md",
+      "docs/PRIORITY1_7B_17_WC2022_TOP5_ROBUSTNESS_BLOCKER_DECOMPOSITION.md",
+      "docs/PRIORITY1_7B_18_SCORELINE_RANKING_TOPK_ROBUSTNESS_AUDIT.md",
+      "docs/PRIORITY1_7B_19_ACTIVATION_READINESS_GATE_CONTEXT_AUDIT.md",
+      "docs/PRIORITY1_7B_1_STRENGTH_XG_REFINEMENT.md",
+      "docs/PRIORITY1_7B_1_STRENGTH_XG_REFINEMENT_AUDIT.md",
+      "docs/PRIORITY1_7B_20_FINAL_ACTIVATION_READINESS_AUDIT.md",
+      "docs/PRIORITY1_7B_21_CONTROLLED_ACTIVATION_PLAN_DRAFT.md",
+      "docs/PRIORITY1_7B_22_DISABLED_SHADOW_WIRING_DESIGN.md",
+      "docs/PRIORITY1_7B_2_P1C_STABILITY_ANALYSIS.md",
+      "docs/PRIORITY1_7B_2_P1C_STABILITY_REFINEMENT.md",
+      "docs/PRIORITY1_7B_3_STAGE_AWARE_MICRO_PROBES.md",
+      "docs/PRIORITY1_7B_3_STAGE_AWARE_STABILITY_DIAGNOSIS.md",
+      "docs/PRIORITY1_7B_4_1_R16_TOTAL_RECOVERY_AUDIT.md",
+      "docs/PRIORITY1_7B_4_1_R16_TOTAL_RECOVERY_FOCUS.md",
+      "docs/PRIORITY1_7B_4_R16_STAGE_AWARE_RECOVERY.md",
+      "docs/PRIORITY1_7B_5_WC2018_RESIDUAL_DECOMPOSITION.md",
+      "docs/PRIORITY1_7B_6_1_GENERIC_FAVORITE_TRUST_CALIBRATION.md",
+      "docs/PRIORITY1_7B_6_2_TRUST_GATED_SPREAD_DAMPING_HYBRID.md",
+      "docs/PRIORITY1_7B_6_3_HYBRID_BALANCE_TUNING.md",
+      "docs/PRIORITY1_7B_6_STAGE_AWARE_SPREAD_SHARE_RESIDUAL_CORRECTION.md",
+      "docs/PRIORITY1_7B_7_FAVORITE_DIRECTION_ROOT_CAUSE_AUDIT.md",
+      "docs/PRIORITY1_7B_8_FAVORITE_DIRECTION_SAFETY_GATE.md",
+      "docs/PRIORITY1_7B_9_1_NARROW_SW3_SW6_SIGNAL_WEIGHT_REFINEMENT.md",
+      "docs/PRIORITY1_7B_9_2_ACTIVATION_READINESS_REGRESSION_PROTECTION_AUDIT.md",
+      "docs/PRIORITY1_7B_9_P1C2_SIGNAL_WEIGHT_CALIBRATION.md",
+      "docs/PRIORITY1_7B_STRENGTH_BASED_XG_AUDIT.md",
+      "docs/PRIORITY1_7B_STRENGTH_BASED_XG_GENERATOR.md"
+    ],
+    "C_P1_7B_25": [
+      "backend/core/commit_scope_release_safety_review.py",
+      "backend/scripts/run_priority1_7b_25_commit_scope_release_safety_review.py",
+      "backend/tests/test_commit_scope_release_safety_review.py",
+      "docs/PRIORITY1_7B_25_COMMIT_SCOPE_RELEASE_SAFETY_REVIEW.md"
+    ],
+    "A_P1_7B_23": [
+      "backend/core/disabled_shadow_wiring_runtime.py",
+      "backend/scripts/run_priority1_7b_23_disabled_shadow_wiring_implementation.py",
+      "backend/tests/test_disabled_shadow_wiring_runtime.py",
+      "docs/PRIORITY1_7B_23_DISABLED_SHADOW_WIRING_IMPLEMENTATION.md"
+    ],
+    "F_excluded": [
+      "backend/core/power_zscore_residual.py",
+      "backend/core/priority1_4_gates.py",
+      "backend/core/priority1_4_validation.py",
+      "backend/core/priority1_5_validation.py",
+      "backend/core/priority1_6_validation.py",
+      "backend/core/strength_recovery_diagnostics.py",
+      "backend/core/strength_signal_weight_calibration.py",
+      "backend/core/strength_signal_weight_calibration_validation.py",
+      "backend/core/strength_signal_weight_narrow_refinement.py",
+      "backend/core/strength_signal_weight_narrow_refinement_validation.py",
+      "backend/core/strength_spread_residual_correction.py",
+      "backend/core/strength_spread_residual_validation.py",
+      "backend/core/strength_stage_recovery.py",
+      "backend/core/strength_stage_recovery_total_focus_validation.py",
+      "backend/core/strength_stage_recovery_validation.py",
+      "backend/data/cache/recent_form_fusion_cache.json.before_refresh",
+      "backend/scripts/audit_prediction_quality_root_cause.py",
+      "backend/scripts/audit_recent_form_shadow_influence.py",
+      "backend/scripts/run_priority1_3_combined_validation.py",
+      "backend/scripts/run_priority1_4_architecture_validation.py",
+      "backend/scripts/run_priority1_5_coherent_model_validation.py",
+      "backend/tests/test_priority1_4_architecture.py",
+      "backend/tests/test_priority1_5_coherent_model.py",
+      "backend/tests/test_spread_residual_correction.py",
+      "backend/tests/test_strength_signal_weight_calibration.py",
+      "backend/tests/test_strength_signal_weight_narrow_refinement.py",
+      "docs/RAPIDAPI_FREE_LIVE_FOOTBALL_EVALUATION.md",
+      "docs/priority1_5_validation_output.json"
+    ],
+    "B_P1_7B_24": [
+      "backend/core/shadow_wiring_verification_diff_review.py",
+      "backend/scripts/run_priority1_7b_24_shadow_wiring_verification_diff_review.py",
+      "backend/tests/test_shadow_wiring_verification_diff_review.py",
+      "docs/PRIORITY1_7B_24_SHADOW_WIRING_VERIFICATION_DIFF_REVIEW.md"
+    ]
+  },
+  "mixed_hunk_review": {
+    "mixed_file_review": {
+      "backend/core/priority1_options.py": {
+        "p1_7b23_hunks_summary": [
+          "nr3_fcc_shadow_enabled: bool = False field (P1.7B.23 comment block)"
+        ],
+        "pre_existing_hunks_summary": [
+          "Extended Priority1Config fields (power_v3, dynamic_v3, strength_xg, FCC params, etc.)",
+          "Factory classmethods (strength_xg_v1_* stacks)",
+          "apply_priority1_power_variants and related wiring"
+        ],
+        "p1_7b23_markers_present": true,
+        "pre_existing_markers_present": true,
+        "hunk_separation_possible": true,
+        "manual_hunk_selection_required": true,
+        "recommended_action": "Use interactive staging (git add -p) later \u2014 NOT in this phase \u2014 to stage only P1.7B.23 hunks; never git add entire file",
+        "git_add_all_forbidden": true
+      },
+      "backend/core/priority1_backtest.py": {
+        "p1_7b23_hunks_summary": [
+          "Guarded attach_shadow_sidecar_if_enabled block at end of _run_match_with_priority1",
+          "nr3_fcc_shadow_enabled propagation in collect_priority1_rows"
+        ],
+        "pre_existing_hunks_summary": [
+          "strength_v1 xG baseline branch",
+          "independent_signal_wiring_prototype integration",
+          "dynamic_v3 / market / trust / hybrid research branches",
+          "Large xG pipeline refactor (~400+ lines)"
+        ],
+        "p1_7b23_markers_present": true,
+        "pre_existing_markers_present": true,
+        "hunk_separation_possible": true,
+        "manual_hunk_selection_required": true,
+        "recommended_action": "Use interactive staging (git add -p) later \u2014 NOT in this phase \u2014 to stage only P1.7B.23 hunks; never git add entire file",
+        "git_add_all_forbidden": true
+      }
+    },
+    "p1_7b23_hunks_summary": [
+      "nr3_fcc_shadow_enabled: bool = False field (P1.7B.23 comment block)",
+      "Guarded attach_shadow_sidecar_if_enabled block at end of _run_match_with_priority1",
+      "nr3_fcc_shadow_enabled propagation in collect_priority1_rows"
+    ],
+    "pre_existing_hunks_summary": [
+      "Extended Priority1Config fields (power_v3, dynamic_v3, strength_xg, FCC params, etc.)",
+      "Factory classmethods (strength_xg_v1_* stacks)",
+      "apply_priority1_power_variants and related wiring",
+      "strength_v1 xG baseline branch",
+      "independent_signal_wiring_prototype integration",
+      "dynamic_v3 / market / trust / hybrid research branches",
+      "Large xG pipeline refactor (~400+ lines)"
+    ],
+    "hunk_separation_possible": true,
+    "manual_hunk_selection_required": true,
+    "recommended_action": "Manual hunk selection required for priority1_options.py and priority1_backtest.py before Commit A. Do not commit full-file diffs."
+  },
+  "proposed_commit_strategy": "Three-phase commit plan when user explicitly approves: Commit A (P1.7B.23 shadow wiring with manual hunk selection), Commit B (P1.7B.24 verification), Commit C (P1.7B.25 this review). Never include Commit E (production-path) or git add . Commit D (research artifacts) optional and separate.",
+  "proposed_commit_groups": [
+    {
+      "group_id": "A",
+      "name": "Shadow wiring implementation (P1.7B.23)",
+      "purpose": "Disabled-by-default NR3+FCC shadow sidecar only",
+      "files": [
+        "backend/core/disabled_shadow_wiring_runtime.py",
+        "backend/tests/test_disabled_shadow_wiring_runtime.py",
+        "backend/scripts/run_priority1_7b_23_disabled_shadow_wiring_implementation.py",
+        "docs/PRIORITY1_7B_23_DISABLED_SHADOW_WIRING_IMPLEMENTATION.md",
+        "backend/reports/priority1_7b_23_disabled_shadow_wiring_implementation.json",
+        "selected hunks: backend/core/priority1_options.py (nr3_fcc_shadow_enabled only)",
+        "selected hunks: backend/core/priority1_backtest.py (sidecar guard + flag propagation only)"
+      ],
+      "include_now": false,
+      "requires_manual_hunk_selection": true,
+      "risk": "medium",
+      "suggested_commit_message": "Add disabled-by-default NR3+FCC shadow wiring (P1.7B.23). Flag defaults false; served output unchanged; no activation.",
+      "prerequisites": [
+        "P1.7B.24 verification passed",
+        "Manual hunk selection on mixed files complete",
+        "tests/test_disabled_shadow_wiring_runtime.py passes"
+      ],
+      "tests_before_commit": [
+        "tests/test_disabled_shadow_wiring_runtime.py",
+        "tests/test_shadow_wiring_verification_diff_review.py"
+      ]
+    },
+    {
+      "group_id": "B",
+      "name": "Shadow wiring verification (P1.7B.24)",
+      "purpose": "Verification-only audit of P1.7B.23 safety",
+      "files": [
+        "backend/core/shadow_wiring_verification_diff_review.py",
+        "backend/scripts/run_priority1_7b_24_shadow_wiring_verification_diff_review.py",
+        "backend/tests/test_shadow_wiring_verification_diff_review.py",
+        "docs/PRIORITY1_7B_24_SHADOW_WIRING_VERIFICATION_DIFF_REVIEW.md",
+        "backend/reports/priority1_7b_24_shadow_wiring_verification_diff_review.json"
+      ],
+      "include_now": false,
+      "requires_manual_hunk_selection": false,
+      "risk": "low",
+      "suggested_commit_message": "Add P1.7B.24 shadow wiring verification and diff review (no activation).",
+      "prerequisites": [
+        "Commit A reviewed or staged separately",
+        "Verification report current"
+      ],
+      "tests_before_commit": [
+        "tests/test_shadow_wiring_verification_diff_review.py"
+      ]
+    },
+    {
+      "group_id": "C",
+      "name": "Commit scope review (P1.7B.25)",
+      "purpose": "Commit-scope and release-safety review artifacts",
+      "files": [
+        "backend/core/commit_scope_release_safety_review.py",
+        "backend/scripts/run_priority1_7b_25_commit_scope_release_safety_review.py",
+        "backend/tests/test_commit_scope_release_safety_review.py",
+        "docs/PRIORITY1_7B_25_COMMIT_SCOPE_RELEASE_SAFETY_REVIEW.md",
+        "backend/reports/priority1_7b_25_commit_scope_release_safety_review.json"
+      ],
+      "include_now": false,
+      "requires_manual_hunk_selection": false,
+      "risk": "low",
+      "suggested_commit_message": "Add P1.7B.25 commit scope and release safety review (plan only).",
+      "prerequisites": [
+        "User explicit approval for any commit"
+      ],
+      "tests_before_commit": [
+        "tests/test_commit_scope_release_safety_review.py"
+      ]
+    },
+    {
+      "group_id": "D",
+      "name": "Prior P1.7B research artifacts (P1.7B.11\u2013P1.7B.22)",
+      "purpose": "Optional research/audit modules, tests, docs, reports",
+      "files": [
+        "All untracked P1.7B.11\u2013P1.7B.22 modules/scripts/tests/docs/reports"
+      ],
+      "include_now": false,
+      "requires_manual_hunk_selection": false,
+      "risk": "medium",
+      "suggested_commit_message": "Add P1.7B research and audit artifacts (separate from shadow wiring).",
+      "prerequisites": [
+        "Separate review per artifact group",
+        "Never mix with Commit A without approval"
+      ],
+      "tests_before_commit": [
+        "Relevant phase test suites"
+      ]
+    },
+    {
+      "group_id": "E",
+      "name": "Pre-existing production-path work",
+      "purpose": "API, config, env, calibration, diagnostics changes",
+      "files": [
+        "backend/.env.example",
+        "backend/api/main.py",
+        "backend/api/schemas.py",
+        "backend/config.py",
+        "backend/core/market_xg_calibration.py",
+        "backend/core/priority1_diagnostics.py",
+        "backend/core/temporal_backtest.py",
+        "backend/data/activation_large_shift_reviews.json",
+        "backend/data/cache/nt_ratings.json",
+        "docs/PRIORITY1_2_LOCAL_MARKET_XG_VALIDATION.md",
+        "backend/core/priority1_options.py",
+        "backend/core/priority1_backtest.py"
+      ],
+      "include_now": false,
+      "requires_manual_hunk_selection": true,
+      "risk": "critical",
+      "suggested_commit_message": "N/A \u2014 do not commit as part of shadow wiring rollout",
+      "prerequisites": [
+        "Separate product/engineering approval",
+        "Render/env review",
+        "Full regression"
+      ],
+      "tests_before_commit": [
+        "Full backend test suite",
+        "API integration tests"
+      ]
+    }
+  ],
+  "release_safety_gates": {
+    "commit_gates": [
+      {
+        "gate": "no_activation",
+        "required": true,
+        "status": "pass"
+      },
+      {
+        "gate": "flag_default_false",
+        "required": true,
+        "status": "pass"
+      },
+      {
+        "gate": "served_output_unchanged",
+        "required": true,
+        "status": "pass"
+      },
+      {
+        "gate": "no_api_schema_change_in_shadow_scope",
+        "required": true,
+        "status": "pass"
+      },
+      {
+        "gate": "no_env_render_change_in_shadow_scope",
+        "required": true,
+        "status": "pass"
+      },
+      {
+        "gate": "tests_pass",
+        "required": true,
+        "status": "pending_until_hunk_selection"
+      },
+      {
+        "gate": "commit_scope_reviewed",
+        "required": true,
+        "status": "pass"
+      },
+      {
+        "gate": "no_unrelated_production_diffs",
+        "required": true,
+        "status": "pending"
+      },
+      {
+        "gate": "manual_hunk_selection_complete",
+        "required": true,
+        "status": "pending"
+      },
+      {
+        "gate": "rollback_documented",
+        "required": true,
+        "status": "pass"
+      }
+    ],
+    "deploy_gates": [
+      {
+        "gate": "deploy_allowed_now",
+        "required": false,
+        "status": "blocked"
+      },
+      {
+        "gate": "separate_approval_required",
+        "required": true,
+        "status": "pending"
+      },
+      {
+        "gate": "render_env_review",
+        "required": true,
+        "status": "pending"
+      },
+      {
+        "gate": "shadow_mode_only",
+        "required": true,
+        "status": "not_applicable"
+      },
+      {
+        "gate": "baseline_served_output",
+        "required": true,
+        "status": "pass"
+      },
+      {
+        "gate": "monitoring_ready",
+        "required": true,
+        "status": "pending"
+      },
+      {
+        "gate": "rollback_verified",
+        "required": true,
+        "status": "pending"
+      }
+    ],
+    "activation_gates": [
+      {
+        "gate": "activation_allowed_now",
+        "required": false,
+        "status": "blocked"
+      },
+      {
+        "gate": "production_activation_review",
+        "required": true,
+        "status": "pending"
+      },
+      {
+        "gate": "canary_dark_launch_evidence",
+        "required": true,
+        "status": "pending"
+      },
+      {
+        "gate": "explicit_approval",
+        "required": true,
+        "status": "pending"
+      }
+    ]
+  },
+  "risk_table": [
+    {
+      "risk": "Dirty workspace causing accidental unrelated commit",
+      "severity": "critical",
+      "likelihood": "high",
+      "mitigation": "Never git add .; use explicit file lists or git add -p",
+      "detection_method": "Pre-commit diff review; this P1.7B.25 report",
+      "blocks_commit": true,
+      "blocks_deploy": true,
+      "required_action": "Manual hunk selection before any commit"
+    },
+    {
+      "risk": "Mixed hunks in priority1_backtest.py",
+      "severity": "critical",
+      "likelihood": "high",
+      "mitigation": "Stage only sidecar hunks (~17 lines)",
+      "detection_method": "git diff review; P1.7B.24 static checks",
+      "blocks_commit": true,
+      "blocks_deploy": true,
+      "required_action": "git add -p on backtest file"
+    },
+    {
+      "risk": "Mixed hunks in priority1_options.py",
+      "severity": "critical",
+      "likelihood": "high",
+      "mitigation": "Stage only nr3_fcc_shadow_enabled field hunk",
+      "detection_method": "git diff review",
+      "blocks_commit": true,
+      "blocks_deploy": true,
+      "required_action": "git add -p on options file"
+    },
+    {
+      "risk": "API/config/env diffs accidentally included",
+      "severity": "critical",
+      "likelihood": "medium",
+      "mitigation": "Exclude api/main.py, schemas, config, .env.example from shadow commits",
+      "detection_method": "File classification bucket E",
+      "blocks_commit": true,
+      "blocks_deploy": true,
+      "required_action": "Keep in Commit E exclusion list"
+    },
+    {
+      "risk": "git add . accidental commit",
+      "severity": "critical",
+      "likelihood": "medium",
+      "mitigation": "Explicit commit groups; forbidden in this phase",
+      "detection_method": "Commit scope review",
+      "blocks_commit": true,
+      "blocks_deploy": true,
+      "required_action": "Use named commit groups only"
+    },
+    {
+      "risk": "Shadow artifact accidentally exposed later",
+      "severity": "high",
+      "likelihood": "low",
+      "mitigation": "No API schema fields; _internal_diagnostics only",
+      "detection_method": "P1.7B.24 leakage review",
+      "blocks_commit": false,
+      "blocks_deploy": true,
+      "required_action": "Re-run leakage scan before deploy"
+    },
+    {
+      "risk": "Default flag accidentally enabled later",
+      "severity": "critical",
+      "likelihood": "low",
+      "mitigation": "Literal False default; no env binding",
+      "detection_method": "Static check flag_default_false",
+      "blocks_commit": false,
+      "blocks_deploy": true,
+      "required_action": "Code review on any flag change"
+    },
+    {
+      "risk": "Render/env activation later",
+      "severity": "critical",
+      "likelihood": "low",
+      "mitigation": "No NR3_FCC_SHADOW in config/env today",
+      "detection_method": "Env file text scan",
+      "blocks_commit": false,
+      "blocks_deploy": true,
+      "required_action": "Separate Render review if ever added"
+    },
+    {
+      "risk": "Tests not rerun after hunk selection",
+      "severity": "high",
+      "likelihood": "medium",
+      "mitigation": "Run disabled_shadow + verification tests before commit",
+      "detection_method": "CI / local pytest",
+      "blocks_commit": true,
+      "blocks_deploy": true,
+      "required_action": "pytest after staging hunks"
+    },
+    {
+      "risk": "Rollback not validated after commit",
+      "severity": "medium",
+      "likelihood": "medium",
+      "mitigation": "Documented rollback: flag false, remove internal diagnostics",
+      "detection_method": "P1.7B.23 rollback plan",
+      "blocks_commit": false,
+      "blocks_deploy": true,
+      "required_action": "Verify rollback path post-commit"
+    },
+    {
+      "risk": "Pre-existing research artifacts mixed with production changes",
+      "severity": "high",
+      "likelihood": "high",
+      "mitigation": "Commit D separate from A/B/C",
+      "detection_method": "Bucket D classification",
+      "blocks_commit": true,
+      "blocks_deploy": false,
+      "required_action": "Separate commits per artifact group"
+    },
+    {
+      "risk": "P1.7B.23 safe code blocked by workspace hygiene",
+      "severity": "medium",
+      "likelihood": "high",
+      "mitigation": "This P1.7B.25 commit plan",
+      "detection_method": "Commit readiness review",
+      "blocks_commit": true,
+      "blocks_deploy": false,
+      "required_action": "Execute manual hunk selection when approved"
+    }
+  ],
+  "rollback_plan": [
+    "Set nr3_fcc_shadow_enabled=false (default)",
+    "Remove _internal_diagnostics.nr3_fcc_shadow if present",
+    "Verify served probabilities unchanged",
+    "No env/Render changes required"
+  ],
+  "p1_7b24_verification_summary": {
+    "verification_status": "VERIFICATION_COMPLETE",
+    "flag_default_false": true,
+    "api_leak": false,
+    "commit_readiness_p24": "KEEP_UNCOMMITTED_AND_REVIEW_MANUALLY"
+  },
+  "p1_7b23_safety_summary": {
+    "activation_blocked": true,
+    "flag_default": false,
+    "served_unchanged_disabled": true
+  },
+  "commit_readiness_decision": "MANUAL_HUNK_SELECTION_REQUIRED",
+  "deploy_readiness_decision": "BLOCKED",
+  "activation_readiness_decision": "BLOCKED",
+  "remaining_risks": [
+    "Dirty workspace causing accidental unrelated commit",
+    "Mixed hunks in priority1_backtest.py",
+    "Mixed hunks in priority1_options.py",
+    "API/config/env diffs accidentally included",
+    "git add . accidental commit",
+    "Tests not rerun after hunk selection",
+    "Pre-existing research artifacts mixed with production changes",
+    "P1.7B.23 safe code blocked by workspace hygiene"
+  ],
+  "what_not_to_do": [
+    "Do not git add .",
+    "Do not commit api/main.py, api/schemas.py, config.py, .env.example with shadow wiring",
+    "Do not deploy",
+    "Do not activate NR3+FCC",
+    "Do not enable flag by default",
+    "Do not mix Commit D research artifacts into Commit A"
+  ],
+  "preservation_checklist": {
+    "git_status_before": " M backend/.env.example\n M backend/api/main.py\n M backend/api/schemas.py\n M backend/config.py\n M backend/core/market_xg_calibration.py\n M backend/core/priority1_backtest.py\n M backend/core/priority1_diagnostics.py\n M backend/core/priority1_options.py\n M backend/core/temporal_backtest.py\n M backend/data/activation_large_shift_reviews.json\n M backend/data/cache/nt_ratings.json\n M docs/PRIORITY1_2_LOCAL_MARKET_XG_VALIDATION.md\n?? backend/core/activation_readiness_gate_context_audit.py\n?? backend/core/commit_scope_release_safety_review.py\n?? backend/core/conditional_spread_governance.py\n?? backend/core/controlled_activation_plan_draft.py\n?? backend/core/disabled_shadow_wiring_design.py\n?? backend/core/disabled_shadow_wiring_runtime.py\n?? backend/core/dual_regime_favorite_confidence_governance.py\n?? backend/core/dynamic_goals_bounded.py\n?? backend/core/dynamic_goals_v3.py\n?? backend/core/dynamic_goals_v3_gates.py\n?? backend/core/dynamic_goals_v3_rolling.py\n?? backend/core/favorite_confidence_curve_audit.py\n?? backend/core/favorite_confidence_curve_prototype.py\n?? backend/core/favorite_direction_root_cause_audit.py\n?? backend/core/favorite_direction_safety_gate.py\n?? backend/core/favorite_direction_safety_gate_validation.py\n?? backend/core/favorite_spread_too_small_decomposition.py\n?? backend/core/favorite_trust_calibration.py\n?? backend/core/favorite_trust_validation.py\n?? backend/core/final_activation_readiness_audit.py\n?? backend/core/hybrid_balance_tuning.py\n?? backend/core/hybrid_balance_validation.py\n?? backend/core/independent_signal_wiring_audit.py\n?? backend/core/independent_signal_wiring_prototype.py\n?? backend/core/latent_xg_bias_audit.py\n?? backend/core/market_calibration_v2.py\n?? backend/core/power_v3.py\n?? backend/core/power_zscore_residual.py\n?? backend/core/priority1_4_gates.py\n?? backend/core/priority1_4_validation.py\n?? backend/core/priority1_5_validation.py\n?? backend/core/priority1_6_validation.py\n?? backend/core/scoreline_ranking_topk_robustness_audit.py\n?? backend/core/shadow_wiring_verification_diff_review.py\n?? backend/core/strength_activation_readiness_audit.py\n?? backend/core/strength_based_xg_gates.py\n?? backend/core/strength_based_xg_generator.py\n?? backend/core/strength_based_xg_micro_probes.py\n?? backend/core/strength_based_xg_p1c_analysis.py\n?? backend/core/strength_based_xg_p1c_refinement.py\n?? backend/core/strength_based_xg_refinement.py\n?? backend/core/strength_based_xg_stage_diagnosis.py\n?? backend/core/strength_based_xg_validation.py\n?? backend/core/strength_recovery_diagnostics.py\n?? backend/core/strength_signal_weight_calibration.py\n?? backend/core/strength_signal_weight_calibration_validation.py\n?? backend/core/strength_signal_weight_narrow_refinement.py\n?? backend/core/strength_signal_weight_narrow_refinement_validation.py\n?? backend/core/strength_spread_residual_correction.py\n?? backend/core/strength_spread_residual_validation.py\n?? backend/core/strength_stage_recovery.py\n?? backend/core/strength_stage_recovery_total_focus_validation.py\n?? backend/core/strength_stage_recovery_validation.py\n?? backend/core/trust_gated_spread_hybrid.py\n?? backend/core/trust_gated_spread_hybrid_validation.py\n?? backend/core/validation_metrology_redesign.py\n?? backend/core/wc2018_residual_decomposition.py\n?? backend/core/wc2022_top5_robustness_blocker_decomposition.py\n?? backend/core/xg_coherent_pipeline.py\n?? backend/data/cache/recent_form_fusion_cache.json.before_refresh\n?? backend/scripts/audit_prediction_quality_root_cause.py\n?? backend/scripts/audit_recent_form_shadow_influence.py\n?? backend/scripts/run_priority1_3_combined_validation.py\n?? backend/scripts/run_priority1_4_architecture_validation.py\n?? backend/scripts/run_priority1_5_coherent_model_validation.py\n?? backend/scripts/run_priority1_6_dynamic_goals_v3_validation.py\n?? backend/scripts/run_priority1_7a_latent_xg_bias_audit.py\n?? backend/scripts/run_priority1_7b_10_1_independent_signal_wiring_prototype.py\n?? backend/scripts/run_priority1_7b_10_independent_signal_wiring_audit.py\n?? backend/scripts/run_priority1_7b_11_validation_metrology_redesign.py\n?? backend/scripts/run_priority1_7b_12_conditional_spread_governance.py\n?? backend/scripts/run_priority1_7b_13_dual_regime_favorite_confidence_governance.py\n?? backend/scripts/run_priority1_7b_14_favorite_spread_too_small_decomposition.py\n?? backend/scripts/run_priority1_7b_15_favorite_confidence_curve_audit.py\n?? backend/scripts/run_priority1_7b_16_favorite_confidence_curve_prototype.py\n?? backend/scripts/run_priority1_7b_17_wc2022_top5_robustness_blocker_decomposition.py\n?? backend/scripts/run_priority1_7b_18_scoreline_ranking_topk_robustness_audit.py\n?? backend/scripts/run_priority1_7b_19_activation_readiness_gate_context_audit.py\n?? backend/scripts/run_priority1_7b_1_strength_xg_refinement.py\n?? backend/scripts/run_priority1_7b_20_final_activation_readiness_audit.py\n?? backend/scripts/run_priority1_7b_21_controlled_activation_plan_draft.py\n?? backend/scripts/run_priority1_7b_22_disabled_shadow_wiring_design.py\n?? backend/scripts/run_priority1_7b_23_disabled_shadow_wiring_implementation.py\n?? backend/scripts/run_priority1_7b_24_shadow_wiring_verification_diff_review.py\n?? backend/scripts/run_priority1_7b_25_commit_scope_release_safety_review.py\n?? backend/scripts/run_priority1_7b_2_p1c_stability_refinement.py\n?? backend/scripts/run_priority1_7b_3_stage_aware_diagnosis.py\n?? backend/scripts/run_priority1_7b_4_1_r16_total_recovery_focus.py\n?? backend/scripts/run_priority1_7b_4_r16_stage_aware_recovery.py\n?? backend/scripts/run_priority1_7b_5_wc2018_residual_decomposition.py\n?? backend/scripts/run_priority1_7b_6_1_generic_favorite_trust_calibration.py\n?? backend/scripts/run_priority1_7b_6_2_trust_gated_spread_damping_hybrid.py\n?? backend/scripts/run_priority1_7b_6_3_hybrid_balance_tuning.py\n?? backend/scripts/run_priority1_7b_6_spread_share_residual_correction.py\n?? backend/scripts/run_priority1_7b_7_favorite_direction_root_cause_audit.py\n?? backend/scripts/run_priority1_7b_8_favorite_direction_safety_gate.py\n?? backend/scripts/run_priority1_7b_9_1_narrow_sw3_sw6_signal_weight_refinement.py\n?? backend/scripts/run_priority1_7b_9_2_activation_readiness_regression_protection_audit.py\n?? backend/scripts/run_priority1_7b_9_p1c2_signal_weight_calibration.py\n?? backend/scripts/run_priority1_7b_strength_based_xg_validation.py\n?? backend/tests/test_activation_readiness_gate_context_audit.py\n?? backend/tests/test_commit_scope_release_safety_review.py\n?? backend/tests/test_conditional_spread_governance.py\n?? backend/tests/test_controlled_activation_plan_draft.py\n?? backend/tests/test_disabled_shadow_wiring_design.py\n?? backend/tests/test_disabled_shadow_wiring_runtime.py\n?? backend/tests/test_dual_regime_favorite_confidence_governance.py\n?? backend/tests/test_dynamic_goals_v3.py\n?? backend/tests/test_favorite_confidence_curve_audit.py\n?? backend/tests/test_favorite_confidence_curve_prototype.py\n?? backend/tests/test_favorite_direction_root_cause_audit.py\n?? backend/tests/test_favorite_direction_safety_gate.py\n?? backend/tests/test_favorite_spread_too_small_decomposition.py\n?? backend/tests/test_favorite_trust_calibration.py\n?? backend/tests/test_final_activation_readiness_audit.py\n?? backend/tests/test_hybrid_balance_tuning.py\n?? backend/tests/test_independent_signal_wiring_audit.py\n?? backend/tests/test_independent_signal_wiring_prototype.py\n?? backend/tests/test_priority1_4_architecture.py\n?? backend/tests/test_priority1_5_coherent_model.py\n?? backend/tests/test_priority1_6_dynamic_goals_v3_pipeline.py\n?? backend/tests/test_priority1_7a_latent_xg_bias_audit.py\n?? backend/tests/test_scoreline_ranking_topk_robustness_audit.py\n?? backend/tests/test_shadow_wiring_verification_diff_review.py\n?? backend/tests/test_spread_residual_correction.py\n?? backend/tests/test_strength_activation_readiness_audit.py\n?? backend/tests/test_strength_based_xg_generator.py\n?? backend/tests/test_strength_signal_weight_calibration.py\n?? backend/tests/test_strength_signal_weight_narrow_refinement.py\n?? backend/tests/test_trust_gated_spread_hybrid.py\n?? backend/tests/test_validation_metrology_redesign.py\n?? backend/tests/test_wc2018_residual_decomposition.py\n?? backend/tests/test_wc2022_top5_robustness_blocker_decomposition.py\n?? docs/PRIORITY1_3_COMBINED_CANDIDATE_VALIDATION.md\n?? docs/PRIORITY1_4_ARCHITECTURE_VALIDATION.md\n?? docs/PRIORITY1_4_PIPELINE_AUDIT.md\n?? docs/PRIORITY1_5_COHERENT_MODEL_UPGRADE.md\n?? docs/PRIORITY1_5_PIPELINE_AUDIT.md\n?? docs/PRIORITY1_6_DYNAMIC_GOALS_V3.md\n?? docs/PRIORITY1_6_DYNAMIC_GOALS_V3_AUDIT.md\n?? docs/PRIORITY1_7A_LATENT_XG_BIAS_AUDIT.md\n?? docs/PRIORITY1_7A_LATENT_XG_BIAS_AUDIT_DESIGN.md\n?? docs/PRIORITY1_7B_10_1_INDEPENDENT_SIGNAL_WIRING_PROTOTYPE.md\n?? docs/PRIORITY1_7B_10_INDEPENDENT_SIGNAL_WIRING_AUDIT.md\n?? docs/PRIORITY1_7B_11_VALIDATION_METROLOGY_REDESIGN.md\n?? docs/PRIORITY1_7B_12_CONDITIONAL_SPREAD_GOVERNANCE.md\n?? docs/PRIORITY1_7B_13_DUAL_REGIME_FAVORITE_CONFIDENCE_GOVERNANCE.md\n?? docs/PRIORITY1_7B_14_FAVORITE_SPREAD_TOO_SMALL_ROOT_CAUSE_DECOMPOSITION.md\n?? docs/PRIORITY1_7B_15_FAVORITE_CONFIDENCE_CURVE_AUDIT.md\n?? docs/PRIORITY1_7B_16_FAVORITE_CONFIDENCE_CURVE_PROTOTYPE.md\n?? docs/PRIORITY1_7B_17_WC2022_TOP5_ROBUSTNESS_BLOCKER_DECOMPOSITION.md\n?? docs/PRIORITY1_7B_18_SCORELINE_RANKING_TOPK_ROBUSTNESS_AUDIT.md\n?? docs/PRIORITY1_7B_19_ACTIVATION_READINESS_GATE_CONTEXT_AUDIT.md\n?? docs/PRIORITY1_7B_1_STRENGTH_XG_REFINEMENT.md\n?? docs/PRIORITY1_7B_1_STRENGTH_XG_REFINEMENT_AUDIT.md\n?? docs/PRIORITY1_7B_20_FINAL_ACTIVATION_READINESS_AUDIT.md\n?? docs/PRIORITY1_7B_21_CONTROLLED_ACTIVATION_PLAN_DRAFT.md\n?? docs/PRIORITY1_7B_22_DISABLED_SHADOW_WIRING_DESIGN.md\n?? docs/PRIORITY1_7B_23_DISABLED_SHADOW_WIRING_IMPLEMENTATION.md\n?? docs/PRIORITY1_7B_24_SHADOW_WIRING_VERIFICATION_DIFF_REVIEW.md\n?? docs/PRIORITY1_7B_25_COMMIT_SCOPE_RELEASE_SAFETY_REVIEW.md\n?? docs/PRIORITY1_7B_2_P1C_STABILITY_ANALYSIS.md\n?? docs/PRIORITY1_7B_2_P1C_STABILITY_REFINEMENT.md\n?? docs/PRIORITY1_7B_3_STAGE_AWARE_MICRO_PROBES.md\n?? docs/PRIORITY1_7B_3_STAGE_AWARE_STABILITY_DIAGNOSIS.md\n?? docs/PRIORITY1_7B_4_1_R16_TOTAL_RECOVERY_AUDIT.md\n?? docs/PRIORITY1_7B_4_1_R16_TOTAL_RECOVERY_FOCUS.md\n?? docs/PRIORITY1_7B_4_R16_STAGE_AWARE_RECOVERY.md\n?? docs/PRIORITY1_7B_5_WC2018_RESIDUAL_DECOMPOSITION.md\n?? docs/PRIORITY1_7B_6_1_GENERIC_FAVORITE_TRUST_CALIBRATION.md\n?? docs/PRIORITY1_7B_6_2_TRUST_GATED_SPREAD_DAMPING_HYBRID.md\n?? docs/PRIORITY1_7B_6_3_HYBRID_BALANCE_TUNING.md\n?? docs/PRIORITY1_7B_6_STAGE_AWARE_SPREAD_SHARE_RESIDUAL_CORRECTION.md\n?? docs/PRIORITY1_7B_7_FAVORITE_DIRECTION_ROOT_CAUSE_AUDIT.md\n?? docs/PRIORITY1_7B_8_FAVORITE_DIRECTION_SAFETY_GATE.md\n?? docs/PRIORITY1_7B_9_1_NARROW_SW3_SW6_SIGNAL_WEIGHT_REFINEMENT.md\n?? docs/PRIORITY1_7B_9_2_ACTIVATION_READINESS_REGRESSION_PROTECTION_AUDIT.md\n?? docs/PRIORITY1_7B_9_P1C2_SIGNAL_WEIGHT_CALIBRATION.md\n?? docs/PRIORITY1_7B_STRENGTH_BASED_XG_AUDIT.md\n?? docs/PRIORITY1_7B_STRENGTH_BASED_XG_GENERATOR.md\n?? docs/RAPIDAPI_FREE_LIVE_FOOTBALL_EVALUATION.md\n?? docs/priority1_5_validation_output.json\n",
+    "git_diff_name_status_before": "M\tbackend/.env.example\nM\tbackend/api/main.py\nM\tbackend/api/schemas.py\nM\tbackend/config.py\nM\tbackend/core/market_xg_calibration.py\nM\tbackend/core/priority1_backtest.py\nM\tbackend/core/priority1_diagnostics.py\nM\tbackend/core/priority1_options.py\nM\tbackend/core/temporal_backtest.py\nM\tbackend/data/activation_large_shift_reviews.json\nM\tbackend/data/cache/nt_ratings.json\nM\tdocs/PRIORITY1_2_LOCAL_MARKET_XG_VALIDATION.md\n",
+    "git_diff_stat_before": " backend/.env.example                             |  53 ++\n backend/api/main.py                              | 202 +++++--\n backend/api/schemas.py                           |   1 +\n backend/config.py                                | 134 ++++-\n backend/core/market_xg_calibration.py            |  92 +++-\n backend/core/priority1_backtest.py               | 433 +++++++++++++--\n backend/core/priority1_diagnostics.py            |  48 ++\n backend/core/priority1_options.py                | 290 ++++++++++-\n backend/core/temporal_backtest.py                |   2 +\n backend/data/activation_large_shift_reviews.json |   2 +-\n backend/data/cache/nt_ratings.json               | 636 +++++++++++------------\n docs/PRIORITY1_2_LOCAL_MARKET_XG_VALIDATION.md   |  23 +-\n 12 files changed, 1474 insertions(+), 442 deletions(-)\n",
+    "git_status_after": " M backend/.env.example\n M backend/api/main.py\n M backend/api/schemas.py\n M backend/config.py\n M backend/core/market_xg_calibration.py\n M backend/core/priority1_backtest.py\n M backend/core/priority1_diagnostics.py\n M backend/core/priority1_options.py\n M backend/core/temporal_backtest.py\n M backend/data/activation_large_shift_reviews.json\n M backend/data/cache/nt_ratings.json\n M docs/PRIORITY1_2_LOCAL_MARKET_XG_VALIDATION.md\n?? backend/core/activation_readiness_gate_context_audit.py\n?? backend/core/commit_scope_release_safety_review.py\n?? backend/core/conditional_spread_governance.py\n?? backend/core/controlled_activation_plan_draft.py\n?? backend/core/disabled_shadow_wiring_design.py\n?? backend/core/disabled_shadow_wiring_runtime.py\n?? backend/core/dual_regime_favorite_confidence_governance.py\n?? backend/core/dynamic_goals_bounded.py\n?? backend/core/dynamic_goals_v3.py\n?? backend/core/dynamic_goals_v3_gates.py\n?? backend/core/dynamic_goals_v3_rolling.py\n?? backend/core/favorite_confidence_curve_audit.py\n?? backend/core/favorite_confidence_curve_prototype.py\n?? backend/core/favorite_direction_root_cause_audit.py\n?? backend/core/favorite_direction_safety_gate.py\n?? backend/core/favorite_direction_safety_gate_validation.py\n?? backend/core/favorite_spread_too_small_decomposition.py\n?? backend/core/favorite_trust_calibration.py\n?? backend/core/favorite_trust_validation.py\n?? backend/core/final_activation_readiness_audit.py\n?? backend/core/hybrid_balance_tuning.py\n?? backend/core/hybrid_balance_validation.py\n?? backend/core/independent_signal_wiring_audit.py\n?? backend/core/independent_signal_wiring_prototype.py\n?? backend/core/latent_xg_bias_audit.py\n?? backend/core/market_calibration_v2.py\n?? backend/core/power_v3.py\n?? backend/core/power_zscore_residual.py\n?? backend/core/priority1_4_gates.py\n?? backend/core/priority1_4_validation.py\n?? backend/core/priority1_5_validation.py\n?? backend/core/priority1_6_validation.py\n?? backend/core/scoreline_ranking_topk_robustness_audit.py\n?? backend/core/shadow_wiring_verification_diff_review.py\n?? backend/core/strength_activation_readiness_audit.py\n?? backend/core/strength_based_xg_gates.py\n?? backend/core/strength_based_xg_generator.py\n?? backend/core/strength_based_xg_micro_probes.py\n?? backend/core/strength_based_xg_p1c_analysis.py\n?? backend/core/strength_based_xg_p1c_refinement.py\n?? backend/core/strength_based_xg_refinement.py\n?? backend/core/strength_based_xg_stage_diagnosis.py\n?? backend/core/strength_based_xg_validation.py\n?? backend/core/strength_recovery_diagnostics.py\n?? backend/core/strength_signal_weight_calibration.py\n?? backend/core/strength_signal_weight_calibration_validation.py\n?? backend/core/strength_signal_weight_narrow_refinement.py\n?? backend/core/strength_signal_weight_narrow_refinement_validation.py\n?? backend/core/strength_spread_residual_correction.py\n?? backend/core/strength_spread_residual_validation.py\n?? backend/core/strength_stage_recovery.py\n?? backend/core/strength_stage_recovery_total_focus_validation.py\n?? backend/core/strength_stage_recovery_validation.py\n?? backend/core/trust_gated_spread_hybrid.py\n?? backend/core/trust_gated_spread_hybrid_validation.py\n?? backend/core/validation_metrology_redesign.py\n?? backend/core/wc2018_residual_decomposition.py\n?? backend/core/wc2022_top5_robustness_blocker_decomposition.py\n?? backend/core/xg_coherent_pipeline.py\n?? backend/data/cache/recent_form_fusion_cache.json.before_refresh\n?? backend/scripts/audit_prediction_quality_root_cause.py\n?? backend/scripts/audit_recent_form_shadow_influence.py\n?? backend/scripts/run_priority1_3_combined_validation.py\n?? backend/scripts/run_priority1_4_architecture_validation.py\n?? backend/scripts/run_priority1_5_coherent_model_validation.py\n?? backend/scripts/run_priority1_6_dynamic_goals_v3_validation.py\n?? backend/scripts/run_priority1_7a_latent_xg_bias_audit.py\n?? backend/scripts/run_priority1_7b_10_1_independent_signal_wiring_prototype.py\n?? backend/scripts/run_priority1_7b_10_independent_signal_wiring_audit.py\n?? backend/scripts/run_priority1_7b_11_validation_metrology_redesign.py\n?? backend/scripts/run_priority1_7b_12_conditional_spread_governance.py\n?? backend/scripts/run_priority1_7b_13_dual_regime_favorite_confidence_governance.py\n?? backend/scripts/run_priority1_7b_14_favorite_spread_too_small_decomposition.py\n?? backend/scripts/run_priority1_7b_15_favorite_confidence_curve_audit.py\n?? backend/scripts/run_priority1_7b_16_favorite_confidence_curve_prototype.py\n?? backend/scripts/run_priority1_7b_17_wc2022_top5_robustness_blocker_decomposition.py\n?? backend/scripts/run_priority1_7b_18_scoreline_ranking_topk_robustness_audit.py\n?? backend/scripts/run_priority1_7b_19_activation_readiness_gate_context_audit.py\n?? backend/scripts/run_priority1_7b_1_strength_xg_refinement.py\n?? backend/scripts/run_priority1_7b_20_final_activation_readiness_audit.py\n?? backend/scripts/run_priority1_7b_21_controlled_activation_plan_draft.py\n?? backend/scripts/run_priority1_7b_22_disabled_shadow_wiring_design.py\n?? backend/scripts/run_priority1_7b_23_disabled_shadow_wiring_implementation.py\n?? backend/scripts/run_priority1_7b_24_shadow_wiring_verification_diff_review.py\n?? backend/scripts/run_priority1_7b_25_commit_scope_release_safety_review.py\n?? backend/scripts/run_priority1_7b_2_p1c_stability_refinement.py\n?? backend/scripts/run_priority1_7b_3_stage_aware_diagnosis.py\n?? backend/scripts/run_priority1_7b_4_1_r16_total_recovery_focus.py\n?? backend/scripts/run_priority1_7b_4_r16_stage_aware_recovery.py\n?? backend/scripts/run_priority1_7b_5_wc2018_residual_decomposition.py\n?? backend/scripts/run_priority1_7b_6_1_generic_favorite_trust_calibration.py\n?? backend/scripts/run_priority1_7b_6_2_trust_gated_spread_damping_hybrid.py\n?? backend/scripts/run_priority1_7b_6_3_hybrid_balance_tuning.py\n?? backend/scripts/run_priority1_7b_6_spread_share_residual_correction.py\n?? backend/scripts/run_priority1_7b_7_favorite_direction_root_cause_audit.py\n?? backend/scripts/run_priority1_7b_8_favorite_direction_safety_gate.py\n?? backend/scripts/run_priority1_7b_9_1_narrow_sw3_sw6_signal_weight_refinement.py\n?? backend/scripts/run_priority1_7b_9_2_activation_readiness_regression_protection_audit.py\n?? backend/scripts/run_priority1_7b_9_p1c2_signal_weight_calibration.py\n?? backend/scripts/run_priority1_7b_strength_based_xg_validation.py\n?? backend/tests/test_activation_readiness_gate_context_audit.py\n?? backend/tests/test_commit_scope_release_safety_review.py\n?? backend/tests/test_conditional_spread_governance.py\n?? backend/tests/test_controlled_activation_plan_draft.py\n?? backend/tests/test_disabled_shadow_wiring_design.py\n?? backend/tests/test_disabled_shadow_wiring_runtime.py\n?? backend/tests/test_dual_regime_favorite_confidence_governance.py\n?? backend/tests/test_dynamic_goals_v3.py\n?? backend/tests/test_favorite_confidence_curve_audit.py\n?? backend/tests/test_favorite_confidence_curve_prototype.py\n?? backend/tests/test_favorite_direction_root_cause_audit.py\n?? backend/tests/test_favorite_direction_safety_gate.py\n?? backend/tests/test_favorite_spread_too_small_decomposition.py\n?? backend/tests/test_favorite_trust_calibration.py\n?? backend/tests/test_final_activation_readiness_audit.py\n?? backend/tests/test_hybrid_balance_tuning.py\n?? backend/tests/test_independent_signal_wiring_audit.py\n?? backend/tests/test_independent_signal_wiring_prototype.py\n?? backend/tests/test_priority1_4_architecture.py\n?? backend/tests/test_priority1_5_coherent_model.py\n?? backend/tests/test_priority1_6_dynamic_goals_v3_pipeline.py\n?? backend/tests/test_priority1_7a_latent_xg_bias_audit.py\n?? backend/tests/test_scoreline_ranking_topk_robustness_audit.py\n?? backend/tests/test_shadow_wiring_verification_diff_review.py\n?? backend/tests/test_spread_residual_correction.py\n?? backend/tests/test_strength_activation_readiness_audit.py\n?? backend/tests/test_strength_based_xg_generator.py\n?? backend/tests/test_strength_signal_weight_calibration.py\n?? backend/tests/test_strength_signal_weight_narrow_refinement.py\n?? backend/tests/test_trust_gated_spread_hybrid.py\n?? backend/tests/test_validation_metrology_redesign.py\n?? backend/tests/test_wc2018_residual_decomposition.py\n?? backend/tests/test_wc2022_top5_robustness_blocker_decomposition.py\n?? docs/PRIORITY1_3_COMBINED_CANDIDATE_VALIDATION.md\n?? docs/PRIORITY1_4_ARCHITECTURE_VALIDATION.md\n?? docs/PRIORITY1_4_PIPELINE_AUDIT.md\n?? docs/PRIORITY1_5_COHERENT_MODEL_UPGRADE.md\n?? docs/PRIORITY1_5_PIPELINE_AUDIT.md\n?? docs/PRIORITY1_6_DYNAMIC_GOALS_V3.md\n?? docs/PRIORITY1_6_DYNAMIC_GOALS_V3_AUDIT.md\n?? docs/PRIORITY1_7A_LATENT_XG_BIAS_AUDIT.md\n?? docs/PRIORITY1_7A_LATENT_XG_BIAS_AUDIT_DESIGN.md\n?? docs/PRIORITY1_7B_10_1_INDEPENDENT_SIGNAL_WIRING_PROTOTYPE.md\n?? docs/PRIORITY1_7B_10_INDEPENDENT_SIGNAL_WIRING_AUDIT.md\n?? docs/PRIORITY1_7B_11_VALIDATION_METROLOGY_REDESIGN.md\n?? docs/PRIORITY1_7B_12_CONDITIONAL_SPREAD_GOVERNANCE.md\n?? docs/PRIORITY1_7B_13_DUAL_REGIME_FAVORITE_CONFIDENCE_GOVERNANCE.md\n?? docs/PRIORITY1_7B_14_FAVORITE_SPREAD_TOO_SMALL_ROOT_CAUSE_DECOMPOSITION.md\n?? docs/PRIORITY1_7B_15_FAVORITE_CONFIDENCE_CURVE_AUDIT.md\n?? docs/PRIORITY1_7B_16_FAVORITE_CONFIDENCE_CURVE_PROTOTYPE.md\n?? docs/PRIORITY1_7B_17_WC2022_TOP5_ROBUSTNESS_BLOCKER_DECOMPOSITION.md\n?? docs/PRIORITY1_7B_18_SCORELINE_RANKING_TOPK_ROBUSTNESS_AUDIT.md\n?? docs/PRIORITY1_7B_19_ACTIVATION_READINESS_GATE_CONTEXT_AUDIT.md\n?? docs/PRIORITY1_7B_1_STRENGTH_XG_REFINEMENT.md\n?? docs/PRIORITY1_7B_1_STRENGTH_XG_REFINEMENT_AUDIT.md\n?? docs/PRIORITY1_7B_20_FINAL_ACTIVATION_READINESS_AUDIT.md\n?? docs/PRIORITY1_7B_21_CONTROLLED_ACTIVATION_PLAN_DRAFT.md\n?? docs/PRIORITY1_7B_22_DISABLED_SHADOW_WIRING_DESIGN.md\n?? docs/PRIORITY1_7B_23_DISABLED_SHADOW_WIRING_IMPLEMENTATION.md\n?? docs/PRIORITY1_7B_24_SHADOW_WIRING_VERIFICATION_DIFF_REVIEW.md\n?? docs/PRIORITY1_7B_25_COMMIT_SCOPE_RELEASE_SAFETY_REVIEW.md\n?? docs/PRIORITY1_7B_2_P1C_STABILITY_ANALYSIS.md\n?? docs/PRIORITY1_7B_2_P1C_STABILITY_REFINEMENT.md\n?? docs/PRIORITY1_7B_3_STAGE_AWARE_MICRO_PROBES.md\n?? docs/PRIORITY1_7B_3_STAGE_AWARE_STABILITY_DIAGNOSIS.md\n?? docs/PRIORITY1_7B_4_1_R16_TOTAL_RECOVERY_AUDIT.md\n?? docs/PRIORITY1_7B_4_1_R16_TOTAL_RECOVERY_FOCUS.md\n?? docs/PRIORITY1_7B_4_R16_STAGE_AWARE_RECOVERY.md\n?? docs/PRIORITY1_7B_5_WC2018_RESIDUAL_DECOMPOSITION.md\n?? docs/PRIORITY1_7B_6_1_GENERIC_FAVORITE_TRUST_CALIBRATION.md\n?? docs/PRIORITY1_7B_6_2_TRUST_GATED_SPREAD_DAMPING_HYBRID.md\n?? docs/PRIORITY1_7B_6_3_HYBRID_BALANCE_TUNING.md\n?? docs/PRIORITY1_7B_6_STAGE_AWARE_SPREAD_SHARE_RESIDUAL_CORRECTION.md\n?? docs/PRIORITY1_7B_7_FAVORITE_DIRECTION_ROOT_CAUSE_AUDIT.md\n?? docs/PRIORITY1_7B_8_FAVORITE_DIRECTION_SAFETY_GATE.md\n?? docs/PRIORITY1_7B_9_1_NARROW_SW3_SW6_SIGNAL_WEIGHT_REFINEMENT.md\n?? docs/PRIORITY1_7B_9_2_ACTIVATION_READINESS_REGRESSION_PROTECTION_AUDIT.md\n?? docs/PRIORITY1_7B_9_P1C2_SIGNAL_WEIGHT_CALIBRATION.md\n?? docs/PRIORITY1_7B_STRENGTH_BASED_XG_AUDIT.md\n?? docs/PRIORITY1_7B_STRENGTH_BASED_XG_GENERATOR.md\n?? docs/RAPIDAPI_FREE_LIVE_FOOTBALL_EVALUATION.md\n?? docs/priority1_5_validation_output.json\n",
+    "git_diff_name_status_after": "M\tbackend/.env.example\nM\tbackend/api/main.py\nM\tbackend/api/schemas.py\nM\tbackend/config.py\nM\tbackend/core/market_xg_calibration.py\nM\tbackend/core/priority1_backtest.py\nM\tbackend/core/priority1_diagnostics.py\nM\tbackend/core/priority1_options.py\nM\tbackend/core/temporal_backtest.py\nM\tbackend/data/activation_large_shift_reviews.json\nM\tbackend/data/cache/nt_ratings.json\nM\tdocs/PRIORITY1_2_LOCAL_MARKET_XG_VALIDATION.md\n",
+    "git_diff_stat_after": " backend/.env.example                             |  53 ++\n backend/api/main.py                              | 202 +++++--\n backend/api/schemas.py                           |   1 +\n backend/config.py                                | 134 ++++-\n backend/core/market_xg_calibration.py            |  92 +++-\n backend/core/priority1_backtest.py               | 433 +++++++++++++--\n backend/core/priority1_diagnostics.py            |  48 ++\n backend/core/priority1_options.py                | 290 ++++++++++-\n backend/core/temporal_backtest.py                |   2 +\n backend/data/activation_large_shift_reviews.json |   2 +-\n backend/data/cache/nt_ratings.json               | 636 +++++++++++------------\n docs/PRIORITY1_2_LOCAL_MARKET_XG_VALIDATION.md   |  23 +-\n 12 files changed, 1474 insertions(+), 442 deletions(-)\n"
+  },
+  "required_next_step": "Manual hunk selection / commit planning with explicit user approval. When approved: stage Commit A hunks only via git add -p, run tests, then commit.",
+  "final_recommendation": "Do not activate. Do not deploy. Do not commit yet unless manual hunk selection is approved. P1.7B.23/P1.7B.24 code is safe in isolation; workspace hygiene requires git add -p on priority1_options.py and priority1_backtest.py before any commit.",
+  "allowed_changed_files": [
+    "backend/core/commit_scope_release_safety_review.py",
+    "backend/scripts/run_priority1_7b_25_commit_scope_release_safety_review.py",
+    "backend/tests/test_commit_scope_release_safety_review.py",
+    "docs/PRIORITY1_7B_25_COMMIT_SCOPE_RELEASE_SAFETY_REVIEW.md",
+    "backend/reports/priority1_7b_25_commit_scope_release_safety_review.json"
+  ],
+  "tests_run": {
+    "skipped": false,
+    "exit_code": 0,
+    "passed": true,
+    "total_passed": 156,
+    "p1725_tests": 25,
+    "summary": "156 passed (7 suites)"
+  }
+}
