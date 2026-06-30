@@ -1,0 +1,835 @@
+{
+  "phase": "P1.7B.20",
+  "preservation_first": true,
+  "diagnostic_only": true,
+  "decision_only": true,
+  "no_prediction_execution": true,
+  "no_model_change": true,
+  "prior_reports_loaded": [
+    "P1.7B.11",
+    "P1.7B.14",
+    "P1.7B.15",
+    "P1.7B.16",
+    "P1.7B.17",
+    "P1.7B.18",
+    "P1.7B.19"
+  ],
+  "allowed_changed_files": [
+    "backend/core/final_activation_readiness_audit.py",
+    "backend/scripts/run_priority1_7b_20_final_activation_readiness_audit.py",
+    "backend/tests/test_final_activation_readiness_audit.py",
+    "docs/PRIORITY1_7B_20_FINAL_ACTIVATION_READINESS_AUDIT.md",
+    "backend/reports/priority1_7b_20_final_activation_readiness_audit.json"
+  ],
+  "audit_subject": "NR3+FCC",
+  "activation_ready": false,
+  "controlled_activation_plan_justified": true,
+  "production_activation_allowed": false,
+  "direct_activation_allowed": false,
+  "final_decision": "A_READY_FOR_CONTROLLED_ACTIVATION_PLAN",
+  "decision_confidence": "high",
+  "remaining_blockers": [
+    "WC2022 raw Top-5 fail",
+    "Overfit / research-sequence risk",
+    "Production safety"
+  ],
+  "required_next_step": "P1.7B.21 \u2014 Controlled Activation Plan Draft",
+  "final_decision_detail": "NR3+FCC is best subject; global/holdout/FSS evidence strong; WC2022 raw fail is contextual; proceed to controlled activation plan draft only.",
+  "more_tuning_useful": false,
+  "scoreline_prototype_needed_first": false,
+  "final_readiness_gate_table": [
+    {
+      "gate_name": "global_ll_vs_baseline",
+      "category": "A_global_model_quality",
+      "raw_status": "pass",
+      "contextual_status": "pass",
+      "severity": "low",
+      "evidence": "NR3+FCC LL 0.9798 vs baseline 0.9989",
+      "source_phase": "P1.7B.16",
+      "metric_value": 0.9798,
+      "threshold": "< 0.9989",
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": false,
+      "notes": ""
+    },
+    {
+      "gate_name": "global_brier_vs_baseline",
+      "category": "A_global_model_quality",
+      "raw_status": "pass",
+      "contextual_status": "pass",
+      "severity": "low",
+      "evidence": "Brier 0.5844 vs baseline 0.5984",
+      "source_phase": "P1.7B.16",
+      "metric_value": 0.5844,
+      "threshold": "< 0.5984",
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": false,
+      "notes": ""
+    },
+    {
+      "gate_name": "global_rps_vs_baseline",
+      "category": "A_global_model_quality",
+      "raw_status": "pass",
+      "contextual_status": "pass",
+      "severity": "low",
+      "evidence": "RPS 0.3868 vs baseline 0.3997",
+      "source_phase": "P1.7B.16",
+      "metric_value": 0.3868,
+      "threshold": "< 0.3997",
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": false,
+      "notes": ""
+    },
+    {
+      "gate_name": "global_top5_vs_baseline",
+      "category": "A_global_model_quality",
+      "raw_status": "pass",
+      "contextual_status": "pass",
+      "severity": "low",
+      "evidence": "Top-5 0.6093 >= baseline 0.596",
+      "source_phase": "P1.7B.16",
+      "metric_value": 0.6093,
+      "threshold": 0.596,
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": false,
+      "notes": ""
+    },
+    {
+      "gate_name": "cluster_under_5pct",
+      "category": "A_global_model_quality",
+      "raw_status": "pass",
+      "contextual_status": "pass",
+      "severity": "low",
+      "evidence": "Cluster share 0.0397",
+      "source_phase": "P1.7B.16",
+      "metric_value": 0.0397,
+      "threshold": 0.05,
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": false,
+      "notes": ""
+    },
+    {
+      "gate_name": "no_26_regression",
+      "category": "A_global_model_quality",
+      "raw_status": "pass",
+      "contextual_status": "pass",
+      "severity": "low",
+      "evidence": "No fixed 2.6 total-xG regression in strength path",
+      "source_phase": "P1.7B.16",
+      "metric_value": false,
+      "threshold": false,
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": false,
+      "notes": ""
+    },
+    {
+      "gate_name": "wc2022_top5_raw",
+      "category": "B_dataset_robustness",
+      "raw_status": "fail",
+      "contextual_status": "contextual_pass",
+      "severity": "medium",
+      "evidence": "NR3+FCC WC2022 Top-5 48.44% (31/64); raw fail preserved",
+      "source_phase": "P1.7B.16/P1.7B.17",
+      "metric_value": 0.4844,
+      "threshold": 0.5,
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": true,
+      "notes": "Raw status must remain fail; contextual_pass from Top-K/CI only"
+    },
+    {
+      "gate_name": "wc2022_topk_context",
+      "category": "B_dataset_robustness",
+      "raw_status": "pass",
+      "contextual_status": "pass",
+      "severity": "low",
+      "evidence": "Top-6 57.8%, Top-7 64.1%",
+      "source_phase": "P1.7B.18",
+      "metric_value": {
+        "top6": 38,
+        "top7": 41
+      },
+      "threshold": ">=50% at Top-6/7",
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": false,
+      "notes": ""
+    },
+    {
+      "gate_name": "wc2022_bootstrap_context",
+      "category": "B_dataset_robustness",
+      "raw_status": "warning",
+      "contextual_status": "contextual_pass",
+      "severity": "medium",
+      "evidence": "Top-5 fragile=True; CI overlap NR6=True",
+      "source_phase": "P1.7B.18",
+      "metric_value": 0.4844,
+      "threshold": "statistical separation",
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": true,
+      "notes": ""
+    },
+    {
+      "gate_name": "copa2024_holdout",
+      "category": "B_dataset_robustness",
+      "raw_status": "pass",
+      "contextual_status": "pass",
+      "severity": "low",
+      "evidence": "Copa2024 stable under NR3+FCC regression gates",
+      "source_phase": "P1.7B.16",
+      "metric_value": 22,
+      "threshold": "non-regression",
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": false,
+      "notes": ""
+    },
+    {
+      "gate_name": "euro2024_holdout",
+      "category": "B_dataset_robustness",
+      "raw_status": "pass",
+      "contextual_status": "pass",
+      "severity": "low",
+      "evidence": "Euro2024 stable under NR3+FCC regression gates",
+      "source_phase": "P1.7B.16",
+      "metric_value": 22,
+      "threshold": "non-regression",
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": false,
+      "notes": ""
+    },
+    {
+      "gate_name": "wc2018_monitoring",
+      "category": "B_dataset_robustness",
+      "raw_status": "not_applicable",
+      "contextual_status": "pass",
+      "severity": "low",
+      "evidence": "WC2018 monitoring only per P1.7B.11",
+      "source_phase": "P1.7B.11",
+      "metric_value": null,
+      "threshold": "monitoring",
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": false,
+      "notes": ""
+    },
+    {
+      "gate_name": "qualifiers2026_caution",
+      "category": "B_dataset_robustness",
+      "raw_status": "warning",
+      "contextual_status": "warning",
+      "severity": "medium",
+      "evidence": "Qualifiers2026 auxiliary only; outlier caution",
+      "source_phase": "P1.7B.11",
+      "metric_value": null,
+      "threshold": "non-primary",
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": false,
+      "notes": ""
+    },
+    {
+      "gate_name": "fss_improvement",
+      "category": "C_failure_mode",
+      "raw_status": "pass",
+      "contextual_status": "pass",
+      "severity": "low",
+      "evidence": "FSS LL 10.127 -> 9.1709",
+      "source_phase": "P1.7B.16",
+      "metric_value": 9.1709,
+      "threshold": "< NR3 10.127",
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": false,
+      "notes": ""
+    },
+    {
+      "gate_name": "a_true_favorite_underconfidence",
+      "category": "C_failure_mode",
+      "raw_status": "pass",
+      "contextual_status": "pass",
+      "severity": "low",
+      "evidence": "A-subtype LL 7.2074 -> 6.0405",
+      "source_phase": "P1.7B.16",
+      "metric_value": 6.0405,
+      "threshold": "< NR3 7.2074",
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": false,
+      "notes": ""
+    },
+    {
+      "gate_name": "wrong_favorite_non_regression",
+      "category": "C_failure_mode",
+      "raw_status": "pass",
+      "contextual_status": "pass",
+      "severity": "low",
+      "evidence": "Regression gate passed vs HB3",
+      "source_phase": "P1.7B.16",
+      "metric_value": true,
+      "threshold": "no regression",
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": false,
+      "notes": ""
+    },
+    {
+      "gate_name": "upset_underestimated_non_regression",
+      "category": "C_failure_mode",
+      "raw_status": "pass",
+      "contextual_status": "pass",
+      "severity": "low",
+      "evidence": "Regression gate passed vs HB3",
+      "source_phase": "P1.7B.16",
+      "metric_value": true,
+      "threshold": "no regression",
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": false,
+      "notes": ""
+    },
+    {
+      "gate_name": "spread_too_large_non_regression",
+      "category": "C_failure_mode",
+      "raw_status": "pass",
+      "contextual_status": "pass",
+      "severity": "low",
+      "evidence": "Regression gate passed vs HB3",
+      "source_phase": "P1.7B.16",
+      "metric_value": true,
+      "threshold": "no regression",
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": false,
+      "notes": ""
+    },
+    {
+      "gate_name": "category_artifact_monitoring",
+      "category": "C_failure_mode",
+      "raw_status": "warning",
+      "contextual_status": "warning",
+      "severity": "medium",
+      "evidence": "Category refinement still recommended; FCC improves true A-subtype",
+      "source_phase": "P1.7B.16",
+      "metric_value": {
+        "artifact_count_nr3": 34,
+        "artifact_count_fcc": 42,
+        "a_subtype_improves": true,
+        "a_subtype_delta_ll": -1.1669,
+        "fss_improves_excluding_artifacts": true,
+        "fss_delta_ll": -0.9561,
+        "fcc_primarily_improves_true_a_subtype": true,
+        "category_refinement_still_needed": true,
+        "recommended_future_category_refinement": true
+      },
+      "threshold": "monitoring",
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": false,
+      "notes": ""
+    },
+    {
+      "gate_name": "regression_safety_combined",
+      "category": "D_regression_safety",
+      "raw_status": "pass",
+      "contextual_status": "pass",
+      "severity": "low",
+      "evidence": "fcc_regression_safe=True; failed=['wc2022_top5_prefer_50']",
+      "source_phase": "P1.7B.16",
+      "metric_value": 22,
+      "threshold": "fcc_regression_safe",
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": true,
+      "notes": ""
+    },
+    {
+      "gate_name": "nr6_not_better_subject",
+      "category": "D_regression_safety",
+      "raw_status": "warning",
+      "contextual_status": "pass",
+      "severity": "medium",
+      "evidence": "NR6 WC2022 0.5 one-match fragile; NR6 LL worse 0.982",
+      "source_phase": "P1.7B.17/P1.7B.18",
+      "metric_value": 1,
+      "threshold": ">=2 for robust NR6 edge",
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": false,
+      "notes": ""
+    },
+    {
+      "gate_name": "matrix_non_material",
+      "category": "D_regression_safety",
+      "raw_status": "pass",
+      "contextual_status": "pass",
+      "severity": "low",
+      "evidence": "Matrix calibration not justified; materiality None",
+      "source_phase": "P1.7B.18",
+      "metric_value": 0,
+      "threshold": 0,
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": false,
+      "notes": ""
+    },
+    {
+      "gate_name": "scoreline_prototype_not_required",
+      "category": "D_regression_safety",
+      "raw_status": "pass",
+      "contextual_status": "pass",
+      "severity": "low",
+      "evidence": "P1.7B.19: scoreline prototype not needed before final audit",
+      "source_phase": "P1.7B.19",
+      "metric_value": null,
+      "threshold": false,
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": false,
+      "notes": ""
+    },
+    {
+      "gate_name": "no_production_default_changes",
+      "category": "E_operational_safety",
+      "raw_status": "pass",
+      "contextual_status": "pass",
+      "severity": "critical",
+      "evidence": "P1.7B.20 does not change defaults; feature flag off by default required",
+      "source_phase": "P1.7B.20",
+      "metric_value": true,
+      "threshold": true,
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": true,
+      "notes": ""
+    },
+    {
+      "gate_name": "rollback_path_exists",
+      "category": "E_operational_safety",
+      "raw_status": "pass",
+      "contextual_status": "pass",
+      "severity": "high",
+      "evidence": "Delete P1.7B.20 artifacts; keep favorite_confidence_curve_params=None",
+      "source_phase": "P1.7B.20",
+      "metric_value": true,
+      "threshold": true,
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": false,
+      "notes": ""
+    },
+    {
+      "gate_name": "dark_launch_required",
+      "category": "E_operational_safety",
+      "raw_status": "not_applicable",
+      "contextual_status": "blocked",
+      "severity": "critical",
+      "evidence": "Direct activation blocked until controlled plan with shadow/dark launch",
+      "source_phase": "P1.7B.20",
+      "metric_value": false,
+      "threshold": true,
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": true,
+      "notes": ""
+    },
+    {
+      "gate_name": "explicit_approval_required",
+      "category": "E_operational_safety",
+      "raw_status": "not_applicable",
+      "contextual_status": "blocked",
+      "severity": "critical",
+      "evidence": "Manual approval required before any production activation",
+      "source_phase": "P1.7B.20",
+      "metric_value": true,
+      "threshold": true,
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": true,
+      "notes": ""
+    },
+    {
+      "gate_name": "no_dataset_specific_hacks",
+      "category": "F_governance",
+      "raw_status": "pass",
+      "contextual_status": "pass",
+      "severity": "low",
+      "evidence": "No dataset-specific correction in FCC or NR3 stack",
+      "source_phase": "P1.7B.16",
+      "metric_value": true,
+      "threshold": true,
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": false,
+      "notes": ""
+    },
+    {
+      "gate_name": "no_tuning_grid",
+      "category": "F_governance",
+      "raw_status": "pass",
+      "contextual_status": "pass",
+      "severity": "low",
+      "evidence": "Research sequence complete without post-hoc grid on WC2022",
+      "source_phase": "P1.7B.16-P1.7B.19",
+      "metric_value": true,
+      "threshold": true,
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": false,
+      "notes": ""
+    },
+    {
+      "gate_name": "no_unsafe_signals",
+      "category": "F_governance",
+      "raw_status": "pass",
+      "contextual_status": "pass",
+      "severity": "low",
+      "evidence": "No market odds, static OAF, or GLOBAL_XG_AVG in stack",
+      "source_phase": "P1.7B.16",
+      "metric_value": true,
+      "threshold": true,
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_production_activation": false,
+      "notes": ""
+    }
+  ],
+  "gate_summary": {
+    "total_gates": 30,
+    "raw_fail_count": 1,
+    "raw_pass_count": 22,
+    "contextual_pass_count": 26,
+    "blocks_controlled_plan_count": 0,
+    "blocks_direct_activation_count": 6
+  },
+  "wc2022_raw_gate": {
+    "gate_name": "wc2022_top5_raw",
+    "category": "B_dataset_robustness",
+    "raw_status": "fail",
+    "contextual_status": "contextual_pass",
+    "severity": "medium",
+    "evidence": "NR3+FCC WC2022 Top-5 48.44% (31/64); raw fail preserved",
+    "source_phase": "P1.7B.16/P1.7B.17",
+    "metric_value": 0.4844,
+    "threshold": 0.5,
+    "blocks_controlled_activation_plan": false,
+    "blocks_direct_production_activation": true,
+    "notes": "Raw status must remain fail; contextual_pass from Top-K/CI only"
+  },
+  "audit_subject_assessment": {
+    "recommended_subject": "NR3+FCC",
+    "rejected_subjects": [
+      "NR6",
+      "NR3",
+      "HB3",
+      "Baseline"
+    ],
+    "why_NR3_FCC": "Best combined global metrics with FCC FSS/A improvement; regression-safe; holdouts stable; WC2022 raw fail contextualized by Top-K/CI.",
+    "why_not_NR6": "WC2022 Top-5 pass is one-match fragile (Wales vs Iran); nr6_only_hits=1; higher LL (0.982) and worse A-subtype than NR3+FCC.",
+    "why_not_NR3_alone": "FCC materially reduces FSS/A-subtype without global or holdout regression; same global Top-5 as NR3.",
+    "why_not_HB3": "WC2022 Top-5 weaker (0.4375); anchor only, not final subject.",
+    "why_not_baseline": "2.55-2.65 cluster 71.9% obsolete; LL/Brier worse.",
+    "direct_activation_deserved": false,
+    "controlled_plan_deserved": true,
+    "subject_comparison_summary": {
+      "NR3+FCC": {
+        "log_loss": 0.9798,
+        "brier": 0.5844,
+        "rps": 0.3868,
+        "top5": 0.6093,
+        "wc2022_top5": 0.4844,
+        "fss_count": 91,
+        "fss_ll": 9.1709,
+        "a_subtype_count": 40,
+        "a_subtype_ll": 6.0405
+      },
+      "NR3": {
+        "log_loss": 0.98,
+        "brier": 0.5844,
+        "rps": 0.3869,
+        "top5": 0.6093,
+        "wc2022_top5": 0.4844,
+        "fss_count": 92,
+        "fss_ll": 10.127,
+        "a_subtype_count": 48,
+        "a_subtype_ll": 7.2074
+      },
+      "NR6": {
+        "log_loss": 0.982,
+        "brier": 0.5856,
+        "rps": 0.3881,
+        "top5": 0.6026,
+        "wc2022_top5": 0.5,
+        "fss_count": 89,
+        "fss_ll": 9.1194,
+        "a_subtype_count": 55,
+        "a_subtype_ll": 6.8621
+      },
+      "HB3": {
+        "log_loss": 0.9795,
+        "brier": 0.5848,
+        "rps": 0.3871,
+        "top5": 0.596,
+        "wc2022_top5": 0.4375,
+        "fss_count": 78,
+        "fss_ll": 7.5632,
+        "a_subtype_count": 33,
+        "a_subtype_ll": 3.509
+      },
+      "Baseline": {
+        "log_loss": 0.9989,
+        "brier": 0.5984,
+        "rps": 0.3997,
+        "top5": 0.596,
+        "wc2022_top5": 0.5,
+        "cluster_255_265": 0.719
+      }
+    }
+  },
+  "remaining_blocker_analysis": [
+    {
+      "blocker": "WC2022 raw Top-5 fail",
+      "classification": "contextual",
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_activation": true,
+      "detail": "31/64 raw fail; Top-6 38/64; one-match risk=True"
+    },
+    {
+      "blocker": "FSS / A-subtype",
+      "classification": "monitoring",
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_activation": false,
+      "detail": "Materially improved by FCC; continue monitoring"
+    },
+    {
+      "blocker": "Top-K ranking fragility",
+      "classification": "monitoring",
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_activation": false,
+      "detail": "Near-cutoff share 57.6%; monitor in rollout"
+    },
+    {
+      "blocker": "Category artifacts",
+      "classification": "future_research",
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_activation": false,
+      "detail": "Optional future category refinement; not blocking controlled plan"
+    },
+    {
+      "blocker": "Qualifiers/outlier risk",
+      "classification": "monitoring",
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_activation": false,
+      "detail": "Auxiliary dataset only; do not use as sole activation evidence"
+    },
+    {
+      "blocker": "Overfit / research-sequence risk",
+      "classification": "monitoring",
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_activation": true,
+      "detail": "Controlled rollout with holdout monitoring required"
+    },
+    {
+      "blocker": "Production safety",
+      "classification": "blocks_direct_activation",
+      "blocks_controlled_activation_plan": false,
+      "blocks_direct_activation": true,
+      "detail": "Explicit approval, dark launch, rollback switch required"
+    }
+  ],
+  "controlled_activation_plan_readiness": {
+    "controlled_activation_plan_justified": true,
+    "required_plan_elements": [
+      "feature_flag_off_by_default",
+      "dark_launch_shadow_mode_first",
+      "side_by_side_baseline_vs_nr3_fcc",
+      "no_user_visible_predictions_until_approved",
+      "per_match_diagnostics",
+      "rollback_switch",
+      "monitoring_dashboard_or_report",
+      "automatic_rollback_thresholds",
+      "manual_approval_before_production",
+      "canary_or_internal_only_endpoint_first",
+      "no_render_env_change_without_approval"
+    ],
+    "minimum_safety_controls": [
+      "favorite_confidence_curve_params remains None in production until approved",
+      "STRENGTH_BASED_XG_ENABLED remains false until approved",
+      "explicit git-tagged release for any future activation"
+    ],
+    "required_monitoring": [
+      "WC2022 Top-5 raw and Top-K context",
+      "Copa/Euro holdout replay",
+      "FSS/A-subtype drift",
+      "wrong_favorite / upset / spread_too_large",
+      "cluster share"
+    ],
+    "required_rollback": [
+      "Set favorite_confidence_curve_params=None",
+      "Revert to baseline production stack",
+      "Document rollback in activation plan"
+    ],
+    "explicit_approval_required": true,
+    "next_phase_label": "P1.7B.21 \u2014 Controlled Activation Plan Draft"
+  },
+  "risk_mitigation_table": [
+    {
+      "description": "WC2022 raw Top-5 fail (48.44%)",
+      "severity": "medium",
+      "likelihood": "high",
+      "mitigation": "Report raw fail + Top-K/CI context in rollout monitoring",
+      "blocks_controlled_plan": false,
+      "blocks_direct_activation": true,
+      "required_next_evidence": "Holdout replay during dark launch"
+    },
+    {
+      "description": "One-match Top-5 threshold fragility",
+      "severity": "medium",
+      "likelihood": "high",
+      "mitigation": "Do not tune to one match; monitor Top-6/7 alongside Top-5",
+      "blocks_controlled_plan": false,
+      "blocks_direct_activation": true,
+      "required_next_evidence": "Bootstrap CI in activation plan"
+    },
+    {
+      "description": "Limited tournament sample size (n=64 WC2022)",
+      "severity": "medium",
+      "likelihood": "high",
+      "mitigation": "Use CI and Top-K context in go/no-go decisions",
+      "blocks_controlled_plan": false,
+      "blocks_direct_activation": false,
+      "required_next_evidence": "Additional tournament data when available"
+    },
+    {
+      "description": "Bootstrap uncertainty NR3 vs NR6",
+      "severity": "medium",
+      "likelihood": "high",
+      "mitigation": "Do not prefer NR6 on raw Top-5 alone",
+      "blocks_controlled_plan": false,
+      "blocks_direct_activation": false,
+      "required_next_evidence": true
+    },
+    {
+      "description": "Top-K ranking fragility",
+      "severity": "medium",
+      "likelihood": "medium",
+      "mitigation": "Monitor rank-6-10 misses in shadow mode",
+      "blocks_controlled_plan": false,
+      "blocks_direct_activation": false,
+      "required_next_evidence": "Shadow comparison reports"
+    },
+    {
+      "description": "Qualifiers/outlier caution",
+      "severity": "medium",
+      "likelihood": "medium",
+      "mitigation": "Auxiliary only; not sole activation evidence",
+      "blocks_controlled_plan": false,
+      "blocks_direct_activation": false,
+      "required_next_evidence": "Holdout stability"
+    },
+    {
+      "description": "Category artifact risk",
+      "severity": "low",
+      "likelihood": "medium",
+      "mitigation": "Optional future category refinement audit",
+      "blocks_controlled_plan": false,
+      "blocks_direct_activation": false,
+      "required_next_evidence": "FSS breakdown in monitoring"
+    },
+    {
+      "description": "Overfit / long research sequence",
+      "severity": "medium",
+      "likelihood": "medium",
+      "mitigation": "Controlled rollout; locked holdouts",
+      "blocks_controlled_plan": false,
+      "blocks_direct_activation": true,
+      "required_next_evidence": "Fresh holdout evaluation at plan time"
+    },
+    {
+      "description": "Production default/hook risk",
+      "severity": "high",
+      "likelihood": "low",
+      "mitigation": "Feature flags off; explicit approval",
+      "blocks_controlled_plan": false,
+      "blocks_direct_activation": true,
+      "required_next_evidence": "Pre-activation default verification checklist"
+    },
+    {
+      "description": "Public prediction trust risk",
+      "severity": "high",
+      "likelihood": "medium",
+      "mitigation": "Dark launch; internal-only first",
+      "blocks_controlled_plan": false,
+      "blocks_direct_activation": true,
+      "required_next_evidence": "User-visible activation only after approval"
+    },
+    {
+      "description": "NR6 one-match artifact (Wales vs Iran)",
+      "severity": "medium",
+      "likelihood": "high",
+      "mitigation": "Do not select NR6; nr6_only_hits=1",
+      "blocks_controlled_plan": false,
+      "blocks_direct_activation": false,
+      "required_next_evidence": "Subject comparison in plan"
+    }
+  ],
+  "preservation_checklist": {
+    "git_status_before": " M backend/.env.example\n M backend/api/main.py\n M backend/api/schemas.py\n M backend/config.py\n M backend/core/market_xg_calibration.py\n M backend/core/priority1_backtest.py\n M backend/core/priority1_diagnostics.py\n M backend/core/priority1_options.py\n M backend/core/temporal_backtest.py\n M backend/data/activation_large_shift_reviews.json\n M backend/data/cache/nt_ratings.json\n M docs/PRIORITY1_2_LOCAL_MARKET_XG_VALIDATION.md\n?? backend/core/activation_readiness_gate_context_audit.py\n?? backend/core/conditional_spread_governance.py\n?? backend/core/dual_regime_favorite_confidence_governance.py\n?? backend/core/dynamic_goals_bounded.py\n?? backend/core/dynamic_goals_v3.py\n?? backend/core/dynamic_goals_v3_gates.py\n?? backend/core/dynamic_goals_v3_rolling.py\n?? backend/core/favorite_confidence_curve_audit.py\n?? backend/core/favorite_confidence_curve_prototype.py\n?? backend/core/favorite_direction_root_cause_audit.py\n?? backend/core/favorite_direction_safety_gate.py\n?? backend/core/favorite_direction_safety_gate_validation.py\n?? backend/core/favorite_spread_too_small_decomposition.py\n?? backend/core/favorite_trust_calibration.py\n?? backend/core/favorite_trust_validation.py\n?? backend/core/final_activation_readiness_audit.py\n?? backend/core/hybrid_balance_tuning.py\n?? backend/core/hybrid_balance_validation.py\n?? backend/core/independent_signal_wiring_audit.py\n?? backend/core/independent_signal_wiring_prototype.py\n?? backend/core/latent_xg_bias_audit.py\n?? backend/core/market_calibration_v2.py\n?? backend/core/power_v3.py\n?? backend/core/power_zscore_residual.py\n?? backend/core/priority1_4_gates.py\n?? backend/core/priority1_4_validation.py\n?? backend/core/priority1_5_validation.py\n?? backend/core/priority1_6_validation.py\n?? backend/core/scoreline_ranking_topk_robustness_audit.py\n?? backend/core/strength_activation_readiness_audit.py\n?? backend/core/strength_based_xg_gates.py\n?? backend/core/strength_based_xg_generator.py\n?? backend/core/strength_based_xg_micro_probes.py\n?? backend/core/strength_based_xg_p1c_analysis.py\n?? backend/core/strength_based_xg_p1c_refinement.py\n?? backend/core/strength_based_xg_refinement.py\n?? backend/core/strength_based_xg_stage_diagnosis.py\n?? backend/core/strength_based_xg_validation.py\n?? backend/core/strength_recovery_diagnostics.py\n?? backend/core/strength_signal_weight_calibration.py\n?? backend/core/strength_signal_weight_calibration_validation.py\n?? backend/core/strength_signal_weight_narrow_refinement.py\n?? backend/core/strength_signal_weight_narrow_refinement_validation.py\n?? backend/core/strength_spread_residual_correction.py\n?? backend/core/strength_spread_residual_validation.py\n?? backend/core/strength_stage_recovery.py\n?? backend/core/strength_stage_recovery_total_focus_validation.py\n?? backend/core/strength_stage_recovery_validation.py\n?? backend/core/trust_gated_spread_hybrid.py\n?? backend/core/trust_gated_spread_hybrid_validation.py\n?? backend/core/validation_metrology_redesign.py\n?? backend/core/wc2018_residual_decomposition.py\n?? backend/core/wc2022_top5_robustness_blocker_decomposition.py\n?? backend/core/xg_coherent_pipeline.py\n?? backend/data/cache/recent_form_fusion_cache.json.before_refresh\n?? backend/scripts/audit_prediction_quality_root_cause.py\n?? backend/scripts/audit_recent_form_shadow_influence.py\n?? backend/scripts/run_priority1_3_combined_validation.py\n?? backend/scripts/run_priority1_4_architecture_validation.py\n?? backend/scripts/run_priority1_5_coherent_model_validation.py\n?? backend/scripts/run_priority1_6_dynamic_goals_v3_validation.py\n?? backend/scripts/run_priority1_7a_latent_xg_bias_audit.py\n?? backend/scripts/run_priority1_7b_10_1_independent_signal_wiring_prototype.py\n?? backend/scripts/run_priority1_7b_10_independent_signal_wiring_audit.py\n?? backend/scripts/run_priority1_7b_11_validation_metrology_redesign.py\n?? backend/scripts/run_priority1_7b_12_conditional_spread_governance.py\n?? backend/scripts/run_priority1_7b_13_dual_regime_favorite_confidence_governance.py\n?? backend/scripts/run_priority1_7b_14_favorite_spread_too_small_decomposition.py\n?? backend/scripts/run_priority1_7b_15_favorite_confidence_curve_audit.py\n?? backend/scripts/run_priority1_7b_16_favorite_confidence_curve_prototype.py\n?? backend/scripts/run_priority1_7b_17_wc2022_top5_robustness_blocker_decomposition.py\n?? backend/scripts/run_priority1_7b_18_scoreline_ranking_topk_robustness_audit.py\n?? backend/scripts/run_priority1_7b_19_activation_readiness_gate_context_audit.py\n?? backend/scripts/run_priority1_7b_1_strength_xg_refinement.py\n?? backend/scripts/run_priority1_7b_20_final_activation_readiness_audit.py\n?? backend/scripts/run_priority1_7b_2_p1c_stability_refinement.py\n?? backend/scripts/run_priority1_7b_3_stage_aware_diagnosis.py\n?? backend/scripts/run_priority1_7b_4_1_r16_total_recovery_focus.py\n?? backend/scripts/run_priority1_7b_4_r16_stage_aware_recovery.py\n?? backend/scripts/run_priority1_7b_5_wc2018_residual_decomposition.py\n?? backend/scripts/run_priority1_7b_6_1_generic_favorite_trust_calibration.py\n?? backend/scripts/run_priority1_7b_6_2_trust_gated_spread_damping_hybrid.py\n?? backend/scripts/run_priority1_7b_6_3_hybrid_balance_tuning.py\n?? backend/scripts/run_priority1_7b_6_spread_share_residual_correction.py\n?? backend/scripts/run_priority1_7b_7_favorite_direction_root_cause_audit.py\n?? backend/scripts/run_priority1_7b_8_favorite_direction_safety_gate.py\n?? backend/scripts/run_priority1_7b_9_1_narrow_sw3_sw6_signal_weight_refinement.py\n?? backend/scripts/run_priority1_7b_9_2_activation_readiness_regression_protection_audit.py\n?? backend/scripts/run_priority1_7b_9_p1c2_signal_weight_calibration.py\n?? backend/scripts/run_priority1_7b_strength_based_xg_validation.py\n?? backend/tests/test_activation_readiness_gate_context_audit.py\n?? backend/tests/test_conditional_spread_governance.py\n?? backend/tests/test_dual_regime_favorite_confidence_governance.py\n?? backend/tests/test_dynamic_goals_v3.py\n?? backend/tests/test_favorite_confidence_curve_audit.py\n?? backend/tests/test_favorite_confidence_curve_prototype.py\n?? backend/tests/test_favorite_direction_root_cause_audit.py\n?? backend/tests/test_favorite_direction_safety_gate.py\n?? backend/tests/test_favorite_spread_too_small_decomposition.py\n?? backend/tests/test_favorite_trust_calibration.py\n?? backend/tests/test_final_activation_readiness_audit.py\n?? backend/tests/test_hybrid_balance_tuning.py\n?? backend/tests/test_independent_signal_wiring_audit.py\n?? backend/tests/test_independent_signal_wiring_prototype.py\n?? backend/tests/test_priority1_4_architecture.py\n?? backend/tests/test_priority1_5_coherent_model.py\n?? backend/tests/test_priority1_6_dynamic_goals_v3_pipeline.py\n?? backend/tests/test_priority1_7a_latent_xg_bias_audit.py\n?? backend/tests/test_scoreline_ranking_topk_robustness_audit.py\n?? backend/tests/test_spread_residual_correction.py\n?? backend/tests/test_strength_activation_readiness_audit.py\n?? backend/tests/test_strength_based_xg_generator.py\n?? backend/tests/test_strength_signal_weight_calibration.py\n?? backend/tests/test_strength_signal_weight_narrow_refinement.py\n?? backend/tests/test_trust_gated_spread_hybrid.py\n?? backend/tests/test_validation_metrology_redesign.py\n?? backend/tests/test_wc2018_residual_decomposition.py\n?? backend/tests/test_wc2022_top5_robustness_blocker_decomposition.py\n?? docs/PRIORITY1_3_COMBINED_CANDIDATE_VALIDATION.md\n?? docs/PRIORITY1_4_ARCHITECTURE_VALIDATION.md\n?? docs/PRIORITY1_4_PIPELINE_AUDIT.md\n?? docs/PRIORITY1_5_COHERENT_MODEL_UPGRADE.md\n?? docs/PRIORITY1_5_PIPELINE_AUDIT.md\n?? docs/PRIORITY1_6_DYNAMIC_GOALS_V3.md\n?? docs/PRIORITY1_6_DYNAMIC_GOALS_V3_AUDIT.md\n?? docs/PRIORITY1_7A_LATENT_XG_BIAS_AUDIT.md\n?? docs/PRIORITY1_7A_LATENT_XG_BIAS_AUDIT_DESIGN.md\n?? docs/PRIORITY1_7B_10_1_INDEPENDENT_SIGNAL_WIRING_PROTOTYPE.md\n?? docs/PRIORITY1_7B_10_INDEPENDENT_SIGNAL_WIRING_AUDIT.md\n?? docs/PRIORITY1_7B_11_VALIDATION_METROLOGY_REDESIGN.md\n?? docs/PRIORITY1_7B_12_CONDITIONAL_SPREAD_GOVERNANCE.md\n?? docs/PRIORITY1_7B_13_DUAL_REGIME_FAVORITE_CONFIDENCE_GOVERNANCE.md\n?? docs/PRIORITY1_7B_14_FAVORITE_SPREAD_TOO_SMALL_ROOT_CAUSE_DECOMPOSITION.md\n?? docs/PRIORITY1_7B_15_FAVORITE_CONFIDENCE_CURVE_AUDIT.md\n?? docs/PRIORITY1_7B_16_FAVORITE_CONFIDENCE_CURVE_PROTOTYPE.md\n?? docs/PRIORITY1_7B_17_WC2022_TOP5_ROBUSTNESS_BLOCKER_DECOMPOSITION.md\n?? docs/PRIORITY1_7B_18_SCORELINE_RANKING_TOPK_ROBUSTNESS_AUDIT.md\n?? docs/PRIORITY1_7B_19_ACTIVATION_READINESS_GATE_CONTEXT_AUDIT.md\n?? docs/PRIORITY1_7B_1_STRENGTH_XG_REFINEMENT.md\n?? docs/PRIORITY1_7B_1_STRENGTH_XG_REFINEMENT_AUDIT.md\n?? docs/PRIORITY1_7B_2_P1C_STABILITY_ANALYSIS.md\n?? docs/PRIORITY1_7B_2_P1C_STABILITY_REFINEMENT.md\n?? docs/PRIORITY1_7B_3_STAGE_AWARE_MICRO_PROBES.md\n?? docs/PRIORITY1_7B_3_STAGE_AWARE_STABILITY_DIAGNOSIS.md\n?? docs/PRIORITY1_7B_4_1_R16_TOTAL_RECOVERY_AUDIT.md\n?? docs/PRIORITY1_7B_4_1_R16_TOTAL_RECOVERY_FOCUS.md\n?? docs/PRIORITY1_7B_4_R16_STAGE_AWARE_RECOVERY.md\n?? docs/PRIORITY1_7B_5_WC2018_RESIDUAL_DECOMPOSITION.md\n?? docs/PRIORITY1_7B_6_1_GENERIC_FAVORITE_TRUST_CALIBRATION.md\n?? docs/PRIORITY1_7B_6_2_TRUST_GATED_SPREAD_DAMPING_HYBRID.md\n?? docs/PRIORITY1_7B_6_3_HYBRID_BALANCE_TUNING.md\n?? docs/PRIORITY1_7B_6_STAGE_AWARE_SPREAD_SHARE_RESIDUAL_CORRECTION.md\n?? docs/PRIORITY1_7B_7_FAVORITE_DIRECTION_ROOT_CAUSE_AUDIT.md\n?? docs/PRIORITY1_7B_8_FAVORITE_DIRECTION_SAFETY_GATE.md\n?? docs/PRIORITY1_7B_9_1_NARROW_SW3_SW6_SIGNAL_WEIGHT_REFINEMENT.md\n?? docs/PRIORITY1_7B_9_2_ACTIVATION_READINESS_REGRESSION_PROTECTION_AUDIT.md\n?? docs/PRIORITY1_7B_9_P1C2_SIGNAL_WEIGHT_CALIBRATION.md\n?? docs/PRIORITY1_7B_STRENGTH_BASED_XG_AUDIT.md\n?? docs/PRIORITY1_7B_STRENGTH_BASED_XG_GENERATOR.md\n?? docs/RAPIDAPI_FREE_LIVE_FOOTBALL_EVALUATION.md\n?? docs/priority1_5_validation_output.json\n",
+    "git_diff_name_status_before": "M\tbackend/.env.example\nM\tbackend/api/main.py\nM\tbackend/api/schemas.py\nM\tbackend/config.py\nM\tbackend/core/market_xg_calibration.py\nM\tbackend/core/priority1_backtest.py\nM\tbackend/core/priority1_diagnostics.py\nM\tbackend/core/priority1_options.py\nM\tbackend/core/temporal_backtest.py\nM\tbackend/data/activation_large_shift_reviews.json\nM\tbackend/data/cache/nt_ratings.json\nM\tdocs/PRIORITY1_2_LOCAL_MARKET_XG_VALIDATION.md\n",
+    "git_diff_stat_before": " backend/.env.example                             |  53 ++\n backend/api/main.py                              | 202 +++++--\n backend/api/schemas.py                           |   1 +\n backend/config.py                                | 134 ++++-\n backend/core/market_xg_calibration.py            |  92 +++-\n backend/core/priority1_backtest.py               | 416 +++++++++++++--\n backend/core/priority1_diagnostics.py            |  48 ++\n backend/core/priority1_options.py                | 288 +++++++++-\n backend/core/temporal_backtest.py                |   2 +\n backend/data/activation_large_shift_reviews.json |   2 +-\n backend/data/cache/nt_ratings.json               | 636 +++++++++++------------\n docs/PRIORITY1_2_LOCAL_MARKET_XG_VALIDATION.md   |  23 +-\n 12 files changed, 1455 insertions(+), 442 deletions(-)\n",
+    "git_status_after": " M backend/.env.example\n M backend/api/main.py\n M backend/api/schemas.py\n M backend/config.py\n M backend/core/market_xg_calibration.py\n M backend/core/priority1_backtest.py\n M backend/core/priority1_diagnostics.py\n M backend/core/priority1_options.py\n M backend/core/temporal_backtest.py\n M backend/data/activation_large_shift_reviews.json\n M backend/data/cache/nt_ratings.json\n M docs/PRIORITY1_2_LOCAL_MARKET_XG_VALIDATION.md\n?? backend/core/activation_readiness_gate_context_audit.py\n?? backend/core/conditional_spread_governance.py\n?? backend/core/dual_regime_favorite_confidence_governance.py\n?? backend/core/dynamic_goals_bounded.py\n?? backend/core/dynamic_goals_v3.py\n?? backend/core/dynamic_goals_v3_gates.py\n?? backend/core/dynamic_goals_v3_rolling.py\n?? backend/core/favorite_confidence_curve_audit.py\n?? backend/core/favorite_confidence_curve_prototype.py\n?? backend/core/favorite_direction_root_cause_audit.py\n?? backend/core/favorite_direction_safety_gate.py\n?? backend/core/favorite_direction_safety_gate_validation.py\n?? backend/core/favorite_spread_too_small_decomposition.py\n?? backend/core/favorite_trust_calibration.py\n?? backend/core/favorite_trust_validation.py\n?? backend/core/final_activation_readiness_audit.py\n?? backend/core/hybrid_balance_tuning.py\n?? backend/core/hybrid_balance_validation.py\n?? backend/core/independent_signal_wiring_audit.py\n?? backend/core/independent_signal_wiring_prototype.py\n?? backend/core/latent_xg_bias_audit.py\n?? backend/core/market_calibration_v2.py\n?? backend/core/power_v3.py\n?? backend/core/power_zscore_residual.py\n?? backend/core/priority1_4_gates.py\n?? backend/core/priority1_4_validation.py\n?? backend/core/priority1_5_validation.py\n?? backend/core/priority1_6_validation.py\n?? backend/core/scoreline_ranking_topk_robustness_audit.py\n?? backend/core/strength_activation_readiness_audit.py\n?? backend/core/strength_based_xg_gates.py\n?? backend/core/strength_based_xg_generator.py\n?? backend/core/strength_based_xg_micro_probes.py\n?? backend/core/strength_based_xg_p1c_analysis.py\n?? backend/core/strength_based_xg_p1c_refinement.py\n?? backend/core/strength_based_xg_refinement.py\n?? backend/core/strength_based_xg_stage_diagnosis.py\n?? backend/core/strength_based_xg_validation.py\n?? backend/core/strength_recovery_diagnostics.py\n?? backend/core/strength_signal_weight_calibration.py\n?? backend/core/strength_signal_weight_calibration_validation.py\n?? backend/core/strength_signal_weight_narrow_refinement.py\n?? backend/core/strength_signal_weight_narrow_refinement_validation.py\n?? backend/core/strength_spread_residual_correction.py\n?? backend/core/strength_spread_residual_validation.py\n?? backend/core/strength_stage_recovery.py\n?? backend/core/strength_stage_recovery_total_focus_validation.py\n?? backend/core/strength_stage_recovery_validation.py\n?? backend/core/trust_gated_spread_hybrid.py\n?? backend/core/trust_gated_spread_hybrid_validation.py\n?? backend/core/validation_metrology_redesign.py\n?? backend/core/wc2018_residual_decomposition.py\n?? backend/core/wc2022_top5_robustness_blocker_decomposition.py\n?? backend/core/xg_coherent_pipeline.py\n?? backend/data/cache/recent_form_fusion_cache.json.before_refresh\n?? backend/scripts/audit_prediction_quality_root_cause.py\n?? backend/scripts/audit_recent_form_shadow_influence.py\n?? backend/scripts/run_priority1_3_combined_validation.py\n?? backend/scripts/run_priority1_4_architecture_validation.py\n?? backend/scripts/run_priority1_5_coherent_model_validation.py\n?? backend/scripts/run_priority1_6_dynamic_goals_v3_validation.py\n?? backend/scripts/run_priority1_7a_latent_xg_bias_audit.py\n?? backend/scripts/run_priority1_7b_10_1_independent_signal_wiring_prototype.py\n?? backend/scripts/run_priority1_7b_10_independent_signal_wiring_audit.py\n?? backend/scripts/run_priority1_7b_11_validation_metrology_redesign.py\n?? backend/scripts/run_priority1_7b_12_conditional_spread_governance.py\n?? backend/scripts/run_priority1_7b_13_dual_regime_favorite_confidence_governance.py\n?? backend/scripts/run_priority1_7b_14_favorite_spread_too_small_decomposition.py\n?? backend/scripts/run_priority1_7b_15_favorite_confidence_curve_audit.py\n?? backend/scripts/run_priority1_7b_16_favorite_confidence_curve_prototype.py\n?? backend/scripts/run_priority1_7b_17_wc2022_top5_robustness_blocker_decomposition.py\n?? backend/scripts/run_priority1_7b_18_scoreline_ranking_topk_robustness_audit.py\n?? backend/scripts/run_priority1_7b_19_activation_readiness_gate_context_audit.py\n?? backend/scripts/run_priority1_7b_1_strength_xg_refinement.py\n?? backend/scripts/run_priority1_7b_20_final_activation_readiness_audit.py\n?? backend/scripts/run_priority1_7b_2_p1c_stability_refinement.py\n?? backend/scripts/run_priority1_7b_3_stage_aware_diagnosis.py\n?? backend/scripts/run_priority1_7b_4_1_r16_total_recovery_focus.py\n?? backend/scripts/run_priority1_7b_4_r16_stage_aware_recovery.py\n?? backend/scripts/run_priority1_7b_5_wc2018_residual_decomposition.py\n?? backend/scripts/run_priority1_7b_6_1_generic_favorite_trust_calibration.py\n?? backend/scripts/run_priority1_7b_6_2_trust_gated_spread_damping_hybrid.py\n?? backend/scripts/run_priority1_7b_6_3_hybrid_balance_tuning.py\n?? backend/scripts/run_priority1_7b_6_spread_share_residual_correction.py\n?? backend/scripts/run_priority1_7b_7_favorite_direction_root_cause_audit.py\n?? backend/scripts/run_priority1_7b_8_favorite_direction_safety_gate.py\n?? backend/scripts/run_priority1_7b_9_1_narrow_sw3_sw6_signal_weight_refinement.py\n?? backend/scripts/run_priority1_7b_9_2_activation_readiness_regression_protection_audit.py\n?? backend/scripts/run_priority1_7b_9_p1c2_signal_weight_calibration.py\n?? backend/scripts/run_priority1_7b_strength_based_xg_validation.py\n?? backend/tests/test_activation_readiness_gate_context_audit.py\n?? backend/tests/test_conditional_spread_governance.py\n?? backend/tests/test_dual_regime_favorite_confidence_governance.py\n?? backend/tests/test_dynamic_goals_v3.py\n?? backend/tests/test_favorite_confidence_curve_audit.py\n?? backend/tests/test_favorite_confidence_curve_prototype.py\n?? backend/tests/test_favorite_direction_root_cause_audit.py\n?? backend/tests/test_favorite_direction_safety_gate.py\n?? backend/tests/test_favorite_spread_too_small_decomposition.py\n?? backend/tests/test_favorite_trust_calibration.py\n?? backend/tests/test_final_activation_readiness_audit.py\n?? backend/tests/test_hybrid_balance_tuning.py\n?? backend/tests/test_independent_signal_wiring_audit.py\n?? backend/tests/test_independent_signal_wiring_prototype.py\n?? backend/tests/test_priority1_4_architecture.py\n?? backend/tests/test_priority1_5_coherent_model.py\n?? backend/tests/test_priority1_6_dynamic_goals_v3_pipeline.py\n?? backend/tests/test_priority1_7a_latent_xg_bias_audit.py\n?? backend/tests/test_scoreline_ranking_topk_robustness_audit.py\n?? backend/tests/test_spread_residual_correction.py\n?? backend/tests/test_strength_activation_readiness_audit.py\n?? backend/tests/test_strength_based_xg_generator.py\n?? backend/tests/test_strength_signal_weight_calibration.py\n?? backend/tests/test_strength_signal_weight_narrow_refinement.py\n?? backend/tests/test_trust_gated_spread_hybrid.py\n?? backend/tests/test_validation_metrology_redesign.py\n?? backend/tests/test_wc2018_residual_decomposition.py\n?? backend/tests/test_wc2022_top5_robustness_blocker_decomposition.py\n?? docs/PRIORITY1_3_COMBINED_CANDIDATE_VALIDATION.md\n?? docs/PRIORITY1_4_ARCHITECTURE_VALIDATION.md\n?? docs/PRIORITY1_4_PIPELINE_AUDIT.md\n?? docs/PRIORITY1_5_COHERENT_MODEL_UPGRADE.md\n?? docs/PRIORITY1_5_PIPELINE_AUDIT.md\n?? docs/PRIORITY1_6_DYNAMIC_GOALS_V3.md\n?? docs/PRIORITY1_6_DYNAMIC_GOALS_V3_AUDIT.md\n?? docs/PRIORITY1_7A_LATENT_XG_BIAS_AUDIT.md\n?? docs/PRIORITY1_7A_LATENT_XG_BIAS_AUDIT_DESIGN.md\n?? docs/PRIORITY1_7B_10_1_INDEPENDENT_SIGNAL_WIRING_PROTOTYPE.md\n?? docs/PRIORITY1_7B_10_INDEPENDENT_SIGNAL_WIRING_AUDIT.md\n?? docs/PRIORITY1_7B_11_VALIDATION_METROLOGY_REDESIGN.md\n?? docs/PRIORITY1_7B_12_CONDITIONAL_SPREAD_GOVERNANCE.md\n?? docs/PRIORITY1_7B_13_DUAL_REGIME_FAVORITE_CONFIDENCE_GOVERNANCE.md\n?? docs/PRIORITY1_7B_14_FAVORITE_SPREAD_TOO_SMALL_ROOT_CAUSE_DECOMPOSITION.md\n?? docs/PRIORITY1_7B_15_FAVORITE_CONFIDENCE_CURVE_AUDIT.md\n?? docs/PRIORITY1_7B_16_FAVORITE_CONFIDENCE_CURVE_PROTOTYPE.md\n?? docs/PRIORITY1_7B_17_WC2022_TOP5_ROBUSTNESS_BLOCKER_DECOMPOSITION.md\n?? docs/PRIORITY1_7B_18_SCORELINE_RANKING_TOPK_ROBUSTNESS_AUDIT.md\n?? docs/PRIORITY1_7B_19_ACTIVATION_READINESS_GATE_CONTEXT_AUDIT.md\n?? docs/PRIORITY1_7B_1_STRENGTH_XG_REFINEMENT.md\n?? docs/PRIORITY1_7B_1_STRENGTH_XG_REFINEMENT_AUDIT.md\n?? docs/PRIORITY1_7B_2_P1C_STABILITY_ANALYSIS.md\n?? docs/PRIORITY1_7B_2_P1C_STABILITY_REFINEMENT.md\n?? docs/PRIORITY1_7B_3_STAGE_AWARE_MICRO_PROBES.md\n?? docs/PRIORITY1_7B_3_STAGE_AWARE_STABILITY_DIAGNOSIS.md\n?? docs/PRIORITY1_7B_4_1_R16_TOTAL_RECOVERY_AUDIT.md\n?? docs/PRIORITY1_7B_4_1_R16_TOTAL_RECOVERY_FOCUS.md\n?? docs/PRIORITY1_7B_4_R16_STAGE_AWARE_RECOVERY.md\n?? docs/PRIORITY1_7B_5_WC2018_RESIDUAL_DECOMPOSITION.md\n?? docs/PRIORITY1_7B_6_1_GENERIC_FAVORITE_TRUST_CALIBRATION.md\n?? docs/PRIORITY1_7B_6_2_TRUST_GATED_SPREAD_DAMPING_HYBRID.md\n?? docs/PRIORITY1_7B_6_3_HYBRID_BALANCE_TUNING.md\n?? docs/PRIORITY1_7B_6_STAGE_AWARE_SPREAD_SHARE_RESIDUAL_CORRECTION.md\n?? docs/PRIORITY1_7B_7_FAVORITE_DIRECTION_ROOT_CAUSE_AUDIT.md\n?? docs/PRIORITY1_7B_8_FAVORITE_DIRECTION_SAFETY_GATE.md\n?? docs/PRIORITY1_7B_9_1_NARROW_SW3_SW6_SIGNAL_WEIGHT_REFINEMENT.md\n?? docs/PRIORITY1_7B_9_2_ACTIVATION_READINESS_REGRESSION_PROTECTION_AUDIT.md\n?? docs/PRIORITY1_7B_9_P1C2_SIGNAL_WEIGHT_CALIBRATION.md\n?? docs/PRIORITY1_7B_STRENGTH_BASED_XG_AUDIT.md\n?? docs/PRIORITY1_7B_STRENGTH_BASED_XG_GENERATOR.md\n?? docs/RAPIDAPI_FREE_LIVE_FOOTBALL_EVALUATION.md\n?? docs/priority1_5_validation_output.json\n",
+    "git_diff_name_status_after": "M\tbackend/.env.example\nM\tbackend/api/main.py\nM\tbackend/api/schemas.py\nM\tbackend/config.py\nM\tbackend/core/market_xg_calibration.py\nM\tbackend/core/priority1_backtest.py\nM\tbackend/core/priority1_diagnostics.py\nM\tbackend/core/priority1_options.py\nM\tbackend/core/temporal_backtest.py\nM\tbackend/data/activation_large_shift_reviews.json\nM\tbackend/data/cache/nt_ratings.json\nM\tdocs/PRIORITY1_2_LOCAL_MARKET_XG_VALIDATION.md\n",
+    "git_diff_stat_after": " backend/.env.example                             |  53 ++\n backend/api/main.py                              | 202 +++++--\n backend/api/schemas.py                           |   1 +\n backend/config.py                                | 134 ++++-\n backend/core/market_xg_calibration.py            |  92 +++-\n backend/core/priority1_backtest.py               | 416 +++++++++++++--\n backend/core/priority1_diagnostics.py            |  48 ++\n backend/core/priority1_options.py                | 288 +++++++++-\n backend/core/temporal_backtest.py                |   2 +\n backend/data/activation_large_shift_reviews.json |   2 +-\n backend/data/cache/nt_ratings.json               | 636 +++++++++++------------\n docs/PRIORITY1_2_LOCAL_MARKET_XG_VALIDATION.md   |  23 +-\n 12 files changed, 1455 insertions(+), 442 deletions(-)\n",
+    "allowed_files_only": true,
+    "p20_files_created": [
+      "backend/core/final_activation_readiness_audit.py",
+      "backend/scripts/run_priority1_7b_20_final_activation_readiness_audit.py",
+      "backend/tests/test_final_activation_readiness_audit.py"
+    ],
+    "pre_existing_production_path_changes_noted": [
+      "backend/core/priority1_backtest.py",
+      "backend/core/priority1_options.py",
+      "backend/core/strength_based_xg_validation.py",
+      "backend/api/main.py",
+      "backend/config.py"
+    ],
+    "no_production_path_modified_by_p20": true,
+    "no_hooks_changed_by_p20": true,
+    "no_config_changed_by_p20": true,
+    "no_defaults_changed_by_p20": true,
+    "no_prediction_execution": true,
+    "no_env_deploy_commit": true,
+    "preservation_pass": true
+  },
+  "evidence_from_p19": {
+    "recommendation_code": "A_proceed_to_final_activation_readiness_audit",
+    "recommendation_detail": "Remaining WC2022 raw Top-5 blocker is contextual/statistically fragile; holdouts stable; NR3+FCC regression-safe; proceed to final activation-readiness audit only.",
+    "final_activation_readiness_audit_justified": true,
+    "activation_blocked": true,
+    "activation_ready": false,
+    "more_tuning_useful": false,
+    "scoreline_prototype_needed_before_readiness": false,
+    "what_not_to_do": [
+      "Do not activate NR3/NR6/NR3+FCC/FCC/HB3",
+      "Do not deploy or change Render env vars",
+      "Do not tune parameters or run grid",
+      "Do not lower official gates",
+      "Do not calibrate matrix globally",
+      "Do not change production defaults or hooks"
+    ]
+  },
+  "fss_a_subtype": {
+    "nr3_fss_ll": 10.127,
+    "nr3_fcc_fss_ll": 9.1709,
+    "nr3_a_ll": 7.2074,
+    "nr3_fcc_a_ll": 6.0405
+  },
+  "holdout_stability": {
+    "fcc_regression_safe": true,
+    "copa_top5": 0.7188,
+    "euro_top5": 0.6471
+  },
+  "matrix_topk_status": {
+    "matrix_calibration_justified": false,
+    "scoreline_ranking_audit_justified": true,
+    "topk_cutoff_robustness_context_justified": true,
+    "global_matrix_change_blocked": true,
+    "evidence_summary": {
+      "correct_result_rank_6_10": 11,
+      "tiny_small_gap_count": 3,
+      "mass_too_spread_out": false,
+      "wc2022_rank_6_10_miss_share": 0.5758
+    }
+  },
+  "what_not_to_do": [
+    "Do not activate NR3+FCC/NR3/NR6/FCC in production",
+    "Do not deploy or change Render env vars",
+    "Do not tune parameters or run grid",
+    "Do not lower official gates",
+    "Do not skip controlled activation plan draft"
+  ],
+  "activation_status": {
+    "activation_blocked": true,
+    "activation_ready": false,
+    "production_activation_allowed": false,
+    "direct_activation_allowed": false
+  }
+}

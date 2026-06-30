@@ -127,6 +127,24 @@ def log_loss_1x2(
     return -math.log(p)
 
 
+def rps_1x2(predicted_probs: dict[str, float], actual_outcome: str) -> float:
+    """Ranked Probability Score with documented order: HOME → DRAW → AWAY."""
+    probs = normalize_1x2_probabilities(predicted_probs)
+    actual = actual_outcome if actual_outcome in PROB_KEYS else "draw"
+    order = PROB_KEYS
+    cum_forecast: list[float] = []
+    running = 0.0
+    for key in order:
+        running += probs[key]
+        cum_forecast.append(running)
+    cum_actual = [
+        1.0 if order.index(actual) <= idx else 0.0 for idx in range(len(order))
+    ]
+    return sum(
+        (cum_forecast[i] - cum_actual[i]) ** 2 for i in range(len(order) - 1)
+    )
+
+
 def _bucket_label(edges: tuple[float, ...], confidence: float) -> str:
     for edge in edges:
         if confidence <= edge + 1e-12:

@@ -1,0 +1,871 @@
+{
+  "phase": "P1.7B.22",
+  "design_only": true,
+  "preservation_first": true,
+  "diagnostic_only": true,
+  "no_prediction_execution": true,
+  "no_model_change": true,
+  "no_wiring_implementation": true,
+  "no_flag_implemented": true,
+  "prior_reports_loaded": [
+    "P1.7B.16",
+    "P1.7B.17",
+    "P1.7B.18",
+    "P1.7B.19",
+    "P1.7B.20",
+    "P1.7B.21"
+  ],
+  "allowed_changed_files": [
+    "backend/core/disabled_shadow_wiring_design.py",
+    "backend/scripts/run_priority1_7b_22_disabled_shadow_wiring_design.py",
+    "backend/tests/test_disabled_shadow_wiring_design.py",
+    "docs/PRIORITY1_7B_22_DISABLED_SHADOW_WIRING_DESIGN.md",
+    "backend/reports/priority1_7b_22_disabled_shadow_wiring_design.json"
+  ],
+  "design_subject": "NR3+FCC",
+  "design_status": "DESIGN_COMPLETE",
+  "implementation_allowed_now": false,
+  "shadow_wiring_allowed_now": false,
+  "direct_activation_allowed": false,
+  "production_activation_allowed": false,
+  "served_output_change_allowed": false,
+  "activation_blocked": true,
+  "recommended_future_phase": "P1.7B.23 \u2014 Disabled-By-Default Shadow Wiring Implementation",
+  "proposed_flag_name": "NR3_FCC_SHADOW_ENABLED",
+  "proposed_flag_default": false,
+  "proposed_shadow_mode": "disabled_by_default_side_by_side_artifact_only",
+  "proposed_files_to_touch_future": [
+    "backend/core/priority1_options.py",
+    "backend/core/priority1_backtest.py",
+    "backend/core/strength_based_xg_validation.py",
+    "backend/core/favorite_confidence_curve_prototype.py",
+    "backend/core/disabled_shadow_wiring_runtime.py",
+    "backend/tests/test_disabled_shadow_wiring_runtime.py"
+  ],
+  "forbidden_files_this_phase": [
+    "backend/core/priority1_backtest.py",
+    "backend/core/priority1_options.py",
+    "backend/core/strength_based_xg_validation.py",
+    "backend/api/main.py",
+    "backend/api/schemas.py",
+    "backend/config.py",
+    "backend/.env.example",
+    "backend/core/market_xg_calibration.py",
+    "backend/core/priority1_diagnostics.py",
+    "backend/core/temporal_backtest.py"
+  ],
+  "monitoring_schema_required": {
+    "model_version_baseline": "string",
+    "model_version_shadow": "string",
+    "baseline_stack": "string \u2014 production baseline identifier",
+    "shadow_stack": "string \u2014 NR3+FCC",
+    "shadow_enabled": "bool \u2014 flag state at compute time",
+    "served_stack": "string \u2014 must always be baseline_stack when flag false or shadow mode",
+    "served_output_unchanged": "bool \u2014 must be true in shadow mode",
+    "xg_home_baseline": "float",
+    "xg_away_baseline": "float",
+    "xg_home_shadow": "float | null \u2014 null when flag false",
+    "xg_away_shadow": "float | null",
+    "total_xg_baseline": "float",
+    "total_xg_shadow": "float | null",
+    "xg_total_delta": "float | null",
+    "favorite_side_baseline": "string",
+    "favorite_side_shadow": "string | null",
+    "favorite_share_baseline": "float",
+    "favorite_share_shadow": "float | null",
+    "favorite_share_delta": "float | null",
+    "probabilities_1x2_baseline": "object",
+    "probabilities_1x2_shadow": "object | null",
+    "top5_baseline": "list[tuple[int,int]]",
+    "top5_shadow": "list[tuple[int,int]] | null",
+    "top10_baseline": "list[tuple[int,int]]",
+    "top10_shadow": "list[tuple[int,int]] | null",
+    "top5_overlap": "float | null",
+    "top10_overlap": "float | null",
+    "sanity_flags": "list[string]",
+    "risk_flags": "list[string]",
+    "rollback_available": "bool \u2014 true when baseline path intact",
+    "activation_allowed": "bool \u2014 always false in shadow design"
+  },
+  "rollback_required": true,
+  "approval_required": true,
+  "future_shadow_architecture": {
+    "principles": [
+      "Baseline remains served output at all times in shadow mode",
+      "NR3+FCC computed only as separate shadow artifact when flag true",
+      "Shadow output must never replace served prediction",
+      "Feature flag defaults off \u2014 not implemented in P1.7B.22",
+      "Shadow mode requires explicit local/config opt-in in future",
+      "No hidden fallback to NR3+FCC",
+      "No silent model switch",
+      "No environment activation without approval",
+      "No API response field change without approval",
+      "No production default change"
+    ],
+    "components": [
+      {
+        "id": "C1_future_feature_flag",
+        "name": "Future feature flag",
+        "status": "design_only",
+        "implementation_in_p1722": false,
+        "description": "Boolean NR3_FCC_SHADOW_ENABLED default false; local/test opt-in only at first; no env binding until approved"
+      },
+      {
+        "id": "C2_future_shadow_execution_path",
+        "name": "Future shadow execution path",
+        "status": "design_only",
+        "implementation_in_p1722": false,
+        "description": "Parallel compute branch: baseline path unchanged; shadow path invokes NR3+FCC stack only when flag true; results stored in shadow artifact, not served response"
+      },
+      {
+        "id": "C3_future_side_by_side_report",
+        "name": "Future side-by-side comparison report",
+        "status": "design_only",
+        "implementation_in_p1722": false,
+        "description": "Offline/CI report comparing baseline vs shadow per match; uses shadow output schema; never mutates API response"
+      },
+      {
+        "id": "C4_future_monitoring_payload",
+        "name": "Future monitoring payload",
+        "status": "design_only",
+        "implementation_in_p1722": false,
+        "description": "Structured shadow artifact per match with deltas, overlaps, sanity/risk flags; written to log/file only"
+      },
+      {
+        "id": "C5_future_rollback_behavior",
+        "name": "Future rollback behavior",
+        "status": "design_only",
+        "implementation_in_p1722": false,
+        "description": "Set flag false \u2192 baseline path only; verify served output; shadow artifacts optional archive"
+      },
+      {
+        "id": "C6_future_test_gates",
+        "name": "Future test gates",
+        "status": "design_only",
+        "implementation_in_p1722": false,
+        "description": "17 test categories defined in future_test_strategy"
+      },
+      {
+        "id": "C7_future_approval_gates",
+        "name": "Future approval gates",
+        "status": "design_only",
+        "implementation_in_p1722": false,
+        "description": "Explicit user approval before file touch, env change, API schema change, or any served output change"
+      }
+    ],
+    "data_flow_draft": {
+      "request": "match prediction request",
+      "baseline_path": "existing production stack \u2192 served output (unchanged)",
+      "shadow_path": "if flag true: NR3+FCC \u2192 shadow artifact only",
+      "served_output": "always baseline_path result in shadow mode",
+      "api_response": "unchanged unless separate explicit approval"
+    }
+  },
+  "future_file_boundary_table": [
+    {
+      "path": "backend/core/priority1_options.py",
+      "purpose": "Priority1 config/options; future flag hook site",
+      "category": "A_future_implementation_with_approval",
+      "future_touch_allowed": true,
+      "current_phase_touch_allowed": false,
+      "required_approval": "explicit_user_approval_p1723",
+      "risk_level": "high",
+      "notes": "May be touched only in P1.7B.23+ with approved diff"
+    },
+    {
+      "path": "backend/core/priority1_backtest.py",
+      "purpose": "Backtest runner; future shadow branch site",
+      "category": "A_future_implementation_with_approval",
+      "future_touch_allowed": true,
+      "current_phase_touch_allowed": false,
+      "required_approval": "explicit_user_approval_p1723",
+      "risk_level": "high",
+      "notes": "May be touched only in P1.7B.23+ with approved diff"
+    },
+    {
+      "path": "backend/core/strength_based_xg_validation.py",
+      "purpose": "Strength xG validation path",
+      "category": "A_future_implementation_with_approval",
+      "future_touch_allowed": true,
+      "current_phase_touch_allowed": false,
+      "required_approval": "explicit_user_approval_p1723",
+      "risk_level": "high",
+      "notes": "May be touched only in P1.7B.23+ with approved diff"
+    },
+    {
+      "path": "backend/core/favorite_confidence_curve_prototype.py",
+      "purpose": "FCC prototype params for NR3+FCC",
+      "category": "A_future_implementation_with_approval",
+      "future_touch_allowed": true,
+      "current_phase_touch_allowed": false,
+      "required_approval": "explicit_user_approval_p1723",
+      "risk_level": "high",
+      "notes": "May be touched only in P1.7B.23+ with approved diff"
+    },
+    {
+      "path": "backend/core/disabled_shadow_wiring_runtime.py",
+      "purpose": "Future runtime module \u2014 not created yet",
+      "category": "A_future_implementation_with_approval",
+      "future_touch_allowed": true,
+      "current_phase_touch_allowed": false,
+      "required_approval": "explicit_user_approval_p1723",
+      "risk_level": "high",
+      "notes": "May be touched only in P1.7B.23+ with approved diff"
+    },
+    {
+      "path": "backend/tests/test_disabled_shadow_wiring_runtime.py",
+      "purpose": "Future runtime tests \u2014 not created yet",
+      "category": "A_future_implementation_with_approval",
+      "future_touch_allowed": true,
+      "current_phase_touch_allowed": false,
+      "required_approval": "explicit_user_approval_p1723",
+      "risk_level": "high",
+      "notes": "May be touched only in P1.7B.23+ with approved diff"
+    },
+    {
+      "path": "backend/core/priority1_backtest.py",
+      "purpose": "Production/sensitive path \u2014 forbidden in P1.7B.22",
+      "category": "B_forbidden_this_phase",
+      "future_touch_allowed": false,
+      "current_phase_touch_allowed": false,
+      "required_approval": "separate_explicit_approval",
+      "risk_level": "critical",
+      "notes": "Do not edit in P1.7B.22; pre-existing uncommitted changes noted only"
+    },
+    {
+      "path": "backend/core/priority1_options.py",
+      "purpose": "Production/sensitive path \u2014 forbidden in P1.7B.22",
+      "category": "B_forbidden_this_phase",
+      "future_touch_allowed": false,
+      "current_phase_touch_allowed": false,
+      "required_approval": "separate_explicit_approval",
+      "risk_level": "critical",
+      "notes": "Do not edit in P1.7B.22; pre-existing uncommitted changes noted only"
+    },
+    {
+      "path": "backend/core/strength_based_xg_validation.py",
+      "purpose": "Production/sensitive path \u2014 forbidden in P1.7B.22",
+      "category": "B_forbidden_this_phase",
+      "future_touch_allowed": false,
+      "current_phase_touch_allowed": false,
+      "required_approval": "separate_explicit_approval",
+      "risk_level": "critical",
+      "notes": "Do not edit in P1.7B.22; pre-existing uncommitted changes noted only"
+    },
+    {
+      "path": "backend/api/main.py",
+      "purpose": "Production/sensitive path \u2014 forbidden in P1.7B.22",
+      "category": "B_forbidden_this_phase",
+      "future_touch_allowed": false,
+      "current_phase_touch_allowed": false,
+      "required_approval": "separate_explicit_approval",
+      "risk_level": "critical",
+      "notes": "Do not edit in P1.7B.22; pre-existing uncommitted changes noted only"
+    },
+    {
+      "path": "backend/api/schemas.py",
+      "purpose": "Production/sensitive path \u2014 forbidden in P1.7B.22",
+      "category": "B_forbidden_this_phase",
+      "future_touch_allowed": false,
+      "current_phase_touch_allowed": false,
+      "required_approval": "separate_explicit_approval",
+      "risk_level": "critical",
+      "notes": "Do not edit in P1.7B.22; pre-existing uncommitted changes noted only"
+    },
+    {
+      "path": "backend/config.py",
+      "purpose": "Production/sensitive path \u2014 forbidden in P1.7B.22",
+      "category": "B_forbidden_this_phase",
+      "future_touch_allowed": false,
+      "current_phase_touch_allowed": false,
+      "required_approval": "separate_explicit_approval",
+      "risk_level": "critical",
+      "notes": "Do not edit in P1.7B.22; pre-existing uncommitted changes noted only"
+    },
+    {
+      "path": "backend/.env.example",
+      "purpose": "Production/sensitive path \u2014 forbidden in P1.7B.22",
+      "category": "B_forbidden_this_phase",
+      "future_touch_allowed": false,
+      "current_phase_touch_allowed": false,
+      "required_approval": "separate_explicit_approval",
+      "risk_level": "critical",
+      "notes": "Do not edit in P1.7B.22; pre-existing uncommitted changes noted only"
+    },
+    {
+      "path": "backend/core/market_xg_calibration.py",
+      "purpose": "Production/sensitive path \u2014 forbidden in P1.7B.22",
+      "category": "B_forbidden_this_phase",
+      "future_touch_allowed": false,
+      "current_phase_touch_allowed": false,
+      "required_approval": "separate_explicit_approval",
+      "risk_level": "critical",
+      "notes": "Do not edit in P1.7B.22; pre-existing uncommitted changes noted only"
+    },
+    {
+      "path": "backend/core/priority1_diagnostics.py",
+      "purpose": "Production/sensitive path \u2014 forbidden in P1.7B.22",
+      "category": "B_forbidden_this_phase",
+      "future_touch_allowed": false,
+      "current_phase_touch_allowed": false,
+      "required_approval": "separate_explicit_approval",
+      "risk_level": "critical",
+      "notes": "Do not edit in P1.7B.22; pre-existing uncommitted changes noted only"
+    },
+    {
+      "path": "backend/core/temporal_backtest.py",
+      "purpose": "Production/sensitive path \u2014 forbidden in P1.7B.22",
+      "category": "B_forbidden_this_phase",
+      "future_touch_allowed": false,
+      "current_phase_touch_allowed": false,
+      "required_approval": "separate_explicit_approval",
+      "risk_level": "critical",
+      "notes": "Do not edit in P1.7B.22; pre-existing uncommitted changes noted only"
+    },
+    {
+      "path": "backend/api/main.py",
+      "purpose": "Public API \u2014 served output",
+      "category": "C_always_forbidden_without_separate_approval",
+      "future_touch_allowed": false,
+      "current_phase_touch_allowed": false,
+      "required_approval": "separate_explicit_approval",
+      "risk_level": "critical",
+      "notes": "Never touch without dedicated approval gate"
+    },
+    {
+      "path": "backend/api/schemas.py",
+      "purpose": "Public response schemas",
+      "category": "C_always_forbidden_without_separate_approval",
+      "future_touch_allowed": false,
+      "current_phase_touch_allowed": false,
+      "required_approval": "separate_explicit_approval",
+      "risk_level": "critical",
+      "notes": "Never touch without dedicated approval gate"
+    },
+    {
+      "path": "backend/config.py",
+      "purpose": "Production config defaults",
+      "category": "C_always_forbidden_without_separate_approval",
+      "future_touch_allowed": false,
+      "current_phase_touch_allowed": false,
+      "required_approval": "separate_explicit_approval",
+      "risk_level": "critical",
+      "notes": "Never touch without dedicated approval gate"
+    },
+    {
+      "path": "backend/.env.example",
+      "purpose": "Environment template",
+      "category": "C_always_forbidden_without_separate_approval",
+      "future_touch_allowed": false,
+      "current_phase_touch_allowed": false,
+      "required_approval": "separate_explicit_approval",
+      "risk_level": "critical",
+      "notes": "Never touch without dedicated approval gate"
+    },
+    {
+      "path": "Render/env config",
+      "purpose": "Deployment environment",
+      "category": "C_always_forbidden_without_separate_approval",
+      "future_touch_allowed": false,
+      "current_phase_touch_allowed": false,
+      "required_approval": "separate_explicit_approval",
+      "risk_level": "critical",
+      "notes": "Never touch without dedicated approval gate"
+    },
+    {
+      "path": "scoreline logic files",
+      "purpose": "Top-5/Top-10 generation",
+      "category": "C_always_forbidden_without_separate_approval",
+      "future_touch_allowed": false,
+      "current_phase_touch_allowed": false,
+      "required_approval": "separate_explicit_approval",
+      "risk_level": "critical",
+      "notes": "Never touch without dedicated approval gate"
+    },
+    {
+      "path": "matrix logic files",
+      "purpose": "Matrix calibration",
+      "category": "C_always_forbidden_without_separate_approval",
+      "future_touch_allowed": false,
+      "current_phase_touch_allowed": false,
+      "required_approval": "separate_explicit_approval",
+      "risk_level": "critical",
+      "notes": "Never touch without dedicated approval gate"
+    },
+    {
+      "path": "market logic files",
+      "purpose": "Market odds paths",
+      "category": "C_always_forbidden_without_separate_approval",
+      "future_touch_allowed": false,
+      "current_phase_touch_allowed": false,
+      "required_approval": "separate_explicit_approval",
+      "risk_level": "critical",
+      "notes": "Never touch without dedicated approval gate"
+    }
+  ],
+  "future_flag_design": {
+    "flag_name": "NR3_FCC_SHADOW_ENABLED",
+    "implemented": false,
+    "default_value": false,
+    "proposed_flag_default": false,
+    "allowed_sources_future": [
+      "local test override (explicit opt-in in test only)",
+      "Priority1Options field defaulting to False (future P1.7B.23 only)"
+    ],
+    "forbidden_sources": [
+      "Render env var (until separate approval)",
+      "config.py default True",
+      "api/main.py query param",
+      "implicit auto-enable",
+      "fallback when baseline fails"
+    ],
+    "behavior_when_false": {
+      "candidate_execution": false,
+      "shadow_artifact_written": false,
+      "served_output": "baseline only",
+      "api_response_change": false
+    },
+    "behavior_when_true_future": {
+      "candidate_execution": true,
+      "shadow_artifact_written": true,
+      "served_output": "baseline unchanged \u2014 shadow is separate",
+      "api_response_change": false,
+      "diagnostics_label": "shadow_stack=NR3+FCC"
+    },
+    "logging_expectations": [
+      "Log flag state at shadow compute time",
+      "Log baseline_stack and shadow_stack labels",
+      "Log served_stack=baseline always in shadow mode",
+      "Never log shadow as served"
+    ],
+    "rollback_behavior": "Set flag false; confirm no shadow branch executed; verify baseline served"
+  },
+  "future_shadow_output_schema": {
+    "model_version_baseline": "string",
+    "model_version_shadow": "string",
+    "baseline_stack": "string \u2014 production baseline identifier",
+    "shadow_stack": "string \u2014 NR3+FCC",
+    "shadow_enabled": "bool \u2014 flag state at compute time",
+    "served_stack": "string \u2014 must always be baseline_stack when flag false or shadow mode",
+    "served_output_unchanged": "bool \u2014 must be true in shadow mode",
+    "xg_home_baseline": "float",
+    "xg_away_baseline": "float",
+    "xg_home_shadow": "float | null \u2014 null when flag false",
+    "xg_away_shadow": "float | null",
+    "total_xg_baseline": "float",
+    "total_xg_shadow": "float | null",
+    "xg_total_delta": "float | null",
+    "favorite_side_baseline": "string",
+    "favorite_side_shadow": "string | null",
+    "favorite_share_baseline": "float",
+    "favorite_share_shadow": "float | null",
+    "favorite_share_delta": "float | null",
+    "probabilities_1x2_baseline": "object",
+    "probabilities_1x2_shadow": "object | null",
+    "top5_baseline": "list[tuple[int,int]]",
+    "top5_shadow": "list[tuple[int,int]] | null",
+    "top10_baseline": "list[tuple[int,int]]",
+    "top10_shadow": "list[tuple[int,int]] | null",
+    "top5_overlap": "float | null",
+    "top10_overlap": "float | null",
+    "sanity_flags": "list[string]",
+    "risk_flags": "list[string]",
+    "rollback_available": "bool \u2014 true when baseline path intact",
+    "activation_allowed": "bool \u2014 always false in shadow design"
+  },
+  "future_test_strategy": [
+    {
+      "id": "T1",
+      "category": "flag default false",
+      "required_in_p1723": true
+    },
+    {
+      "id": "T2",
+      "category": "served output unchanged when flag false",
+      "required_in_p1723": true
+    },
+    {
+      "id": "T3",
+      "category": "no shadow computation when flag false",
+      "required_in_p1723": true
+    },
+    {
+      "id": "T4",
+      "category": "shadow output separate when flag true",
+      "required_in_p1723": true
+    },
+    {
+      "id": "T5",
+      "category": "served output unchanged when flag true",
+      "required_in_p1723": true
+    },
+    {
+      "id": "T6",
+      "category": "rollback returns to baseline",
+      "required_in_p1723": true
+    },
+    {
+      "id": "T7",
+      "category": "no env activation by default",
+      "required_in_p1723": true
+    },
+    {
+      "id": "T8",
+      "category": "no API schema change unless approved",
+      "required_in_p1723": true
+    },
+    {
+      "id": "T9",
+      "category": "no scoreline/matrix logic change",
+      "required_in_p1723": true
+    },
+    {
+      "id": "T10",
+      "category": "no market/dynamic/power activation",
+      "required_in_p1723": true
+    },
+    {
+      "id": "T11",
+      "category": "no dataset-specific behavior",
+      "required_in_p1723": true
+    },
+    {
+      "id": "T12",
+      "category": "no hidden switch",
+      "required_in_p1723": true
+    },
+    {
+      "id": "T13",
+      "category": "no silent fallback",
+      "required_in_p1723": true
+    },
+    {
+      "id": "T14",
+      "category": "monitoring payload completeness",
+      "required_in_p1723": true
+    },
+    {
+      "id": "T15",
+      "category": "risk flags present",
+      "required_in_p1723": true
+    },
+    {
+      "id": "T16",
+      "category": "diagnostics labels present",
+      "required_in_p1723": true
+    },
+    {
+      "id": "T17",
+      "category": "no production activation",
+      "required_in_p1723": true
+    }
+  ],
+  "future_rollout_checklist": {
+    "before_implementation": [
+      "Approve file touch list from P1.7B.22 boundary table",
+      "Freeze current diff snapshot (git status + diff --stat)",
+      "Ensure P1.7B.11\u2013P1.7B.22 reports exist",
+      "Confirm flag name NR3_FCC_SHADOW_ENABLED",
+      "Decide local-only vs env flag boundary (local-only first)",
+      "Confirm API response remains unchanged",
+      "Define shadow artifact output location (file/log only)",
+      "Define test command",
+      "Define rollback command",
+      "Assign approval owner"
+    ],
+    "during_implementation": [
+      "Change only approved files",
+      "Keep flag default false",
+      "Keep served output unchanged",
+      "Add tests first where possible",
+      "No Render/env changes",
+      "No deployment",
+      "No commit without approval"
+    ],
+    "after_implementation": [
+      "git diff review against approved file list",
+      "Run targeted shadow wiring tests",
+      "Run regression suite",
+      "Verify served output unchanged",
+      "Verify shadow artifact separated",
+      "Verify rollback",
+      "Write P1.7B.23 implementation report",
+      "Request approval before any commit/deploy"
+    ]
+  },
+  "no_go_conditions": [
+    "Flag default true",
+    "Served output changes",
+    "Baseline unavailable",
+    "Shadow replaces baseline",
+    "API response changes without approval",
+    "Env activation introduced without approval",
+    "Render config touched",
+    "Production default changed",
+    "Prediction hook changes without explicit approval",
+    "Old phase files regenerated unexpectedly",
+    "Scoreline or matrix logic changed",
+    "Market/dynamic/power activated",
+    "Dataset-specific logic added",
+    "Rollback not proven",
+    "Tests fail",
+    "Diff includes unapproved files",
+    "Pre-existing production diff accidentally modified beyond approved scope"
+  ],
+  "risk_mitigation_table": [
+    {
+      "description": "Accidental production activation",
+      "severity": "critical",
+      "likelihood": "medium",
+      "mitigation": "Flag default false; no env binding; approval gates",
+      "detection_method": "flag state audit; served_stack label check",
+      "blocks_future_implementation": true,
+      "blocks_activation": true,
+      "required_evidence": "Pre-implementation default verification"
+    },
+    {
+      "description": "Hidden model switch",
+      "severity": "critical",
+      "likelihood": "low",
+      "mitigation": "Separate shadow artifact; served_stack always baseline",
+      "detection_method": "response vs shadow artifact diff",
+      "blocks_future_implementation": true,
+      "blocks_activation": true,
+      "required_evidence": "Served output unchanged test"
+    },
+    {
+      "description": "Default flag misconfiguration",
+      "severity": "high",
+      "likelihood": "medium",
+      "mitigation": "Default False in code; no config.py change without approval",
+      "detection_method": "unit test flag default false",
+      "blocks_future_implementation": true,
+      "blocks_activation": true,
+      "required_evidence": "T1 flag default false test"
+    },
+    {
+      "description": "Served output regression",
+      "severity": "critical",
+      "likelihood": "medium",
+      "mitigation": "Baseline path untouched when flag false; snapshot tests",
+      "detection_method": "baseline vs pre-implementation output compare",
+      "blocks_future_implementation": true,
+      "blocks_activation": true,
+      "required_evidence": "Regression + served output test"
+    },
+    {
+      "description": "API schema drift",
+      "severity": "high",
+      "likelihood": "low",
+      "mitigation": "No api/schemas.py change in P1.7B.23 without approval",
+      "detection_method": "schema diff review",
+      "blocks_future_implementation": true,
+      "blocks_activation": true,
+      "required_evidence": "API contract test unchanged"
+    },
+    {
+      "description": "Shadow output mistaken as production",
+      "severity": "high",
+      "likelihood": "medium",
+      "mitigation": "Separate artifact file/log; clear stack labels",
+      "detection_method": "served_stack != shadow_stack assertion",
+      "blocks_future_implementation": false,
+      "blocks_activation": true,
+      "required_evidence": "Shadow artifact isolation test"
+    },
+    {
+      "description": "Stale baseline comparison",
+      "severity": "medium",
+      "likelihood": "medium",
+      "mitigation": "Compute baseline and shadow in same request context",
+      "detection_method": "timestamp and match_id pairing",
+      "blocks_future_implementation": false,
+      "blocks_activation": false,
+      "required_evidence": "Side-by-side report sample"
+    },
+    {
+      "description": "Rollback not available",
+      "severity": "critical",
+      "likelihood": "low",
+      "mitigation": "Flag off \u2192 baseline only; documented rollback steps",
+      "detection_method": "rollback drill",
+      "blocks_future_implementation": true,
+      "blocks_activation": true,
+      "required_evidence": "T6 rollback test"
+    },
+    {
+      "description": "Monitoring payload incomplete",
+      "severity": "medium",
+      "likelihood": "medium",
+      "mitigation": "Use P1.7B.22 shadow schema as required field list",
+      "detection_method": "schema completeness validator",
+      "blocks_future_implementation": false,
+      "blocks_activation": false,
+      "required_evidence": "T14 monitoring payload test"
+    },
+    {
+      "description": "Pre-existing dirty workspace confusion",
+      "severity": "high",
+      "likelihood": "high",
+      "mitigation": "P1.7B.23 must diff only approved files; snapshot before touch",
+      "detection_method": "git diff --name-status vs approved list",
+      "blocks_future_implementation": true,
+      "blocks_activation": false,
+      "required_evidence": "Approved file list from P1.7B.22"
+    },
+    {
+      "description": "Env/Render accidental change",
+      "severity": "critical",
+      "likelihood": "low",
+      "mitigation": "No env/Render in P1.7B.22 or P1.7B.23 without approval",
+      "detection_method": "env diff review",
+      "blocks_future_implementation": true,
+      "blocks_activation": true,
+      "required_evidence": "No .env.example change in P1.7B.23 without approval"
+    },
+    {
+      "description": "Future commit mixing unrelated files",
+      "severity": "high",
+      "likelihood": "medium",
+      "mitigation": "Commit only approved paths; separate commits per phase",
+      "detection_method": "git diff review",
+      "blocks_future_implementation": false,
+      "blocks_activation": false,
+      "required_evidence": "Pre-commit file list check"
+    },
+    {
+      "description": "User-visible prediction trust risk",
+      "severity": "high",
+      "likelihood": "medium",
+      "mitigation": "No user exposure; shadow internal only",
+      "detection_method": "API response audit",
+      "blocks_future_implementation": false,
+      "blocks_activation": true,
+      "required_evidence": true
+    },
+    {
+      "description": "Top-K fragility still misunderstood",
+      "severity": "medium",
+      "likelihood": "medium",
+      "mitigation": "Report Top-5/10 overlap in shadow artifact; do not gate on raw WC2022 alone",
+      "detection_method": "overlap metrics in shadow report",
+      "blocks_future_implementation": false,
+      "blocks_activation": false,
+      "required_evidence": "contextual_pass"
+    },
+    {
+      "description": "WC2022 raw fail misrepresented",
+      "severity": "medium",
+      "likelihood": "high",
+      "mitigation": "Preserve raw fail in monitoring context; no silent pass",
+      "detection_method": "holdout context in shadow report",
+      "blocks_future_implementation": false,
+      "blocks_activation": true,
+      "required_evidence": "fail"
+    }
+  ],
+  "evidence_inherited": {
+    "p1720_final_decision": "A_READY_FOR_CONTROLLED_ACTIVATION_PLAN",
+    "p1720_audit_subject": "NR3+FCC",
+    "p1721_plan_status": "DRAFT_COMPLETE",
+    "p1721_controlled_plan_ready": true,
+    "p1721_flag_draft_name": "NR3_FCC_SHADOW_ENABLED",
+    "wc2022_raw_status": "fail",
+    "activation_blocked": true
+  },
+  "preservation_checklist": {
+    "git_status_before": " M backend/.env.example\n M backend/api/main.py\n M backend/api/schemas.py\n M backend/config.py\n M backend/core/market_xg_calibration.py\n M backend/core/priority1_backtest.py\n M backend/core/priority1_diagnostics.py\n M backend/core/priority1_options.py\n M backend/core/temporal_backtest.py\n M backend/data/activation_large_shift_reviews.json\n M backend/data/cache/nt_ratings.json\n M docs/PRIORITY1_2_LOCAL_MARKET_XG_VALIDATION.md\n?? backend/core/activation_readiness_gate_context_audit.py\n?? backend/core/conditional_spread_governance.py\n?? backend/core/controlled_activation_plan_draft.py\n?? backend/core/disabled_shadow_wiring_design.py\n?? backend/core/dual_regime_favorite_confidence_governance.py\n?? backend/core/dynamic_goals_bounded.py\n?? backend/core/dynamic_goals_v3.py\n?? backend/core/dynamic_goals_v3_gates.py\n?? backend/core/dynamic_goals_v3_rolling.py\n?? backend/core/favorite_confidence_curve_audit.py\n?? backend/core/favorite_confidence_curve_prototype.py\n?? backend/core/favorite_direction_root_cause_audit.py\n?? backend/core/favorite_direction_safety_gate.py\n?? backend/core/favorite_direction_safety_gate_validation.py\n?? backend/core/favorite_spread_too_small_decomposition.py\n?? backend/core/favorite_trust_calibration.py\n?? backend/core/favorite_trust_validation.py\n?? backend/core/final_activation_readiness_audit.py\n?? backend/core/hybrid_balance_tuning.py\n?? backend/core/hybrid_balance_validation.py\n?? backend/core/independent_signal_wiring_audit.py\n?? backend/core/independent_signal_wiring_prototype.py\n?? backend/core/latent_xg_bias_audit.py\n?? backend/core/market_calibration_v2.py\n?? backend/core/power_v3.py\n?? backend/core/power_zscore_residual.py\n?? backend/core/priority1_4_gates.py\n?? backend/core/priority1_4_validation.py\n?? backend/core/priority1_5_validation.py\n?? backend/core/priority1_6_validation.py\n?? backend/core/scoreline_ranking_topk_robustness_audit.py\n?? backend/core/strength_activation_readiness_audit.py\n?? backend/core/strength_based_xg_gates.py\n?? backend/core/strength_based_xg_generator.py\n?? backend/core/strength_based_xg_micro_probes.py\n?? backend/core/strength_based_xg_p1c_analysis.py\n?? backend/core/strength_based_xg_p1c_refinement.py\n?? backend/core/strength_based_xg_refinement.py\n?? backend/core/strength_based_xg_stage_diagnosis.py\n?? backend/core/strength_based_xg_validation.py\n?? backend/core/strength_recovery_diagnostics.py\n?? backend/core/strength_signal_weight_calibration.py\n?? backend/core/strength_signal_weight_calibration_validation.py\n?? backend/core/strength_signal_weight_narrow_refinement.py\n?? backend/core/strength_signal_weight_narrow_refinement_validation.py\n?? backend/core/strength_spread_residual_correction.py\n?? backend/core/strength_spread_residual_validation.py\n?? backend/core/strength_stage_recovery.py\n?? backend/core/strength_stage_recovery_total_focus_validation.py\n?? backend/core/strength_stage_recovery_validation.py\n?? backend/core/trust_gated_spread_hybrid.py\n?? backend/core/trust_gated_spread_hybrid_validation.py\n?? backend/core/validation_metrology_redesign.py\n?? backend/core/wc2018_residual_decomposition.py\n?? backend/core/wc2022_top5_robustness_blocker_decomposition.py\n?? backend/core/xg_coherent_pipeline.py\n?? backend/data/cache/recent_form_fusion_cache.json.before_refresh\n?? backend/scripts/audit_prediction_quality_root_cause.py\n?? backend/scripts/audit_recent_form_shadow_influence.py\n?? backend/scripts/run_priority1_3_combined_validation.py\n?? backend/scripts/run_priority1_4_architecture_validation.py\n?? backend/scripts/run_priority1_5_coherent_model_validation.py\n?? backend/scripts/run_priority1_6_dynamic_goals_v3_validation.py\n?? backend/scripts/run_priority1_7a_latent_xg_bias_audit.py\n?? backend/scripts/run_priority1_7b_10_1_independent_signal_wiring_prototype.py\n?? backend/scripts/run_priority1_7b_10_independent_signal_wiring_audit.py\n?? backend/scripts/run_priority1_7b_11_validation_metrology_redesign.py\n?? backend/scripts/run_priority1_7b_12_conditional_spread_governance.py\n?? backend/scripts/run_priority1_7b_13_dual_regime_favorite_confidence_governance.py\n?? backend/scripts/run_priority1_7b_14_favorite_spread_too_small_decomposition.py\n?? backend/scripts/run_priority1_7b_15_favorite_confidence_curve_audit.py\n?? backend/scripts/run_priority1_7b_16_favorite_confidence_curve_prototype.py\n?? backend/scripts/run_priority1_7b_17_wc2022_top5_robustness_blocker_decomposition.py\n?? backend/scripts/run_priority1_7b_18_scoreline_ranking_topk_robustness_audit.py\n?? backend/scripts/run_priority1_7b_19_activation_readiness_gate_context_audit.py\n?? backend/scripts/run_priority1_7b_1_strength_xg_refinement.py\n?? backend/scripts/run_priority1_7b_20_final_activation_readiness_audit.py\n?? backend/scripts/run_priority1_7b_21_controlled_activation_plan_draft.py\n?? backend/scripts/run_priority1_7b_22_disabled_shadow_wiring_design.py\n?? backend/scripts/run_priority1_7b_2_p1c_stability_refinement.py\n?? backend/scripts/run_priority1_7b_3_stage_aware_diagnosis.py\n?? backend/scripts/run_priority1_7b_4_1_r16_total_recovery_focus.py\n?? backend/scripts/run_priority1_7b_4_r16_stage_aware_recovery.py\n?? backend/scripts/run_priority1_7b_5_wc2018_residual_decomposition.py\n?? backend/scripts/run_priority1_7b_6_1_generic_favorite_trust_calibration.py\n?? backend/scripts/run_priority1_7b_6_2_trust_gated_spread_damping_hybrid.py\n?? backend/scripts/run_priority1_7b_6_3_hybrid_balance_tuning.py\n?? backend/scripts/run_priority1_7b_6_spread_share_residual_correction.py\n?? backend/scripts/run_priority1_7b_7_favorite_direction_root_cause_audit.py\n?? backend/scripts/run_priority1_7b_8_favorite_direction_safety_gate.py\n?? backend/scripts/run_priority1_7b_9_1_narrow_sw3_sw6_signal_weight_refinement.py\n?? backend/scripts/run_priority1_7b_9_2_activation_readiness_regression_protection_audit.py\n?? backend/scripts/run_priority1_7b_9_p1c2_signal_weight_calibration.py\n?? backend/scripts/run_priority1_7b_strength_based_xg_validation.py\n?? backend/tests/test_activation_readiness_gate_context_audit.py\n?? backend/tests/test_conditional_spread_governance.py\n?? backend/tests/test_controlled_activation_plan_draft.py\n?? backend/tests/test_disabled_shadow_wiring_design.py\n?? backend/tests/test_dual_regime_favorite_confidence_governance.py\n?? backend/tests/test_dynamic_goals_v3.py\n?? backend/tests/test_favorite_confidence_curve_audit.py\n?? backend/tests/test_favorite_confidence_curve_prototype.py\n?? backend/tests/test_favorite_direction_root_cause_audit.py\n?? backend/tests/test_favorite_direction_safety_gate.py\n?? backend/tests/test_favorite_spread_too_small_decomposition.py\n?? backend/tests/test_favorite_trust_calibration.py\n?? backend/tests/test_final_activation_readiness_audit.py\n?? backend/tests/test_hybrid_balance_tuning.py\n?? backend/tests/test_independent_signal_wiring_audit.py\n?? backend/tests/test_independent_signal_wiring_prototype.py\n?? backend/tests/test_priority1_4_architecture.py\n?? backend/tests/test_priority1_5_coherent_model.py\n?? backend/tests/test_priority1_6_dynamic_goals_v3_pipeline.py\n?? backend/tests/test_priority1_7a_latent_xg_bias_audit.py\n?? backend/tests/test_scoreline_ranking_topk_robustness_audit.py\n?? backend/tests/test_spread_residual_correction.py\n?? backend/tests/test_strength_activation_readiness_audit.py\n?? backend/tests/test_strength_based_xg_generator.py\n?? backend/tests/test_strength_signal_weight_calibration.py\n?? backend/tests/test_strength_signal_weight_narrow_refinement.py\n?? backend/tests/test_trust_gated_spread_hybrid.py\n?? backend/tests/test_validation_metrology_redesign.py\n?? backend/tests/test_wc2018_residual_decomposition.py\n?? backend/tests/test_wc2022_top5_robustness_blocker_decomposition.py\n?? docs/PRIORITY1_3_COMBINED_CANDIDATE_VALIDATION.md\n?? docs/PRIORITY1_4_ARCHITECTURE_VALIDATION.md\n?? docs/PRIORITY1_4_PIPELINE_AUDIT.md\n?? docs/PRIORITY1_5_COHERENT_MODEL_UPGRADE.md\n?? docs/PRIORITY1_5_PIPELINE_AUDIT.md\n?? docs/PRIORITY1_6_DYNAMIC_GOALS_V3.md\n?? docs/PRIORITY1_6_DYNAMIC_GOALS_V3_AUDIT.md\n?? docs/PRIORITY1_7A_LATENT_XG_BIAS_AUDIT.md\n?? docs/PRIORITY1_7A_LATENT_XG_BIAS_AUDIT_DESIGN.md\n?? docs/PRIORITY1_7B_10_1_INDEPENDENT_SIGNAL_WIRING_PROTOTYPE.md\n?? docs/PRIORITY1_7B_10_INDEPENDENT_SIGNAL_WIRING_AUDIT.md\n?? docs/PRIORITY1_7B_11_VALIDATION_METROLOGY_REDESIGN.md\n?? docs/PRIORITY1_7B_12_CONDITIONAL_SPREAD_GOVERNANCE.md\n?? docs/PRIORITY1_7B_13_DUAL_REGIME_FAVORITE_CONFIDENCE_GOVERNANCE.md\n?? docs/PRIORITY1_7B_14_FAVORITE_SPREAD_TOO_SMALL_ROOT_CAUSE_DECOMPOSITION.md\n?? docs/PRIORITY1_7B_15_FAVORITE_CONFIDENCE_CURVE_AUDIT.md\n?? docs/PRIORITY1_7B_16_FAVORITE_CONFIDENCE_CURVE_PROTOTYPE.md\n?? docs/PRIORITY1_7B_17_WC2022_TOP5_ROBUSTNESS_BLOCKER_DECOMPOSITION.md\n?? docs/PRIORITY1_7B_18_SCORELINE_RANKING_TOPK_ROBUSTNESS_AUDIT.md\n?? docs/PRIORITY1_7B_19_ACTIVATION_READINESS_GATE_CONTEXT_AUDIT.md\n?? docs/PRIORITY1_7B_1_STRENGTH_XG_REFINEMENT.md\n?? docs/PRIORITY1_7B_1_STRENGTH_XG_REFINEMENT_AUDIT.md\n?? docs/PRIORITY1_7B_20_FINAL_ACTIVATION_READINESS_AUDIT.md\n?? docs/PRIORITY1_7B_21_CONTROLLED_ACTIVATION_PLAN_DRAFT.md\n?? docs/PRIORITY1_7B_2_P1C_STABILITY_ANALYSIS.md\n?? docs/PRIORITY1_7B_2_P1C_STABILITY_REFINEMENT.md\n?? docs/PRIORITY1_7B_3_STAGE_AWARE_MICRO_PROBES.md\n?? docs/PRIORITY1_7B_3_STAGE_AWARE_STABILITY_DIAGNOSIS.md\n?? docs/PRIORITY1_7B_4_1_R16_TOTAL_RECOVERY_AUDIT.md\n?? docs/PRIORITY1_7B_4_1_R16_TOTAL_RECOVERY_FOCUS.md\n?? docs/PRIORITY1_7B_4_R16_STAGE_AWARE_RECOVERY.md\n?? docs/PRIORITY1_7B_5_WC2018_RESIDUAL_DECOMPOSITION.md\n?? docs/PRIORITY1_7B_6_1_GENERIC_FAVORITE_TRUST_CALIBRATION.md\n?? docs/PRIORITY1_7B_6_2_TRUST_GATED_SPREAD_DAMPING_HYBRID.md\n?? docs/PRIORITY1_7B_6_3_HYBRID_BALANCE_TUNING.md\n?? docs/PRIORITY1_7B_6_STAGE_AWARE_SPREAD_SHARE_RESIDUAL_CORRECTION.md\n?? docs/PRIORITY1_7B_7_FAVORITE_DIRECTION_ROOT_CAUSE_AUDIT.md\n?? docs/PRIORITY1_7B_8_FAVORITE_DIRECTION_SAFETY_GATE.md\n?? docs/PRIORITY1_7B_9_1_NARROW_SW3_SW6_SIGNAL_WEIGHT_REFINEMENT.md\n?? docs/PRIORITY1_7B_9_2_ACTIVATION_READINESS_REGRESSION_PROTECTION_AUDIT.md\n?? docs/PRIORITY1_7B_9_P1C2_SIGNAL_WEIGHT_CALIBRATION.md\n?? docs/PRIORITY1_7B_STRENGTH_BASED_XG_AUDIT.md\n?? docs/PRIORITY1_7B_STRENGTH_BASED_XG_GENERATOR.md\n?? docs/RAPIDAPI_FREE_LIVE_FOOTBALL_EVALUATION.md\n?? docs/priority1_5_validation_output.json\n",
+    "git_diff_name_status_before": "M\tbackend/.env.example\nM\tbackend/api/main.py\nM\tbackend/api/schemas.py\nM\tbackend/config.py\nM\tbackend/core/market_xg_calibration.py\nM\tbackend/core/priority1_backtest.py\nM\tbackend/core/priority1_diagnostics.py\nM\tbackend/core/priority1_options.py\nM\tbackend/core/temporal_backtest.py\nM\tbackend/data/activation_large_shift_reviews.json\nM\tbackend/data/cache/nt_ratings.json\nM\tdocs/PRIORITY1_2_LOCAL_MARKET_XG_VALIDATION.md\n",
+    "git_diff_stat_before": " backend/.env.example                             |  53 ++\n backend/api/main.py                              | 202 +++++--\n backend/api/schemas.py                           |   1 +\n backend/config.py                                | 134 ++++-\n backend/core/market_xg_calibration.py            |  92 +++-\n backend/core/priority1_backtest.py               | 416 +++++++++++++--\n backend/core/priority1_diagnostics.py            |  48 ++\n backend/core/priority1_options.py                | 288 +++++++++-\n backend/core/temporal_backtest.py                |   2 +\n backend/data/activation_large_shift_reviews.json |   2 +-\n backend/data/cache/nt_ratings.json               | 636 +++++++++++------------\n docs/PRIORITY1_2_LOCAL_MARKET_XG_VALIDATION.md   |  23 +-\n 12 files changed, 1455 insertions(+), 442 deletions(-)\n",
+    "git_status_after": " M backend/.env.example\n M backend/api/main.py\n M backend/api/schemas.py\n M backend/config.py\n M backend/core/market_xg_calibration.py\n M backend/core/priority1_backtest.py\n M backend/core/priority1_diagnostics.py\n M backend/core/priority1_options.py\n M backend/core/temporal_backtest.py\n M backend/data/activation_large_shift_reviews.json\n M backend/data/cache/nt_ratings.json\n M docs/PRIORITY1_2_LOCAL_MARKET_XG_VALIDATION.md\n?? backend/core/activation_readiness_gate_context_audit.py\n?? backend/core/conditional_spread_governance.py\n?? backend/core/controlled_activation_plan_draft.py\n?? backend/core/disabled_shadow_wiring_design.py\n?? backend/core/dual_regime_favorite_confidence_governance.py\n?? backend/core/dynamic_goals_bounded.py\n?? backend/core/dynamic_goals_v3.py\n?? backend/core/dynamic_goals_v3_gates.py\n?? backend/core/dynamic_goals_v3_rolling.py\n?? backend/core/favorite_confidence_curve_audit.py\n?? backend/core/favorite_confidence_curve_prototype.py\n?? backend/core/favorite_direction_root_cause_audit.py\n?? backend/core/favorite_direction_safety_gate.py\n?? backend/core/favorite_direction_safety_gate_validation.py\n?? backend/core/favorite_spread_too_small_decomposition.py\n?? backend/core/favorite_trust_calibration.py\n?? backend/core/favorite_trust_validation.py\n?? backend/core/final_activation_readiness_audit.py\n?? backend/core/hybrid_balance_tuning.py\n?? backend/core/hybrid_balance_validation.py\n?? backend/core/independent_signal_wiring_audit.py\n?? backend/core/independent_signal_wiring_prototype.py\n?? backend/core/latent_xg_bias_audit.py\n?? backend/core/market_calibration_v2.py\n?? backend/core/power_v3.py\n?? backend/core/power_zscore_residual.py\n?? backend/core/priority1_4_gates.py\n?? backend/core/priority1_4_validation.py\n?? backend/core/priority1_5_validation.py\n?? backend/core/priority1_6_validation.py\n?? backend/core/scoreline_ranking_topk_robustness_audit.py\n?? backend/core/strength_activation_readiness_audit.py\n?? backend/core/strength_based_xg_gates.py\n?? backend/core/strength_based_xg_generator.py\n?? backend/core/strength_based_xg_micro_probes.py\n?? backend/core/strength_based_xg_p1c_analysis.py\n?? backend/core/strength_based_xg_p1c_refinement.py\n?? backend/core/strength_based_xg_refinement.py\n?? backend/core/strength_based_xg_stage_diagnosis.py\n?? backend/core/strength_based_xg_validation.py\n?? backend/core/strength_recovery_diagnostics.py\n?? backend/core/strength_signal_weight_calibration.py\n?? backend/core/strength_signal_weight_calibration_validation.py\n?? backend/core/strength_signal_weight_narrow_refinement.py\n?? backend/core/strength_signal_weight_narrow_refinement_validation.py\n?? backend/core/strength_spread_residual_correction.py\n?? backend/core/strength_spread_residual_validation.py\n?? backend/core/strength_stage_recovery.py\n?? backend/core/strength_stage_recovery_total_focus_validation.py\n?? backend/core/strength_stage_recovery_validation.py\n?? backend/core/trust_gated_spread_hybrid.py\n?? backend/core/trust_gated_spread_hybrid_validation.py\n?? backend/core/validation_metrology_redesign.py\n?? backend/core/wc2018_residual_decomposition.py\n?? backend/core/wc2022_top5_robustness_blocker_decomposition.py\n?? backend/core/xg_coherent_pipeline.py\n?? backend/data/cache/recent_form_fusion_cache.json.before_refresh\n?? backend/scripts/audit_prediction_quality_root_cause.py\n?? backend/scripts/audit_recent_form_shadow_influence.py\n?? backend/scripts/run_priority1_3_combined_validation.py\n?? backend/scripts/run_priority1_4_architecture_validation.py\n?? backend/scripts/run_priority1_5_coherent_model_validation.py\n?? backend/scripts/run_priority1_6_dynamic_goals_v3_validation.py\n?? backend/scripts/run_priority1_7a_latent_xg_bias_audit.py\n?? backend/scripts/run_priority1_7b_10_1_independent_signal_wiring_prototype.py\n?? backend/scripts/run_priority1_7b_10_independent_signal_wiring_audit.py\n?? backend/scripts/run_priority1_7b_11_validation_metrology_redesign.py\n?? backend/scripts/run_priority1_7b_12_conditional_spread_governance.py\n?? backend/scripts/run_priority1_7b_13_dual_regime_favorite_confidence_governance.py\n?? backend/scripts/run_priority1_7b_14_favorite_spread_too_small_decomposition.py\n?? backend/scripts/run_priority1_7b_15_favorite_confidence_curve_audit.py\n?? backend/scripts/run_priority1_7b_16_favorite_confidence_curve_prototype.py\n?? backend/scripts/run_priority1_7b_17_wc2022_top5_robustness_blocker_decomposition.py\n?? backend/scripts/run_priority1_7b_18_scoreline_ranking_topk_robustness_audit.py\n?? backend/scripts/run_priority1_7b_19_activation_readiness_gate_context_audit.py\n?? backend/scripts/run_priority1_7b_1_strength_xg_refinement.py\n?? backend/scripts/run_priority1_7b_20_final_activation_readiness_audit.py\n?? backend/scripts/run_priority1_7b_21_controlled_activation_plan_draft.py\n?? backend/scripts/run_priority1_7b_22_disabled_shadow_wiring_design.py\n?? backend/scripts/run_priority1_7b_2_p1c_stability_refinement.py\n?? backend/scripts/run_priority1_7b_3_stage_aware_diagnosis.py\n?? backend/scripts/run_priority1_7b_4_1_r16_total_recovery_focus.py\n?? backend/scripts/run_priority1_7b_4_r16_stage_aware_recovery.py\n?? backend/scripts/run_priority1_7b_5_wc2018_residual_decomposition.py\n?? backend/scripts/run_priority1_7b_6_1_generic_favorite_trust_calibration.py\n?? backend/scripts/run_priority1_7b_6_2_trust_gated_spread_damping_hybrid.py\n?? backend/scripts/run_priority1_7b_6_3_hybrid_balance_tuning.py\n?? backend/scripts/run_priority1_7b_6_spread_share_residual_correction.py\n?? backend/scripts/run_priority1_7b_7_favorite_direction_root_cause_audit.py\n?? backend/scripts/run_priority1_7b_8_favorite_direction_safety_gate.py\n?? backend/scripts/run_priority1_7b_9_1_narrow_sw3_sw6_signal_weight_refinement.py\n?? backend/scripts/run_priority1_7b_9_2_activation_readiness_regression_protection_audit.py\n?? backend/scripts/run_priority1_7b_9_p1c2_signal_weight_calibration.py\n?? backend/scripts/run_priority1_7b_strength_based_xg_validation.py\n?? backend/tests/test_activation_readiness_gate_context_audit.py\n?? backend/tests/test_conditional_spread_governance.py\n?? backend/tests/test_controlled_activation_plan_draft.py\n?? backend/tests/test_disabled_shadow_wiring_design.py\n?? backend/tests/test_dual_regime_favorite_confidence_governance.py\n?? backend/tests/test_dynamic_goals_v3.py\n?? backend/tests/test_favorite_confidence_curve_audit.py\n?? backend/tests/test_favorite_confidence_curve_prototype.py\n?? backend/tests/test_favorite_direction_root_cause_audit.py\n?? backend/tests/test_favorite_direction_safety_gate.py\n?? backend/tests/test_favorite_spread_too_small_decomposition.py\n?? backend/tests/test_favorite_trust_calibration.py\n?? backend/tests/test_final_activation_readiness_audit.py\n?? backend/tests/test_hybrid_balance_tuning.py\n?? backend/tests/test_independent_signal_wiring_audit.py\n?? backend/tests/test_independent_signal_wiring_prototype.py\n?? backend/tests/test_priority1_4_architecture.py\n?? backend/tests/test_priority1_5_coherent_model.py\n?? backend/tests/test_priority1_6_dynamic_goals_v3_pipeline.py\n?? backend/tests/test_priority1_7a_latent_xg_bias_audit.py\n?? backend/tests/test_scoreline_ranking_topk_robustness_audit.py\n?? backend/tests/test_spread_residual_correction.py\n?? backend/tests/test_strength_activation_readiness_audit.py\n?? backend/tests/test_strength_based_xg_generator.py\n?? backend/tests/test_strength_signal_weight_calibration.py\n?? backend/tests/test_strength_signal_weight_narrow_refinement.py\n?? backend/tests/test_trust_gated_spread_hybrid.py\n?? backend/tests/test_validation_metrology_redesign.py\n?? backend/tests/test_wc2018_residual_decomposition.py\n?? backend/tests/test_wc2022_top5_robustness_blocker_decomposition.py\n?? docs/PRIORITY1_3_COMBINED_CANDIDATE_VALIDATION.md\n?? docs/PRIORITY1_4_ARCHITECTURE_VALIDATION.md\n?? docs/PRIORITY1_4_PIPELINE_AUDIT.md\n?? docs/PRIORITY1_5_COHERENT_MODEL_UPGRADE.md\n?? docs/PRIORITY1_5_PIPELINE_AUDIT.md\n?? docs/PRIORITY1_6_DYNAMIC_GOALS_V3.md\n?? docs/PRIORITY1_6_DYNAMIC_GOALS_V3_AUDIT.md\n?? docs/PRIORITY1_7A_LATENT_XG_BIAS_AUDIT.md\n?? docs/PRIORITY1_7A_LATENT_XG_BIAS_AUDIT_DESIGN.md\n?? docs/PRIORITY1_7B_10_1_INDEPENDENT_SIGNAL_WIRING_PROTOTYPE.md\n?? docs/PRIORITY1_7B_10_INDEPENDENT_SIGNAL_WIRING_AUDIT.md\n?? docs/PRIORITY1_7B_11_VALIDATION_METROLOGY_REDESIGN.md\n?? docs/PRIORITY1_7B_12_CONDITIONAL_SPREAD_GOVERNANCE.md\n?? docs/PRIORITY1_7B_13_DUAL_REGIME_FAVORITE_CONFIDENCE_GOVERNANCE.md\n?? docs/PRIORITY1_7B_14_FAVORITE_SPREAD_TOO_SMALL_ROOT_CAUSE_DECOMPOSITION.md\n?? docs/PRIORITY1_7B_15_FAVORITE_CONFIDENCE_CURVE_AUDIT.md\n?? docs/PRIORITY1_7B_16_FAVORITE_CONFIDENCE_CURVE_PROTOTYPE.md\n?? docs/PRIORITY1_7B_17_WC2022_TOP5_ROBUSTNESS_BLOCKER_DECOMPOSITION.md\n?? docs/PRIORITY1_7B_18_SCORELINE_RANKING_TOPK_ROBUSTNESS_AUDIT.md\n?? docs/PRIORITY1_7B_19_ACTIVATION_READINESS_GATE_CONTEXT_AUDIT.md\n?? docs/PRIORITY1_7B_1_STRENGTH_XG_REFINEMENT.md\n?? docs/PRIORITY1_7B_1_STRENGTH_XG_REFINEMENT_AUDIT.md\n?? docs/PRIORITY1_7B_20_FINAL_ACTIVATION_READINESS_AUDIT.md\n?? docs/PRIORITY1_7B_21_CONTROLLED_ACTIVATION_PLAN_DRAFT.md\n?? docs/PRIORITY1_7B_2_P1C_STABILITY_ANALYSIS.md\n?? docs/PRIORITY1_7B_2_P1C_STABILITY_REFINEMENT.md\n?? docs/PRIORITY1_7B_3_STAGE_AWARE_MICRO_PROBES.md\n?? docs/PRIORITY1_7B_3_STAGE_AWARE_STABILITY_DIAGNOSIS.md\n?? docs/PRIORITY1_7B_4_1_R16_TOTAL_RECOVERY_AUDIT.md\n?? docs/PRIORITY1_7B_4_1_R16_TOTAL_RECOVERY_FOCUS.md\n?? docs/PRIORITY1_7B_4_R16_STAGE_AWARE_RECOVERY.md\n?? docs/PRIORITY1_7B_5_WC2018_RESIDUAL_DECOMPOSITION.md\n?? docs/PRIORITY1_7B_6_1_GENERIC_FAVORITE_TRUST_CALIBRATION.md\n?? docs/PRIORITY1_7B_6_2_TRUST_GATED_SPREAD_DAMPING_HYBRID.md\n?? docs/PRIORITY1_7B_6_3_HYBRID_BALANCE_TUNING.md\n?? docs/PRIORITY1_7B_6_STAGE_AWARE_SPREAD_SHARE_RESIDUAL_CORRECTION.md\n?? docs/PRIORITY1_7B_7_FAVORITE_DIRECTION_ROOT_CAUSE_AUDIT.md\n?? docs/PRIORITY1_7B_8_FAVORITE_DIRECTION_SAFETY_GATE.md\n?? docs/PRIORITY1_7B_9_1_NARROW_SW3_SW6_SIGNAL_WEIGHT_REFINEMENT.md\n?? docs/PRIORITY1_7B_9_2_ACTIVATION_READINESS_REGRESSION_PROTECTION_AUDIT.md\n?? docs/PRIORITY1_7B_9_P1C2_SIGNAL_WEIGHT_CALIBRATION.md\n?? docs/PRIORITY1_7B_STRENGTH_BASED_XG_AUDIT.md\n?? docs/PRIORITY1_7B_STRENGTH_BASED_XG_GENERATOR.md\n?? docs/RAPIDAPI_FREE_LIVE_FOOTBALL_EVALUATION.md\n?? docs/priority1_5_validation_output.json\n",
+    "git_diff_name_status_after": "M\tbackend/.env.example\nM\tbackend/api/main.py\nM\tbackend/api/schemas.py\nM\tbackend/config.py\nM\tbackend/core/market_xg_calibration.py\nM\tbackend/core/priority1_backtest.py\nM\tbackend/core/priority1_diagnostics.py\nM\tbackend/core/priority1_options.py\nM\tbackend/core/temporal_backtest.py\nM\tbackend/data/activation_large_shift_reviews.json\nM\tbackend/data/cache/nt_ratings.json\nM\tdocs/PRIORITY1_2_LOCAL_MARKET_XG_VALIDATION.md\n",
+    "git_diff_stat_after": " backend/.env.example                             |  53 ++\n backend/api/main.py                              | 202 +++++--\n backend/api/schemas.py                           |   1 +\n backend/config.py                                | 134 ++++-\n backend/core/market_xg_calibration.py            |  92 +++-\n backend/core/priority1_backtest.py               | 416 +++++++++++++--\n backend/core/priority1_diagnostics.py            |  48 ++\n backend/core/priority1_options.py                | 288 +++++++++-\n backend/core/temporal_backtest.py                |   2 +\n backend/data/activation_large_shift_reviews.json |   2 +-\n backend/data/cache/nt_ratings.json               | 636 +++++++++++------------\n docs/PRIORITY1_2_LOCAL_MARKET_XG_VALIDATION.md   |  23 +-\n 12 files changed, 1455 insertions(+), 442 deletions(-)\n",
+    "allowed_files_only": true,
+    "forbidden_files_this_phase": [
+      "backend/core/priority1_backtest.py",
+      "backend/core/priority1_options.py",
+      "backend/core/strength_based_xg_validation.py",
+      "backend/api/main.py",
+      "backend/api/schemas.py",
+      "backend/config.py",
+      "backend/.env.example",
+      "backend/core/market_xg_calibration.py",
+      "backend/core/priority1_diagnostics.py",
+      "backend/core/temporal_backtest.py"
+    ],
+    "pre_existing_production_path_changes_noted": [
+      "backend/core/priority1_backtest.py",
+      "backend/core/priority1_options.py",
+      "backend/core/strength_based_xg_validation.py",
+      "backend/api/main.py",
+      "backend/api/schemas.py",
+      "backend/config.py",
+      "backend/.env.example",
+      "backend/core/market_xg_calibration.py",
+      "backend/core/priority1_diagnostics.py",
+      "backend/core/temporal_backtest.py"
+    ],
+    "no_production_path_modified_by_p1722": true,
+    "no_hooks_changed_by_p1722": true,
+    "no_config_changed_by_p1722": true,
+    "no_flag_implemented_by_p1722": true,
+    "no_prediction_execution": true,
+    "no_env_deploy_commit": true,
+    "preservation_pass": true
+  },
+  "forbidden_implementation_patterns": [
+    "Flag default true",
+    "Shadow replaces served output",
+    "Env var activation without approval",
+    "API response includes shadow fields without approval",
+    "Silent fallback to NR3+FCC on baseline error",
+    "Hidden hook in api/main.py",
+    "Config field with default True",
+    "Render deploy as part of shadow wiring",
+    "Scoreline/matrix/market logic change bundled with wiring"
+  ],
+  "allowed_in_future_p1723_with_explicit_approval": [
+    "Add NR3_FCC_SHADOW_ENABLED default False to Priority1Options",
+    "Add shadow branch in backtest/runner that writes artifact only",
+    "Create disabled_shadow_wiring_runtime.py helper",
+    "Add tests per future_test_strategy",
+    "Write P1.7B.23 implementation report"
+  ],
+  "forbidden_now_and_without_separate_approval": [
+    "api/main.py",
+    "api/schemas.py",
+    "config.py",
+    ".env.example",
+    "Render/env",
+    "production activation",
+    "user-visible NR3+FCC output"
+  ],
+  "final_recommendation": "Proceed to P1.7B.23 only if explicitly approved: Disabled-By-Default Shadow Wiring Implementation. Do not implement wiring in P1.7B.22. Do not activate NR3+FCC.",
+  "activation_status": {
+    "activation_blocked": true,
+    "implementation_allowed_now": false,
+    "shadow_wiring_allowed_now": false,
+    "direct_activation_allowed": false,
+    "production_activation_allowed": false
+  },
+  "do_not_activate_list": [
+    "NR3+FCC",
+    "NR3",
+    "NR6",
+    "HB3",
+    "FCC",
+    "CSG",
+    "DRFCG",
+    "strength_v1",
+    "Power V3",
+    "Dynamic V2",
+    "Dynamic V3",
+    "Market V2"
+  ],
+  "rollback_cleanup_plan": [
+    "P1.7B.22 adds design artifacts only \u2014 delete if needed with no production impact",
+    "No flag exists to roll back",
+    "Pre-existing production diff remains separate \u2014 do not mix commits",
+    "Future P1.7B.23 rollback: set flag false, remove shadow branch, verify baseline"
+  ]
+}
