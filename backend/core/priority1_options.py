@@ -26,6 +26,8 @@ class Priority1Config:
     books_count: int = 0
     dynamic_goals_tuning: Any | None = None
     tuning_label: str | None = None
+    # P1.7B.23 — disabled-by-default; shadow-only; NOT production activation; served output must remain baseline
+    nr3_fcc_shadow_enabled: bool = False  # design label: NR3_FCC_SHADOW_ENABLED
 
     @classmethod
     def baseline(cls) -> Priority1Config:

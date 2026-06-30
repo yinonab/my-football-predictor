@@ -174,6 +174,22 @@ def _run_match_with_priority1(
         away_xg_override=away_xg,
         include_all_scores=True,
     )
+    if getattr(p1, "nr3_fcc_shadow_enabled", False):
+        from core.disabled_shadow_wiring_runtime import attach_shadow_sidecar_if_enabled
+
+        attach_shadow_sidecar_if_enabled(
+            result,
+            match=match,
+            prior=prior,
+            snapshot=snapshot,
+            dataset_key=dataset_key,
+            p1=p1,
+            candidate=candidate,
+            elo_strategy=elo_strategy,
+            world_elo_mode=world_elo_mode,
+            prior_mode=prior_mode,
+            run_match_fn=_run_match_with_priority1,
+        )
     return result
 
 
@@ -217,6 +233,7 @@ def collect_priority1_rows(
             books_count=p1.books_count,
             dynamic_goals_tuning=p1.dynamic_goals_tuning,
             tuning_label=p1.tuning_label,
+            nr3_fcc_shadow_enabled=p1.nr3_fcc_shadow_enabled,
         )
         prior = matches_before_target(full_history, match)
         snap = _resolve_snapshot_for_match(
