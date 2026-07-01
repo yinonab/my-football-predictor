@@ -374,6 +374,12 @@ STRENGTH_XG_DEFAULT_GAP_WEIGHT: float = float(os.getenv("STRENGTH_XG_DEFAULT_GAP
 # NR3+FCC production shadow sidecar — diagnostics only; default off; does not change served output
 NR3_FCC_SHADOW_ENABLED: bool = _env_bool("NR3_FCC_SHADOW_ENABLED", False)
 
+# NR3+FCC served activation — default off; replaces served prediction when explicitly enabled
+NR3_FCC_SERVED_ENABLED: bool = _env_bool("NR3_FCC_SERVED_ENABLED", False)
+NR3_FCC_SERVED_MODEL_VERSION: str = os.getenv(
+    "NR3_FCC_SERVED_MODEL_VERSION", "v2.3.0-nr3-fcc-served"
+).strip()
+
 
 def strength_based_xg_enabled() -> bool:
     return STRENGTH_BASED_XG_ENABLED and XG_BASELINE_GENERATOR == "strength_v1"
@@ -387,6 +393,10 @@ def xg_baseline_generator() -> str:
 
 def nr3_fcc_shadow_enabled() -> bool:
     return NR3_FCC_SHADOW_ENABLED
+
+
+def nr3_fcc_served_enabled() -> bool:
+    return NR3_FCC_SERVED_ENABLED
 
 
 # API

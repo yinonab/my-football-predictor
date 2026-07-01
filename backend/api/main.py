@@ -723,6 +723,74 @@ def predict(request: PredictRequest) -> PredictResponse:
             note=fusion_note,
         )
 
+    nr3_fcc_sidecar_diagnostics: dict | None = None
+    nr3_fcc_served_applied = False
+    nr3_fcc_served_model_version: str | None = None
+
+    def _run_nr3_fcc_sidecar() -> dict:
+        from core.live_nr3_fcc_shadow_runner import run_live_nr3_fcc_shadow_sidecar
+
+        return run_live_nr3_fcc_shadow_sidecar(
+            home_team=home_name,
+            away_team=away_name,
+            neutral_ground=request.neutral_ground,
+            home_power=float(home_power),
+            away_power=float(away_power),
+            home_elo=home_elo,
+            away_elo=away_elo,
+            baseline_home_xg=float(result["home_xg"]),
+            baseline_away_xg=float(result["away_xg"]),
+            baseline_probabilities_1x2=dict(probs),
+            baseline_top_scores=list(result["top_scores"]),
+            home_advantage=float(advantage),
+            home_attack=home_data.get("attack"),
+            home_defense=home_data.get("defense"),
+            away_attack=away_data.get("attack"),
+            away_defense=away_data.get("defense"),
+            home_form=home_raw_form,
+            away_form=away_raw_form,
+            match_context={"stage": ctx_info.stage},
+        )
+
+    if config.nr3_fcc_served_enabled():
+        logger.warning(
+            "nr3_fcc_served_enabled home_team=%s away_team=%s",
+            home_name,
+            away_name,
+        )
+        print(
+            f"nr3_fcc_served_enabled home_team={home_name} away_team={away_name}",
+            flush=True,
+        )
+        try:
+            from core.live_nr3_fcc_shadow_runner import (
+                NR3_FCC_SERVED_MODEL_VERSION,
+                apply_nr3_fcc_served_overlay,
+            )
+
+            nr3_fcc_sidecar_diagnostics = _run_nr3_fcc_sidecar()
+            apply_nr3_fcc_served_overlay(result, probs, nr3_fcc_sidecar_diagnostics)
+            nr3_fcc_served_applied = True
+            nr3_fcc_served_model_version = NR3_FCC_SERVED_MODEL_VERSION
+            logger.warning(
+                "nr3_fcc_served_prediction home_team=%s away_team=%s home_xg=%s away_xg=%s model_version=%s",
+                home_name,
+                away_name,
+                result["home_xg"],
+                result["away_xg"],
+                nr3_fcc_served_model_version,
+            )
+            print(
+                "nr3_fcc_served_prediction "
+                f"home_team={home_name} away_team={away_name} "
+                f"home_xg={result['home_xg']} away_xg={result['away_xg']} "
+                f"model_version={nr3_fcc_served_model_version}",
+                flush=True,
+            )
+        except Exception:
+            logger.exception("nr3_fcc_served_failed_fallback")
+            print("nr3_fcc_served_failed_fallback", flush=True)
+
     explanation_context = ExplanationContext(
         odds_blend_applied=pipeline.probability_result.odds_blend_applied,
         calibration_applied=pipeline.calibration_applied,
@@ -791,37 +859,19 @@ def predict(request: PredictRequest) -> PredictResponse:
             flush=True,
         )
         try:
-            from core.live_nr3_fcc_shadow_runner import run_live_nr3_fcc_shadow_sidecar
+            if nr3_fcc_sidecar_diagnostics is None:
+                nr3_fcc_sidecar_diagnostics = _run_nr3_fcc_sidecar()
 
-            nr3_fcc_shadow_diagnostics = run_live_nr3_fcc_shadow_sidecar(
-                home_team=home_name,
-                away_team=away_name,
-                neutral_ground=request.neutral_ground,
-                home_power=float(home_power),
-                away_power=float(away_power),
-                home_elo=home_elo,
-                away_elo=away_elo,
-                baseline_home_xg=float(result["home_xg"]),
-                baseline_away_xg=float(result["away_xg"]),
-                baseline_probabilities_1x2=dict(probs),
-                baseline_top_scores=list(result["top_scores"]),
-                home_advantage=float(advantage),
-                home_attack=home_data.get("attack"),
-                home_defense=home_data.get("defense"),
-                away_attack=away_data.get("attack"),
-                away_defense=away_data.get("defense"),
-                home_form=home_raw_form,
-                away_form=away_raw_form,
-                match_context={"stage": ctx_info.stage},
-            )
-            shadow_warnings = nr3_fcc_shadow_diagnostics.get("warnings") or []
+            shadow_warnings = nr3_fcc_sidecar_diagnostics.get("warnings") or []
             warnings_count = (
                 len(shadow_warnings) if isinstance(shadow_warnings, list) else 0
             )
-            delta_vs_baseline = nr3_fcc_shadow_diagnostics.get("delta_vs_baseline") or {}
-            shadow_executed = nr3_fcc_shadow_diagnostics.get("shadow_executed")
-            activation_allowed = nr3_fcc_shadow_diagnostics.get("activation_allowed")
-            home_advantage_applied = nr3_fcc_shadow_diagnostics.get("home_advantage_applied")
+            delta_vs_baseline = nr3_fcc_sidecar_diagnostics.get("delta_vs_baseline") or {}
+            shadow_executed = nr3_fcc_sidecar_diagnostics.get("shadow_executed")
+            activation_allowed = nr3_fcc_sidecar_diagnostics.get("activation_allowed")
+            home_advantage_applied = nr3_fcc_sidecar_diagnostics.get(
+                "home_advantage_applied"
+            )
             delta_home_xg = delta_vs_baseline.get("home_xg_delta")
             delta_away_xg = delta_vs_baseline.get("away_xg_delta")
             logger.warning(
@@ -848,6 +898,13 @@ def predict(request: PredictRequest) -> PredictResponse:
         except Exception:
             logger.exception("nr3_fcc_shadow_sidecar_failed")
             print("nr3_fcc_shadow_sidecar_failed", flush=True)
+
+    model_diag_dict = strength.to_model_diagnostics_dict()
+    if nr3_fcc_served_applied and nr3_fcc_served_model_version:
+        model_diag_dict = {
+            **model_diag_dict,
+            "model_version": nr3_fcc_served_model_version,
+        }
 
     return PredictResponse(
         home_team=home_name,
@@ -953,7 +1010,7 @@ def predict(request: PredictRequest) -> PredictResponse:
             away_star_absent=request.away_star_absent,
             use_live=request.use_live_stats,
         ),
-        model_diagnostics=ModelDiagnosticsResponse(**strength.to_model_diagnostics_dict()),
+        model_diagnostics=ModelDiagnosticsResponse(**model_diag_dict),
         probability_diagnostics=ProbabilityDiagnosticsResponse(
             **pipeline.to_probability_diagnostics_dict()
         ),

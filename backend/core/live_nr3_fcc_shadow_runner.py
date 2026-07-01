@@ -16,6 +16,7 @@ from core.strength_based_xg_generator import StrengthSignals, generate_strength_
 from core.strength_stage_recovery import apply_stage_recovery
 
 SHADOW_SCORELINE_WARNING = "shadow_scoreline_systems_not_applied"
+NR3_FCC_SERVED_MODEL_VERSION = "v2.3.0-nr3-fcc-served"
 
 
 def _normalize_probs_pct(probs: dict[str, Any]) -> dict[str, float]:
@@ -32,6 +33,42 @@ def _pct_delta(shadow: dict[str, float], baseline: dict[str, float]) -> dict[str
         "draw_pp": round(shadow["draw"] - baseline["draw"], 1),
         "away_win_pp": round(shadow["away_win"] - baseline["away_win"], 1),
     }
+
+
+def extract_served_prediction_from_sidecar(sidecar: dict[str, Any]) -> dict[str, Any] | None:
+    """Compact served-ready fields from sidecar diagnostics."""
+    if not sidecar.get("shadow_executed"):
+        return None
+    return {
+        "home_xg": float(sidecar["shadow_home_xg"]),
+        "away_xg": float(sidecar["shadow_away_xg"]),
+        "probabilities_1x2": dict(sidecar["shadow_probabilities_1x2"]),
+        "top_scores": list(sidecar.get("shadow_top_scores") or []),
+        "score_coverage": sidecar.get("shadow_score_coverage"),
+        "all_scores": sidecar.get("shadow_all_scores"),
+    }
+
+
+def apply_nr3_fcc_served_overlay(
+    result: dict[str, Any],
+    probs: dict[str, float],
+    sidecar: dict[str, Any],
+) -> dict[str, float]:
+    """Apply NR3+FCC sidecar output to the live prediction result dict."""
+    served = extract_served_prediction_from_sidecar(sidecar)
+    if served is None:
+        raise ValueError("nr3_fcc_served_not_executable")
+    result["home_xg"] = served["home_xg"]
+    result["away_xg"] = served["away_xg"]
+    result["top_scores"] = served["top_scores"]
+    result["probabilities_1x2"] = dict(served["probabilities_1x2"])
+    if served.get("score_coverage"):
+        result["score_coverage"] = served["score_coverage"]
+    if served.get("all_scores") is not None:
+        result["all_scores"] = served["all_scores"]
+    probs.clear()
+    probs.update(served["probabilities_1x2"])
+    return probs
 
 
 def run_live_nr3_fcc_shadow_sidecar(
@@ -186,6 +223,8 @@ def run_live_nr3_fcc_shadow_sidecar(
         "shadow_away_xg": float(shadow_result.get("away_xg", away_xg)),
         "shadow_probabilities_1x2": shadow_probs,
         "shadow_top_scores": list(shadow_result.get("top_scores") or []),
+        "shadow_score_coverage": shadow_result.get("score_coverage"),
+        "shadow_all_scores": shadow_result.get("all_scores"),
         "delta_vs_baseline": {
             **_pct_delta(shadow_probs, baseline_probs),
             "home_xg_delta": round(float(shadow_result.get("home_xg", home_xg)) - float(baseline_home_xg), 2),

@@ -247,10 +247,17 @@ def run_static_checks(*, repo: Path | None = None) -> list[StaticCheck]:
         )
     )
 
+    main_text = _read(root / "backend" / "api" / "main.py")
+    shadow_tail = (
+        main_text.split("if config.nr3_fcc_shadow_enabled()")[-1].split("return PredictResponse")[0]
+        if "if config.nr3_fcc_shadow_enabled()" in main_text
+        else ""
+    )
+
     checks.append(
         StaticCheck(
             "api_sidecar_guarded_by_flag",
-            "config.nr3_fcc_shadow_enabled()" in _read(root / "backend" / "api" / "main.py"),
+            "config.nr3_fcc_shadow_enabled()" in main_text,
             "Live API sidecar behind config.nr3_fcc_shadow_enabled()",
             category="api",
         )
@@ -258,22 +265,26 @@ def run_static_checks(*, repo: Path | None = None) -> list[StaticCheck]:
     checks.append(
         StaticCheck(
             "api_sidecar_log_only",
-            "run_live_nr3_fcc_shadow_sidecar" in _read(root / "backend" / "api" / "main.py")
-            and "nr3_fcc_shadow_diagnostics" in _read(root / "backend" / "api" / "main.py")
-            and "PredictResponse(" in _read(root / "backend" / "api" / "main.py"),
-            "Sidecar diagnostics kept internal; PredictResponse unchanged",
+            "config.nr3_fcc_shadow_enabled()" in main_text
+            and "apply_nr3_fcc_served_overlay" not in shadow_tail,
+            "Shadow flag path remains log-only (no served overlay in shadow block)",
+            category="api",
+        )
+    )
+    checks.append(
+        StaticCheck(
+            "api_served_guarded_by_flag",
+            "config.nr3_fcc_served_enabled()" in main_text
+            and "apply_nr3_fcc_served_overlay" in main_text,
+            "Served NR3+FCC behind explicit NR3_FCC_SERVED_ENABLED gate",
             category="api",
         )
     )
     checks.append(
         StaticCheck(
             "api_no_served_mutation_from_shadow",
-            "result[\"home_xg\"] = " not in _read(root / "backend" / "api" / "main.py").split(
-                "run_live_nr3_fcc_shadow_sidecar"
-            )[-1]
-            if "run_live_nr3_fcc_shadow_sidecar" in _read(root / "backend" / "api" / "main.py")
-            else True,
-            "No served xG reassignment after shadow sidecar hook",
+            "apply_nr3_fcc_served_overlay" not in shadow_tail,
+            "Shadow hook does not apply served overlay",
             category="api",
             severity="critical",
         )
@@ -295,11 +306,18 @@ def run_static_checks(*, repo: Path | None = None) -> list[StaticCheck]:
         if rel.endswith("config.py"):
             passed = bool(
                 re.search(r'NR3_FCC_SHADOW_ENABLED:\s*bool\s*=\s*_env_bool\("NR3_FCC_SHADOW_ENABLED",\s*False\)', text)
+                and re.search(
+                    r'NR3_FCC_SERVED_ENABLED:\s*bool\s*=\s*_env_bool\("NR3_FCC_SERVED_ENABLED",\s*False\)',
+                    text,
+                )
             )
-            evidence = "NR3_FCC_SHADOW_ENABLED defaults False via _env_bool"
+            evidence = "NR3_FCC_SHADOW_ENABLED and NR3_FCC_SERVED_ENABLED default False via _env_bool"
         else:
-            passed = "nr3_fcc_shadow_enabled=false" in text.lower()
-            evidence = ".env.example documents NR3_FCC_SHADOW_ENABLED=false"
+            passed = (
+                "nr3_fcc_shadow_enabled=false" in text.lower()
+                and "nr3_fcc_served_enabled=false" in text.lower()
+            )
+            evidence = ".env.example documents NR3_FCC shadow/served flags false"
         checks.append(
             StaticCheck(
                 f"env_shadow_flag_default_off_{Path(rel).name}",

@@ -24,6 +24,13 @@ from core.live_nr3_fcc_shadow_runner import (
 
 client = TestClient(app)
 
+
+@pytest.fixture(autouse=True)
+def _default_nr3_served_off(monkeypatch):
+    monkeypatch.setattr(config, "NR3_FCC_SERVED_ENABLED", False)
+    monkeypatch.setattr(config, "nr3_fcc_served_enabled", lambda: False)
+
+
 SERVED_KEYS = (
     "home_xg",
     "away_xg",
@@ -53,6 +60,11 @@ def _served_snapshot(data: dict) -> dict:
     }
 
 
+def _disable_served(monkeypatch) -> None:
+    monkeypatch.setattr(config, "NR3_FCC_SERVED_ENABLED", False)
+    monkeypatch.setattr(config, "nr3_fcc_served_enabled", lambda: False)
+
+
 def _combined_log_output(caplog, capsys) -> str:
     captured = capsys.readouterr()
     return caplog.text + captured.out + captured.err
@@ -62,6 +74,7 @@ def test_flag_false_no_observability_markers(monkeypatch, caplog, capsys):
     caplog.set_level(logging.WARNING)
     monkeypatch.setattr(config, "NR3_FCC_SHADOW_ENABLED", False)
     monkeypatch.setattr(config, "nr3_fcc_shadow_enabled", lambda: False)
+    _disable_served(monkeypatch)
     baseline = _served_snapshot(_predict(PREDICT_PAYLOAD))
     repeat = _served_snapshot(_predict(PREDICT_PAYLOAD))
     assert baseline == repeat
@@ -82,6 +95,7 @@ def test_flag_true_emits_observability_markers(monkeypatch, caplog, capsys):
     }
     monkeypatch.setattr(config, "NR3_FCC_SHADOW_ENABLED", True)
     monkeypatch.setattr(config, "nr3_fcc_shadow_enabled", lambda: True)
+    _disable_served(monkeypatch)
     with patch(
         "core.live_nr3_fcc_shadow_runner.run_live_nr3_fcc_shadow_sidecar",
         return_value=fake_diag,
