@@ -92,6 +92,11 @@ class _PredictionResultsViewState extends State<PredictionResultsView> {
             result: result,
             isNeutralGround: widget.isNeutralGround,
           ),
+          const SizedBox(height: 8),
+          UnderdogScoringNarrativeCard(
+            result: result,
+            isNeutralGround: widget.isNeutralGround,
+          ),
           if (result.scorelineDecision != null) ...[
             const SizedBox(height: 8),
             PredictionWhyCard(

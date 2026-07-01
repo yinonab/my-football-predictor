@@ -5,6 +5,7 @@ import '../models/venue_mode.dart';
 import '../utils/environment_ui_copy.dart';
 import '../utils/prediction_ui_copy.dart';
 import '../utils/score_format.dart';
+import '../utils/underdog_scoring_narrative.dart';
 
 class PredictionStatusBanner extends StatelessWidget {
   final PredictionResult result;
@@ -152,6 +153,107 @@ class PredictionPrimaryScoreCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class UnderdogScoringNarrativeCard extends StatelessWidget {
+  final PredictionResult result;
+  final bool isNeutralGround;
+
+  const UnderdogScoringNarrativeCard({
+    super.key,
+    required this.result,
+    this.isNeutralGround = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (isMatchCompletedOrInvalid(result)) {
+      return const SizedBox.shrink();
+    }
+
+    final narrative = buildUnderdogScoringNarrative(
+      result,
+      isNeutralGround: isNeutralGround,
+    );
+    if (narrative == null) return const SizedBox.shrink();
+
+    final theme = Theme.of(context);
+
+    return Card(
+      color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.4),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'התחזית המרכזית היא שער נקי לפייבוריט, אבל המודל עדיין נותן לאנדרדוג סיכוי משמעותי להבקיע.',
+              style: theme.textTheme.bodyMedium,
+              textAlign: TextAlign.right,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'לכן מוצג גם תרחיש ריאלי שבו האנדרדוג כובש.',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.right,
+            ),
+            const SizedBox(height: 12),
+            _NarrativeRow(
+              label: 'סיכוי שהאנדרדוג יבקיע',
+              value:
+                  '${narrative.underdogTeamName}: ${narrative.underdogScoringProbabilityPercent.round()}%',
+            ),
+            const SizedBox(height: 8),
+            _NarrativeRow(
+              label: 'תרחיש ריאלי אם האנדרדוג כובש',
+              value: narrative.alternativeScoreText,
+            ),
+            if (narrative.bttsProbabilityPercent != null) ...[
+              const SizedBox(height: 8),
+              _NarrativeRow(
+                label: 'שתי הקבוצות כובשות',
+                value: '${narrative.bttsProbabilityPercent!.round()}%',
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _NarrativeRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _NarrativeRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          label,
+          style: theme.textTheme.labelMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+          textAlign: TextAlign.right,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: theme.textTheme.titleSmall?.copyWith(
+            fontWeight: FontWeight.w600,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
     );
   }
 }
