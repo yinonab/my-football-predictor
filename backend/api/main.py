@@ -727,6 +727,25 @@ def predict(request: PredictRequest) -> PredictResponse:
     nr3_fcc_served_applied = False
     nr3_fcc_served_model_version: str | None = None
 
+    from core.nr3_fcc_served_integration import Nr3FccIntegratedSettings
+
+    nr3_integrated_settings = Nr3FccIntegratedSettings(
+        rho=request.rho,
+        avg_goals=request.avg_goals,
+        alpha=request.alpha,
+        top_n=request.top_n,
+        fusion_blowout_enabled=request.fusion_blowout_enabled,
+        odds_affect_prediction=request.odds_affect_prediction,
+        use_match_context=request.use_match_context,
+        context_xg_delta=(
+            ctx_adj.xg_total_delta if request.use_match_context else 0.0
+        ),
+        market_odds=market_odds,
+        power_gap=strength.final_home_power - strength.final_away_power,
+        auto_stadium_altitude=request.auto_stadium_altitude,
+        altitude=int(effective_altitude_m or 0),
+    )
+
     def _run_nr3_fcc_sidecar() -> dict:
         from core.live_nr3_fcc_shadow_runner import run_live_nr3_fcc_shadow_sidecar
 
@@ -743,6 +762,7 @@ def predict(request: PredictRequest) -> PredictResponse:
             baseline_probabilities_1x2=dict(probs),
             baseline_top_scores=list(result["top_scores"]),
             home_advantage=float(advantage),
+            integrated_settings=nr3_integrated_settings,
             home_attack=home_data.get("attack"),
             home_defense=home_data.get("defense"),
             away_attack=away_data.get("attack"),
@@ -772,6 +792,41 @@ def predict(request: PredictRequest) -> PredictResponse:
             apply_nr3_fcc_served_overlay(result, probs, nr3_fcc_sidecar_diagnostics)
             nr3_fcc_served_applied = True
             nr3_fcc_served_model_version = NR3_FCC_SERVED_MODEL_VERSION
+            pipeline = finalize_probability_pipeline(
+                home_team=home_name,
+                away_team=away_name,
+                home_xg=result["home_xg"],
+                away_xg=result["away_xg"],
+                raw_probabilities_1x2=nr3_fcc_sidecar_diagnostics.get(
+                    "shadow_raw_probabilities_1x2", dict(probs)
+                ),
+                top_scores=result["top_scores"],
+                score_coverage=result["score_coverage"],
+                market_odds=market_odds,
+                odds_affect_prediction=False,
+            )
+            if nr3_fcc_sidecar_diagnostics.get("odds_blend_applied"):
+                pipeline.probability_result.odds_blend_applied = True
+                pipeline.odds_affect_prediction = True
+            pipeline.final_probabilities_1x2 = dict(probs)
+            if nr3_fcc_sidecar_diagnostics.get("fusion_applied"):
+                fusion_note = nr3_fcc_sidecar_diagnostics.get("fusion_note", "")
+                blowout = BlowoutAdjustment(
+                    home_xg=result["home_xg"],
+                    away_xg=result["away_xg"],
+                    alpha=request.alpha,
+                    max_goals=8,
+                    active=True,
+                    note=fusion_note,
+                )
+            elif nr3_fcc_sidecar_diagnostics.get("blowout_active"):
+                blowout = BlowoutAdjustment(
+                    home_xg=result["home_xg"],
+                    away_xg=result["away_xg"],
+                    alpha=request.alpha,
+                    max_goals=6,
+                    active=True,
+                )
             logger.warning(
                 "nr3_fcc_served_prediction home_team=%s away_team=%s home_xg=%s away_xg=%s model_version=%s",
                 home_name,
