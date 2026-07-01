@@ -780,6 +780,52 @@ def predict(request: PredictRequest) -> PredictResponse:
         match_context_diagnostics=match_context_diagnostics,
     )
 
+    if config.nr3_fcc_shadow_enabled():
+        try:
+            from core.live_nr3_fcc_shadow_runner import run_live_nr3_fcc_shadow_sidecar
+
+            nr3_fcc_shadow_diagnostics = run_live_nr3_fcc_shadow_sidecar(
+                home_team=home_name,
+                away_team=away_name,
+                neutral_ground=request.neutral_ground,
+                home_power=float(home_power),
+                away_power=float(away_power),
+                home_elo=home_elo,
+                away_elo=away_elo,
+                baseline_home_xg=float(result["home_xg"]),
+                baseline_away_xg=float(result["away_xg"]),
+                baseline_probabilities_1x2=dict(probs),
+                baseline_top_scores=list(result["top_scores"]),
+                home_advantage=float(advantage),
+                home_attack=home_data.get("attack"),
+                home_defense=home_data.get("defense"),
+                away_attack=away_data.get("attack"),
+                away_defense=away_data.get("defense"),
+                home_form=home_raw_form,
+                away_form=away_raw_form,
+                match_context={"stage": ctx_info.stage},
+            )
+            logger.info(
+                "nr3_fcc_shadow_sidecar",
+                extra={
+                    "home_team": home_name,
+                    "away_team": away_name,
+                    "shadow_executed": nr3_fcc_shadow_diagnostics.get("shadow_executed"),
+                    "activation_allowed": nr3_fcc_shadow_diagnostics.get("activation_allowed"),
+                    "home_advantage_applied": nr3_fcc_shadow_diagnostics.get(
+                        "home_advantage_applied"
+                    ),
+                    "delta_home_xg": nr3_fcc_shadow_diagnostics.get("delta_vs_baseline", {}).get(
+                        "home_xg_delta"
+                    ),
+                    "delta_away_xg": nr3_fcc_shadow_diagnostics.get("delta_vs_baseline", {}).get(
+                        "away_xg_delta"
+                    ),
+                },
+            )
+        except Exception:
+            logger.exception("nr3_fcc_shadow_sidecar_failed")
+
     return PredictResponse(
         home_team=home_name,
         away_team=away_name,

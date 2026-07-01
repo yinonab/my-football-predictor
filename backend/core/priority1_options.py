@@ -26,6 +26,10 @@ class Priority1Config:
     books_count: int = 0
     dynamic_goals_tuning: Any | None = None
     tuning_label: str | None = None
+    xg_baseline_generator: str = "current"  # current | strength_v1 (shadow sidecar only)
+    strength_xg_params: Any | None = None
+    stage_recovery_params: Any | None = None
+    hybrid_balance_params: Any | None = None
     favorite_confidence_curve_params: Any | None = None  # P1.7B.16 shadow-only; default None
     # P1.7B.23 — disabled-by-default; shadow-only; NOT production activation; served output must remain baseline
     nr3_fcc_shadow_enabled: bool = False  # design label: NR3_FCC_SHADOW_ENABLED
@@ -68,6 +72,21 @@ class Priority1Config:
         return cls(
             market_calibration_mode="xg_candidate",
             odds_affect_prediction=odds_blend,
+        )
+
+    @classmethod
+    def strength_xg_v1_balance_stack(
+        cls,
+        strength_params: Any,
+        recovery_params: Any,
+        hybrid_balance_params: Any | None = None,
+    ) -> Priority1Config:
+        """P1C2 + R16 recovery + hybrid balance tuning (shadow-only)."""
+        return cls(
+            xg_baseline_generator="strength_v1",
+            strength_xg_params=strength_params,
+            stage_recovery_params=recovery_params,
+            hybrid_balance_params=hybrid_balance_params,
         )
 
 

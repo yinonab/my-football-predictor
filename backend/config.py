@@ -354,6 +354,41 @@ def sofascore_enabled() -> bool:
     return bool(sofascore_rapidapi_key())
 
 
+# Priority 1.7B — strength-based xG baseline (experimental; default off)
+STRENGTH_BASED_XG_ENABLED: bool = _env_bool("STRENGTH_BASED_XG_ENABLED", False)
+XG_BASELINE_GENERATOR: str = os.getenv("XG_BASELINE_GENERATOR", "current").strip().lower()
+STRENGTH_XG_SCALE_MODE: str = os.getenv("STRENGTH_XG_SCALE_MODE", "grid").strip().lower()
+STRENGTH_XG_USE_ATTACK_DEFENSE: bool = _env_bool("STRENGTH_XG_USE_ATTACK_DEFENSE", True)
+STRENGTH_XG_USE_OVERALL_POWER: bool = _env_bool("STRENGTH_XG_USE_OVERALL_POWER", True)
+STRENGTH_XG_USE_COMPETITION_CONTEXT: bool = _env_bool("STRENGTH_XG_USE_COMPETITION_CONTEXT", False)
+STRENGTH_XG_MIN_SIDE: float = float(os.getenv("STRENGTH_XG_MIN_SIDE", "0.20"))
+STRENGTH_XG_MAX_SIDE: float = float(os.getenv("STRENGTH_XG_MAX_SIDE", "3.00"))
+STRENGTH_XG_MAX_TOTAL: float = float(os.getenv("STRENGTH_XG_MAX_TOTAL", "4.20"))
+STRENGTH_XG_MIN_TOTAL: float = float(os.getenv("STRENGTH_XG_MIN_TOTAL", "1.20"))
+STRENGTH_XG_DEFAULT_SCALE: float = float(os.getenv("STRENGTH_XG_DEFAULT_SCALE", "-0.4"))
+STRENGTH_XG_DEFAULT_OVERALL_WEIGHT: float = float(
+    os.getenv("STRENGTH_XG_DEFAULT_OVERALL_WEIGHT", "0.12")
+)
+STRENGTH_XG_DEFAULT_GAP_WEIGHT: float = float(os.getenv("STRENGTH_XG_DEFAULT_GAP_WEIGHT", "0.10"))
+
+# NR3+FCC production shadow sidecar — diagnostics only; default off; does not change served output
+NR3_FCC_SHADOW_ENABLED: bool = _env_bool("NR3_FCC_SHADOW_ENABLED", False)
+
+
+def strength_based_xg_enabled() -> bool:
+    return STRENGTH_BASED_XG_ENABLED and XG_BASELINE_GENERATOR == "strength_v1"
+
+
+def xg_baseline_generator() -> str:
+    if strength_based_xg_enabled():
+        return "strength_v1"
+    return "current"
+
+
+def nr3_fcc_shadow_enabled() -> bool:
+    return NR3_FCC_SHADOW_ENABLED
+
+
 # API
 API_HOST: str = "0.0.0.0"
 API_PORT: int = 8000

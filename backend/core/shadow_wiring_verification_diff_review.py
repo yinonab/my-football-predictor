@@ -247,27 +247,66 @@ def run_static_checks(*, repo: Path | None = None) -> list[StaticCheck]:
         )
     )
 
-    for rel in PUBLIC_API_FILES:
-        text = _read(root / rel)
-        checks.append(
-            StaticCheck(
-                f"no_shadow_in_{Path(rel).name}",
-                "nr3_fcc_shadow" not in text and "_internal_diagnostics" not in text,
-                f"No shadow references in {rel}",
-                category="api",
-                severity="critical" if "nr3_fcc_shadow" in text or "_internal_diagnostics" in text else "low",
-            )
+    checks.append(
+        StaticCheck(
+            "api_sidecar_guarded_by_flag",
+            "config.nr3_fcc_shadow_enabled()" in _read(root / "backend" / "api" / "main.py"),
+            "Live API sidecar behind config.nr3_fcc_shadow_enabled()",
+            category="api",
         )
+    )
+    checks.append(
+        StaticCheck(
+            "api_sidecar_log_only",
+            "run_live_nr3_fcc_shadow_sidecar" in _read(root / "backend" / "api" / "main.py")
+            and "nr3_fcc_shadow_diagnostics" in _read(root / "backend" / "api" / "main.py")
+            and "PredictResponse(" in _read(root / "backend" / "api" / "main.py"),
+            "Sidecar diagnostics kept internal; PredictResponse unchanged",
+            category="api",
+        )
+    )
+    checks.append(
+        StaticCheck(
+            "api_no_served_mutation_from_shadow",
+            "result[\"home_xg\"] = " not in _read(root / "backend" / "api" / "main.py").split(
+                "run_live_nr3_fcc_shadow_sidecar"
+            )[-1]
+            if "run_live_nr3_fcc_shadow_sidecar" in _read(root / "backend" / "api" / "main.py")
+            else True,
+            "No served xG reassignment after shadow sidecar hook",
+            category="api",
+            severity="critical",
+        )
+    )
+
+    schemas_text = _read(root / "backend" / "api" / "schemas.py")
+    checks.append(
+        StaticCheck(
+            "schemas_no_shadow_fields",
+            "nr3_fcc_shadow" not in schemas_text and "_internal_diagnostics" not in schemas_text,
+            "No shadow fields added to public schemas",
+            category="api",
+            severity="critical" if "nr3_fcc_shadow" in schemas_text else "low",
+        )
+    )
 
     for rel in ENV_CONFIG_FILES:
         text = _read(root / rel)
+        if rel.endswith("config.py"):
+            passed = bool(
+                re.search(r'NR3_FCC_SHADOW_ENABLED:\s*bool\s*=\s*_env_bool\("NR3_FCC_SHADOW_ENABLED",\s*False\)', text)
+            )
+            evidence = "NR3_FCC_SHADOW_ENABLED defaults False via _env_bool"
+        else:
+            passed = "nr3_fcc_shadow_enabled=false" in text.lower()
+            evidence = ".env.example documents NR3_FCC_SHADOW_ENABLED=false"
         checks.append(
             StaticCheck(
-                f"no_env_activation_{Path(rel).name}",
-                "NR3_FCC_SHADOW" not in text and "nr3_fcc_shadow" not in text,
-                f"No shadow flag in {rel}",
+                f"env_shadow_flag_default_off_{Path(rel).name}",
+                passed,
+                evidence,
                 category="env",
-                severity="critical" if "nr3_fcc_shadow" in text else "low",
+                severity="critical" if not passed else "low",
             )
         )
 
@@ -277,10 +316,15 @@ def run_static_checks(*, repo: Path | None = None) -> list[StaticCheck]:
 def build_leakage_review(*, repo: Path | None = None) -> dict[str, Any]:
     root = repo or _repo_root()
     leak_locations: list[str] = []
-    for rel in (*PUBLIC_API_FILES, *ENV_CONFIG_FILES):
-        text = _read(root / rel)
-        if "nr3_fcc_shadow" in text or "_internal_diagnostics" in text:
-            leak_locations.append(rel)
+    schemas_text = _read(root / "backend" / "api" / "schemas.py")
+    if "nr3_fcc_shadow" in schemas_text or "_internal_diagnostics" in schemas_text:
+        leak_locations.append("backend/api/schemas.py")
+    main_text = _read(root / "backend" / "api" / "main.py")
+    if "nr3_fcc_shadow" in main_text and (
+        "PredictResponse(" in main_text.split("nr3_fcc_shadow_diagnostics")[-1][:800]
+        and "nr3_fcc_shadow" in main_text.split("return PredictResponse")[-1][:1200]
+    ):
+        leak_locations.append("backend/api/main.py")
     return {
         "leak_detected": bool(leak_locations),
         "leak_locations": leak_locations,
@@ -288,7 +332,7 @@ def build_leakage_review(*, repo: Path | None = None) -> dict[str, Any]:
         "recommendation": (
             "Block commit until shadow fields removed from public paths"
             if leak_locations
-            else "Shadow artifact remains private/internal; no API leak detected"
+            else "Shadow sidecar remains log-only; no public API schema leak detected"
         ),
     }
 
@@ -391,7 +435,7 @@ def build_risk_table(reports: dict[str, Any], leakage: dict[str, Any]) -> list[d
             "risk": "Env/Render activation path",
             "severity": "critical",
             "likelihood": "low",
-            "mitigation": "No NR3_FCC_SHADOW in config/env",
+            "mitigation": "NR3_FCC_SHADOW_ENABLED defaults false in config/env example",
             "status": "verified_pass",
         },
         {

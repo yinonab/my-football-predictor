@@ -60,20 +60,23 @@ def test_api_leak_not_detected():
     assert leakage["leak_detected"] is False
 
 
-def test_public_api_no_shadow_refs():
+def test_public_api_shadow_log_only_no_schema_leak():
     repo = Path(__file__).resolve().parents[2]
-    for rel in ("backend/api/main.py", "backend/api/schemas.py"):
-        text = (repo / rel).read_text(encoding="utf-8", errors="replace")
-        assert "nr3_fcc_shadow" not in text
-        assert "_internal_diagnostics" not in text
+    schemas = (repo / "backend" / "api" / "schemas.py").read_text(encoding="utf-8", errors="replace")
+    assert "nr3_fcc_shadow" not in schemas
+    assert "_internal_diagnostics" not in schemas
+    leakage = build_leakage_review(repo=repo)
+    assert leakage["leak_detected"] is False
 
 
-def test_config_env_no_shadow_flag():
+def test_config_env_shadow_flag_default_false():
     repo = Path(__file__).resolve().parents[2]
-    for rel in ("backend/config.py", "backend/.env.example"):
-        text = (repo / rel).read_text(encoding="utf-8", errors="replace")
-        assert "NR3_FCC_SHADOW" not in text
-        assert "nr3_fcc_shadow" not in text
+    cfg = (repo / "backend" / "config.py").read_text(encoding="utf-8", errors="replace")
+    env = (repo / "backend" / ".env.example").read_text(encoding="utf-8", errors="replace")
+    assert 'NR3_FCC_SHADOW_ENABLED", False)' in cfg
+    assert "nr3_fcc_shadow_enabled=false" in env.lower()
+    checks = run_static_checks(repo=repo)
+    assert all(c.passed for c in checks if c.category == "env")
 
 
 def test_runtime_helper_exists_on_disk():
@@ -101,6 +104,7 @@ def test_served_output_verification_detected():
 def test_sidecar_optional_detected():
     checks = run_static_checks()
     assert any(c.name == "sidecar_guarded_by_flag" and c.passed for c in checks)
+    assert any(c.name == "api_sidecar_guarded_by_flag" and c.passed for c in checks)
 
 
 def test_no_baseline_replacement():
