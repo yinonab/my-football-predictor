@@ -781,6 +781,15 @@ def predict(request: PredictRequest) -> PredictResponse:
     )
 
     if config.nr3_fcc_shadow_enabled():
+        logger.warning(
+            "nr3_fcc_shadow_flag_seen home_team=%s away_team=%s",
+            request.home_team,
+            request.away_team,
+        )
+        print(
+            f"nr3_fcc_shadow_flag_seen home_team={request.home_team} away_team={request.away_team}",
+            flush=True,
+        )
         try:
             from core.live_nr3_fcc_shadow_runner import run_live_nr3_fcc_shadow_sidecar
 
@@ -805,26 +814,40 @@ def predict(request: PredictRequest) -> PredictResponse:
                 away_form=away_raw_form,
                 match_context={"stage": ctx_info.stage},
             )
-            logger.info(
-                "nr3_fcc_shadow_sidecar",
-                extra={
-                    "home_team": home_name,
-                    "away_team": away_name,
-                    "shadow_executed": nr3_fcc_shadow_diagnostics.get("shadow_executed"),
-                    "activation_allowed": nr3_fcc_shadow_diagnostics.get("activation_allowed"),
-                    "home_advantage_applied": nr3_fcc_shadow_diagnostics.get(
-                        "home_advantage_applied"
-                    ),
-                    "delta_home_xg": nr3_fcc_shadow_diagnostics.get("delta_vs_baseline", {}).get(
-                        "home_xg_delta"
-                    ),
-                    "delta_away_xg": nr3_fcc_shadow_diagnostics.get("delta_vs_baseline", {}).get(
-                        "away_xg_delta"
-                    ),
-                },
+            shadow_warnings = nr3_fcc_shadow_diagnostics.get("warnings") or []
+            warnings_count = (
+                len(shadow_warnings) if isinstance(shadow_warnings, list) else 0
+            )
+            delta_vs_baseline = nr3_fcc_shadow_diagnostics.get("delta_vs_baseline") or {}
+            shadow_executed = nr3_fcc_shadow_diagnostics.get("shadow_executed")
+            activation_allowed = nr3_fcc_shadow_diagnostics.get("activation_allowed")
+            home_advantage_applied = nr3_fcc_shadow_diagnostics.get("home_advantage_applied")
+            delta_home_xg = delta_vs_baseline.get("home_xg_delta")
+            delta_away_xg = delta_vs_baseline.get("away_xg_delta")
+            logger.warning(
+                "nr3_fcc_shadow_sidecar home_team=%s away_team=%s shadow_executed=%s "
+                "activation_allowed=%s home_advantage_applied=%s warnings_count=%s "
+                "delta_home_xg=%s delta_away_xg=%s",
+                home_name,
+                away_name,
+                shadow_executed,
+                activation_allowed,
+                home_advantage_applied,
+                warnings_count,
+                delta_home_xg,
+                delta_away_xg,
+            )
+            print(
+                "nr3_fcc_shadow_sidecar "
+                f"home_team={home_name} away_team={away_name} "
+                f"shadow_executed={shadow_executed} activation_allowed={activation_allowed} "
+                f"home_advantage_applied={home_advantage_applied} warnings_count={warnings_count} "
+                f"delta_home_xg={delta_home_xg} delta_away_xg={delta_away_xg}",
+                flush=True,
             )
         except Exception:
             logger.exception("nr3_fcc_shadow_sidecar_failed")
+            print("nr3_fcc_shadow_sidecar_failed", flush=True)
 
     return PredictResponse(
         home_team=home_name,
