@@ -221,6 +221,7 @@ class ScorelineDecision {
   final Map<String, dynamic> representativeSelection;
   final double? underdogScoresProbability;
   final double? bothTeamsScoreProbability;
+  final Map<String, dynamic> candidateComparisonSummary;
 
   const ScorelineDecision({
     required this.favoriteOutcome,
@@ -238,6 +239,7 @@ class ScorelineDecision {
     this.representativeSelection = const {},
     this.underdogScoresProbability,
     this.bothTeamsScoreProbability,
+    this.candidateComparisonSummary = const {},
   });
 
   factory ScorelineDecision.fromJson(Map<String, dynamic> json) {
@@ -279,6 +281,9 @@ class ScorelineDecision {
           (json['underdog_scores_probability'] as num?)?.toDouble(),
       bothTeamsScoreProbability:
           (json['both_teams_score_probability'] as num?)?.toDouble(),
+      candidateComparisonSummary: Map<String, dynamic>.from(
+        json['candidate_comparison_summary'] as Map<String, dynamic>? ?? {},
+      ),
     );
   }
 }

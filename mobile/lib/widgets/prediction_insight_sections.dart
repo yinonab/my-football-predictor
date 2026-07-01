@@ -207,11 +207,17 @@ class UnderdogScoringNarrativeCard extends StatelessWidget {
               value:
                   '${narrative.underdogTeamName}: ${narrative.underdogScoringProbabilityPercent.round()}%',
             ),
-            const SizedBox(height: 8),
-            _NarrativeRow(
-              label: 'תרחיש ריאלי אם האנדרדוג כובש',
-              value: narrative.alternativeScoreText,
-            ),
+            for (final line in narrative.alternativeLines) ...[
+              const SizedBox(height: 8),
+              _NarrativeRow(
+                label: line.label,
+                value: line.isIllustration
+                    ? line.scoreText
+                    : line.probabilityPercent != null
+                        ? '${line.scoreText} (${line.probabilityPercent!.toStringAsFixed(1)}%)'
+                        : line.scoreText,
+              ),
+            ],
             if (narrative.bttsProbabilityPercent != null) ...[
               const SizedBox(height: 8),
               _NarrativeRow(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/prediction_result.dart';
 import '../models/venue_mode.dart';
 import '../utils/score_format.dart';
+import '../utils/underdog_scoring_narrative.dart';
 import 'outcome_cards.dart';
 import 'prediction_insight_sections.dart';
 import 'prediction_market_panel.dart';
@@ -144,6 +145,16 @@ class _PredictionResultsViewState extends State<PredictionResultsView> {
             style: theme.textTheme.titleMedium,
             textAlign: TextAlign.right,
           ),
+          if (shouldShowTopScoresRepresentativeNote(result)) ...[
+            const SizedBox(height: 4),
+            Text(
+              kTopScoresRepresentativeNote,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.right,
+            ),
+          ],
           const SizedBox(height: 8),
           ScoreList(
             scores: result.topScores,

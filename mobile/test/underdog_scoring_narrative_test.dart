@@ -15,6 +15,9 @@ Map<String, dynamic> _belgiumSenegalPayload({
   required List<Map<String, dynamic>> topScores,
   double? underdogScoresProbability,
   double? bttsProbability,
+  List<Map<String, dynamic>>? favoriteOutcomeTopScores,
+  Map<String, dynamic>? candidateComparisonSummary,
+  bool topExactDiffers = false,
 }) {
   final parts = primaryScore.split('-');
   return {
@@ -70,6 +73,11 @@ Map<String, dynamic> _belgiumSenegalPayload({
       if (underdogScoresProbability != null)
         'underdog_scores_probability': underdogScoresProbability,
       if (bttsProbability != null) 'both_teams_score_probability': bttsProbability,
+      if (favoriteOutcomeTopScores != null)
+        'favorite_outcome_top_scores': favoriteOutcomeTopScores,
+      if (candidateComparisonSummary != null)
+        'candidate_comparison_summary': candidateComparisonSummary,
+      'top_exact_score_differs_from_primary': topExactDiffers,
     },
     'model_diagnostics': {
       'model_version': 'v2.3.0-nr3-fcc-served',
@@ -133,8 +141,7 @@ void main() {
       expect(narrative, isNotNull);
       expect(narrative!.underdogTeamName, 'Senegal');
       expect(narrative.underdogScoringProbabilityPercent, 53.22);
-      expect(narrative.alternativeScoreText, contains('Belgium 2'));
-      expect(narrative.alternativeScoreText, contains('Senegal'));
+      expect(narrative.alternativeLines, hasLength(2));
       expect(narrative.bttsProbabilityPercent, 40.96);
     });
 
@@ -153,6 +160,95 @@ void main() {
       expect(shouldShowUnderdogScoringNarrative(result), isFalse);
     });
 
+    test('primary 2-0 with 2-1 in top_scores shows favorite-win scenario', () {
+      final result = PredictionResult.fromJson(_belgiumSenegalPayload(
+        goliath: true,
+        primaryScore: '2-0',
+        primaryHome: 2,
+        primaryAway: 0,
+        primaryProb: 11.8,
+        topScores: _belgiumTopScoresOn,
+        underdogScoresProbability: 50.21,
+        topExactDiffers: true,
+      ));
+
+      final narrative = buildUnderdogScoringNarrative(result);
+      expect(narrative, isNotNull);
+      expect(narrative!.alternativeLines, hasLength(1));
+      expect(narrative.alternativeLines.first.label, kLabelFavoriteStillWins);
+      expect(narrative.alternativeLines.first.scoreText, contains('Belgium 2'));
+      expect(narrative.alternativeLines.first.isIllustration, isFalse);
+    });
+
+    test('primary 2-0 with only 1-1 uses draw label and illustration 2-1', () {
+      final topScoresOnlyDraw = [
+        {'score': '1-0', 'probability': 14.43, 'explanation': ''},
+        {'score': '2-0', 'probability': 11.8, 'explanation': ''},
+        {'score': '1-1', 'probability': 11.66, 'explanation': ''},
+      ];
+      final result = PredictionResult.fromJson(_belgiumSenegalPayload(
+        goliath: true,
+        primaryScore: '2-0',
+        primaryHome: 2,
+        primaryAway: 0,
+        primaryProb: 11.8,
+        topScores: topScoresOnlyDraw,
+        underdogScoresProbability: 50.21,
+      ));
+
+      final narrative = buildUnderdogScoringNarrative(result)!;
+      expect(narrative.alternativeLines.first.label, kLabelMostLikelyUnderdogScores);
+      expect(narrative.alternativeLines.first.scoreText, contains('1–1'));
+      expect(narrative.alternativeLines, hasLength(2));
+      expect(narrative.alternativeLines.last.label, kLabelIllustrationFavoriteWins);
+      expect(narrative.alternativeLines.last.scoreText, contains('Belgium 2'));
+      expect(narrative.alternativeLines.last.isIllustration, isTrue);
+    });
+
+    test('primary 2-0 finds 2-1 from favorite_outcome_top_scores', () {
+      final result = PredictionResult.fromJson(_belgiumSenegalPayload(
+        goliath: true,
+        primaryScore: '2-0',
+        primaryHome: 2,
+        primaryAway: 0,
+        primaryProb: 11.8,
+        topScores: [
+          {'score': '1-0', 'probability': 14.43, 'explanation': ''},
+          {'score': '1-1', 'probability': 11.66, 'explanation': ''},
+        ],
+        favoriteOutcomeTopScores: [
+          {
+            'home_goals': 2,
+            'away_goals': 1,
+            'probability': 7.97,
+            'outcome': 'home_win',
+          },
+        ],
+        underdogScoresProbability: 50.21,
+      ));
+
+      final narrative = buildUnderdogScoringNarrative(result)!;
+      expect(narrative.alternativeLines.first.label, kLabelFavoriteStillWins);
+      expect(narrative.alternativeLines.first.scoreText, contains('Belgium 2'));
+    });
+
+    test('primary 1-0 shows draw and favorite-win lines', () {
+      final result = PredictionResult.fromJson(_belgiumSenegalPayload(
+        goliath: false,
+        primaryScore: '1-0',
+        primaryHome: 1,
+        primaryAway: 0,
+        primaryProb: 15.03,
+        topScores: _belgiumTopScoresOff,
+        underdogScoresProbability: 53.22,
+      ));
+
+      final narrative = buildUnderdogScoringNarrative(result)!;
+      expect(narrative.alternativeLines, hasLength(2));
+      expect(narrative.alternativeLines[0].label, kLabelMostLikelyUnderdogScores);
+      expect(narrative.alternativeLines[1].label, kLabelFavoriteStillWins);
+    });
+
     test('prefers favorite-win ud-scoring line over draw 1-1', () {
       final result = PredictionResult.fromJson(_belgiumSenegalPayload(
         goliath: true,
@@ -165,8 +261,9 @@ void main() {
       ));
 
       final narrative = buildUnderdogScoringNarrative(result);
-      expect(narrative!.alternativeScoreText, contains('Belgium 2'));
-      expect(narrative.alternativeScoreText, isNot(contains('Belgium 1–1')));
+      expect(narrative!.alternativeLines.first.label, kLabelFavoriteStillWins);
+      expect(narrative.alternativeLines.first.scoreText, contains('Belgium 2'));
+      expect(narrative.alternativeLines.first.scoreText, isNot(contains('1–1')));
     });
 
     test('derives ud scoring probability from xG when API field missing', () {
@@ -275,8 +372,8 @@ void main() {
       expect(find.textContaining('Belgium 1'), findsWidgets);
       expect(find.text('סיכוי שהאנדרדוג יבקיע'), findsOneWidget);
       expect(find.textContaining('Senegal: 53%'), findsOneWidget);
-      expect(find.text('תרחיש ריאלי אם האנדרדוג כובש'), findsOneWidget);
-      expect(find.textContaining('Belgium 2'), findsWidgets);
+      expect(find.text(kLabelMostLikelyUnderdogScores), findsOneWidget);
+      expect(find.text(kLabelFavoriteStillWins), findsOneWidget);
       expect(find.text('שתי הקבוצות כובשות'), findsOneWidget);
       expect(find.text('41%'), findsOneWidget);
     });
@@ -422,6 +519,22 @@ void main() {
         final after = PredictionResult.fromJson(payload);
         expect(_predictionValueSnapshot(after), snapshot);
       }
+    });
+  });
+
+  group('top scores representative note', () {
+    test('shows note when primary differs from top exact score', () {
+      final result = PredictionResult.fromJson(_belgiumSenegalPayload(
+        goliath: true,
+        primaryScore: '2-0',
+        primaryHome: 2,
+        primaryAway: 0,
+        primaryProb: 11.8,
+        topScores: _belgiumTopScoresOn,
+        underdogScoresProbability: 50.21,
+        topExactDiffers: true,
+      ));
+      expect(shouldShowTopScoresRepresentativeNote(result), isTrue);
     });
   });
 }
