@@ -228,3 +228,84 @@ def test_startup_import_served_true(monkeypatch):
 
     importlib.reload(main_module)
     assert main_module.app is not None
+
+
+BELGIUM_SENEGAL = {
+    "home_team": "Belgium",
+    "away_team": "Senegal",
+    "neutral_ground": True,
+    "include_diagnostics": True,
+    "use_match_context": False,
+    "odds_affect_prediction": False,
+    "auto_stadium_altitude": False,
+    "altitude": 0,
+    "avg_goals": 2.6,
+}
+
+
+def _decomp(data: dict) -> dict:
+    diag = data.get("model_diagnostics") or {}
+    decomp = diag.get("nr3_xg_decomposition")
+    assert decomp is not None, "expected nr3_xg_decomposition"
+    return decomp
+
+
+def test_nr3_decomposition_present_when_diagnostics_on(
+    monkeypatch, production_model_activation
+):
+    _enable_served(monkeypatch)
+    data = _predict(BELGIUM_SENEGAL)
+    decomp = _decomp(data)
+    assert decomp["active_model"] == NR3_FCC_SERVED_MODEL_VERSION
+    assert decomp["final"]["home_xg"] == data["home_xg"]
+    assert decomp["final"]["away_xg"] == data["away_xg"]
+
+
+def test_nr3_decomposition_no_diagnostics_when_flag_off(
+    monkeypatch, production_model_activation
+):
+    _enable_served(monkeypatch)
+    payload = {**BELGIUM_SENEGAL, "include_diagnostics": False}
+    data = _predict(payload)
+    diag = data.get("model_diagnostics") or {}
+    assert diag.get("nr3_xg_decomposition") is None
+
+
+def test_goliath_off_vs_on_fusion_adjustment_status(
+    monkeypatch, production_model_activation
+):
+    _enable_served(monkeypatch)
+    off = _predict({**BELGIUM_SENEGAL, "fusion_blowout_enabled": False})
+    on = _predict({**BELGIUM_SENEGAL, "fusion_blowout_enabled": True})
+    off_fusion = next(
+        a for a in _decomp(off)["adjustments"] if a["name"] == "fusion_blowout"
+    )
+    on_fusion = next(
+        a for a in _decomp(on)["adjustments"] if a["name"] == "fusion_blowout"
+    )
+    assert off_fusion["status"] == "disabled"
+    assert on_fusion["status"] in ("applied", "skipped")
+    assert on["home_xg"] > off["home_xg"]
+
+
+def test_legacy_reference_marked_comparison_only(
+    monkeypatch, production_model_activation
+):
+    _enable_served(monkeypatch)
+    data = _predict(BELGIUM_SENEGAL)
+    legacy = _decomp(data)["legacy_reference"]
+    assert legacy["label"] == "ייחוס מודל ישן / Maher"
+    assert "להשוואה בלבד" in legacy["note"]
+    assert legacy["home_xg"] == data["base_home_xg"]
+
+
+def test_prediction_unchanged_without_diagnostics_flag(
+    monkeypatch, production_model_activation
+):
+    _enable_served(monkeypatch)
+    base_payload = {**BELGIUM_SENEGAL, "include_diagnostics": False}
+    with_diag = _predict({**BELGIUM_SENEGAL, "include_diagnostics": True})
+    without_diag = _predict(base_payload)
+    assert with_diag["home_xg"] == without_diag["home_xg"]
+    assert with_diag["away_xg"] == without_diag["away_xg"]
+    assert with_diag["probabilities_1x2"] == without_diag["probabilities_1x2"]

@@ -960,6 +960,14 @@ def predict(request: PredictRequest) -> PredictResponse:
             **model_diag_dict,
             "model_version": nr3_fcc_served_model_version,
         }
+    if (
+        request.include_diagnostics
+        and nr3_fcc_served_applied
+        and nr3_fcc_sidecar_diagnostics
+    ):
+        decomp = nr3_fcc_sidecar_diagnostics.get("nr3_xg_decomposition")
+        if decomp:
+            model_diag_dict["nr3_xg_decomposition"] = decomp
 
     return PredictResponse(
         home_team=home_name,

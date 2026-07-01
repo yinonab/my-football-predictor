@@ -58,6 +58,7 @@ Map<String, dynamic> buildPredictRequestBody({
   bool fusionBlowoutEnabled = false,
   bool useMatchContext = true,
   bool autoStadiumAltitude = true,
+  bool includeDiagnostics = true,
   String? venueCity,
   String? matchDate,
   int topN = 3,
@@ -79,6 +80,7 @@ Map<String, dynamic> buildPredictRequestBody({
     'odds_affect_prediction': oddsAffectPrediction,
     'fusion_blowout_enabled': fusionBlowoutEnabled,
     'auto_stadium_altitude': autoStadiumAltitude,
+    'include_diagnostics': includeDiagnostics,
     'top_n': topN,
   };
   if (venueCity != null && venueCity.trim().isNotEmpty) {

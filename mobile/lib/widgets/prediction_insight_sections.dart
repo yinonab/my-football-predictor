@@ -679,16 +679,187 @@ class ExpectedGoalsCard extends StatelessWidget {
         '${shortTeamName(result.awayTeam)}: ${away.toStringAsFixed(2)}';
   }
 
+  String _statusLabel(String status) {
+    switch (status) {
+      case 'applied':
+        return 'הופעל';
+      case 'disabled':
+        return 'כבוי';
+      case 'skipped':
+        return 'דולג';
+      default:
+        return status;
+    }
+  }
+
+  Widget _adjustmentRow(BuildContext context, Nr3XgAdjustment adj) {
+    final theme = Theme.of(context);
+    final deltaText =
+        'Δ ${adj.deltaHomeXg >= 0 ? '+' : ''}${adj.deltaHomeXg.toStringAsFixed(2)}'
+        ' / ${adj.deltaAwayXg >= 0 ? '+' : ''}${adj.deltaAwayXg.toStringAsFixed(2)}';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  adj.displayName,
+                  style: theme.textTheme.labelLarge,
+                  textAlign: TextAlign.right,
+                ),
+              ),
+              Text(
+                _statusLabel(adj.status),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '${_formatPair(adj.beforeHomeXg, adj.beforeAwayXg)} → '
+            '${_formatPair(adj.afterHomeXg, adj.afterAwayXg)}',
+            style: theme.textTheme.bodySmall,
+            textAlign: TextAlign.center,
+          ),
+          if (adj.status == 'applied' &&
+              (adj.deltaHomeXg.abs() > 0.001 || adj.deltaAwayXg.abs() > 0.001))
+            Text(
+              deltaText,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.secondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          if (adj.explanation.isNotEmpty)
+            Text(
+              adj.explanation,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.right,
+            ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final hasBase = result.baseHomeXg != null && result.baseAwayXg != null;
-    final adjustedHome = result.adjustedHomeXg ?? result.homeXg;
-    final adjustedAway = result.adjustedAwayXg ?? result.awayXg;
-    final showAdjustedRow = hasBase &&
-        (result.blowoutAdjustmentApplied ||
-            (result.baseHomeXg! - adjustedHome).abs() > 0.01 ||
-            (result.baseAwayXg! - adjustedAway).abs() > 0.01);
+    final decomp = result.nr3XgDecomposition;
+
+    if (decomp != null) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                decomp.finalXg.label.isNotEmpty
+                    ? decomp.finalXg.label
+                    : 'xG סופי לחיזוי',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.right,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _formatPair(result.homeXg, result.awayXg),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                title: Text(
+                  'פירוט חישוב NR3',
+                  style: theme.textTheme.labelLarge,
+                  textAlign: TextAlign.right,
+                ),
+                children: [
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      decomp.nr3Base.label,
+                      style: theme.textTheme.labelMedium,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _formatPair(decomp.nr3Base.homeXg, decomp.nr3Base.awayXg),
+                    style: theme.textTheme.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      'התאמות שהופעלו',
+                      style: theme.textTheme.labelMedium,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ...decomp.adjustments.map((a) => _adjustmentRow(context, a)),
+                  const Divider(),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      'xG סופי של המודל',
+                      style: theme.textTheme.labelMedium,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _formatPair(decomp.finalXg.homeXg, decomp.finalXg.awayXg),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 12),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      decomp.legacyReference.label,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _formatPair(
+                      decomp.legacyReference.homeXg,
+                      decomp.legacyReference.awayXg,
+                    ),
+                    style: theme.textTheme.bodySmall,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    decomp.legacyReference.note,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                      fontStyle: FontStyle.italic,
+                    ),
+                    textAlign: TextAlign.right,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Card(
       child: Padding(
@@ -703,52 +874,17 @@ class ExpectedGoalsCard extends StatelessWidget {
               ),
               textAlign: TextAlign.right,
             ),
-            if (hasBase) ...[
-              const SizedBox(height: 10),
-              Text(
-                'xG בסיסי',
-                style: theme.textTheme.labelLarge,
-                textAlign: TextAlign.right,
+            const SizedBox(height: 8),
+            Text(
+              _formatPair(result.homeXg, result.awayXg),
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
               ),
-              const SizedBox(height: 4),
-              Text(
-                _formatPair(result.baseHomeXg!, result.baseAwayXg!),
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-            if (showAdjustedRow) ...[
-              const SizedBox(height: 10),
-              Text(
-                'אחרי התאמה לתוצאה',
-                style: theme.textTheme.labelLarge,
-                textAlign: TextAlign.right,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _formatPair(adjustedHome, adjustedAway),
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ] else if (!hasBase) ...[
-              const SizedBox(height: 8),
-              Text(
-                _formatPair(result.homeXg, result.awayXg),
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 6),
             Text(
-              hasBase
-                  ? 'xG בסיסי הוא האומדן לפני התאמת נפח שערים. הערך המותאם משמש להערכת תוצאות אפשריות.'
-                  : 'זהו אומדן לכמות השערים הצפויה, לא תוצאה מובטחת.',
+              'זהו אומדן לכמות השערים הצפויה, לא תוצאה מובטחת.',
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),

@@ -58,6 +58,46 @@ class PredictRequest(BaseModel):
         default=None,
         description="Host city for travel/weather (e.g. Miami)",
     )
+    include_diagnostics: bool = Field(
+        default=False,
+        description="Include extended model diagnostics (NR3 xG decomposition, etc.)",
+    )
+
+
+class Nr3XgPairResponse(BaseModel):
+    home_xg: float
+    away_xg: float
+    label: str
+
+
+class Nr3XgAdjustmentDiagnosticsResponse(BaseModel):
+    name: str
+    display_name: str
+    status: str
+    before_home_xg: float
+    before_away_xg: float
+    after_home_xg: float
+    after_away_xg: float
+    delta_home_xg: float
+    delta_away_xg: float
+    explanation: str = ""
+
+
+class Nr3XgLegacyReferenceResponse(BaseModel):
+    home_xg: float
+    away_xg: float
+    label: str
+    note: str
+
+
+class Nr3XgDecompositionResponse(BaseModel):
+    active_model: str
+    home_team: str
+    away_team: str
+    nr3_base: Nr3XgPairResponse
+    adjustments: list[Nr3XgAdjustmentDiagnosticsResponse] = Field(default_factory=list)
+    final: Nr3XgPairResponse
+    legacy_reference: Nr3XgLegacyReferenceResponse
 
 
 class MatchContextResponse(BaseModel):
@@ -321,6 +361,7 @@ class ModelDiagnosticsResponse(BaseModel):
     final_home_power: float | None = None
     final_away_power: float | None = None
     gap_delta: float | None = None
+    nr3_xg_decomposition: Nr3XgDecompositionResponse | None = None
 
 
 class ScorelineCandidateResponse(BaseModel):

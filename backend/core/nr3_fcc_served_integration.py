@@ -44,7 +44,10 @@ from core.maher import mismatch_gap, scale_rho_for_gap
 from core.math_engine import AdvancedDixonColesEngine
 from core.nr3_finalist_spec import nr3_finalist_spec
 from core.odds_ensemble import MARKET_WEIGHT, MODEL_WEIGHT, blend_1x2
+from core.nr3_xg_decomposition import Nr3XgDecompositionBuilder
 from core.strength_based_xg_generator import StrengthSignals, generate_strength_based_xg
+
+NR3_SERVED_MODEL_VERSION = "v2.3.0-nr3-fcc-served"
 
 
 @dataclass(frozen=True)
@@ -222,6 +225,16 @@ def run_nr3_fcc_integrated_prediction(
         match_stage=stage,
     )
 
+    decomp = Nr3XgDecompositionBuilder(
+        home_team=home_team,
+        away_team=away_team,
+        active_model=NR3_SERVED_MODEL_VERSION,
+        legacy_home_xg=baseline_home_xg,
+        legacy_away_xg=baseline_away_xg,
+    )
+    decomp.set_nr3_base(home_xg, away_xg)
+
+    before_h, before_a = home_xg, away_xg
     if p1.favorite_confidence_curve_params is not None:
         home_xg, away_xg, fcc_diag = apply_favorite_confidence_curve(
             home_xg,
@@ -230,13 +243,32 @@ def run_nr3_fcc_integrated_prediction(
             params=p1.favorite_confidence_curve_params,
             dataset="wc2026_current",
         )
+        decomp.record(
+            name="fcc_calibration",
+            display_name="כיול FCC",
+            before_home_xg=before_h,
+            before_away_xg=before_a,
+            after_home_xg=home_xg,
+            after_away_xg=away_xg,
+            status="applied",
+            explanation="עקומת אמון מועדף NR3",
+        )
     else:
         fcc_diag = {}
+        decomp.record_unchanged(
+            name="fcc_calibration",
+            display_name="כיול FCC",
+            status="skipped",
+            explanation="פרמטרי FCC לא זמינים",
+            home_xg=home_xg,
+            away_xg=away_xg,
+        )
 
     p1c2_home, p1c2_away = home_xg, away_xg
     ref_home, ref_away = float(baseline_home_xg), float(baseline_away_xg)
 
     if settings.use_match_context and p1.stage_recovery_params is not None:
+        before_h, before_a = home_xg, away_xg
         home_xg, away_xg, _recovery_diag = apply_stage_recovery(
             home_xg,
             away_xg,
@@ -245,8 +277,32 @@ def run_nr3_fcc_integrated_prediction(
             stage,
             p1.stage_recovery_params,
         )
+        decomp.record(
+            name="stage_recovery",
+            display_name="התאמת שלב",
+            before_home_xg=before_h,
+            before_away_xg=before_a,
+            after_home_xg=home_xg,
+            after_away_xg=away_xg,
+            status="applied",
+            explanation="שחזור שלב טורניר לפי הקשר משחק",
+        )
+    else:
+        decomp.record_unchanged(
+            name="stage_recovery",
+            display_name="התאמת שלב",
+            status="disabled" if not settings.use_match_context else "skipped",
+            explanation=(
+                "הקשר משחק כבוי"
+                if not settings.use_match_context
+                else "ללא פרמטרי stage recovery"
+            ),
+            home_xg=home_xg,
+            away_xg=away_xg,
+        )
 
     if p1.hybrid_balance_params is not None:
+        before_h, before_a = home_xg, away_xg
         home_xg, away_xg, _balance_diag = apply_hybrid_balance_correction(
             home_xg,
             away_xg,
@@ -259,18 +315,104 @@ def run_nr3_fcc_integrated_prediction(
             home_power=float(home_power),
             away_power=float(away_power),
         )
+        decomp.record(
+            name="hybrid_balance",
+            display_name="איזון היברידי",
+            before_home_xg=before_h,
+            before_away_xg=before_a,
+            after_home_xg=home_xg,
+            after_away_xg=away_xg,
+            status="applied",
+            explanation="כיוונון איזון בין NR3 לבסיס",
+        )
+    else:
+        decomp.record_unchanged(
+            name="hybrid_balance",
+            display_name="איזון היברידי",
+            status="skipped",
+            explanation="פרמטרי איזון היברידי לא זמינים",
+            home_xg=home_xg,
+            away_xg=away_xg,
+        )
 
     if settings.use_match_context and abs(settings.context_xg_delta) > 1e-6:
+        before_h, before_a = home_xg, away_xg
         home_xg, away_xg = apply_xg_context_delta(
             home_xg, away_xg, settings.context_xg_delta
         )
+        decomp.record(
+            name="match_context",
+            display_name="הקשר / מזג / נסיעה",
+            before_home_xg=before_h,
+            before_away_xg=before_a,
+            after_home_xg=home_xg,
+            after_away_xg=away_xg,
+            status="applied",
+            explanation=f"דלתא xG הקשרית {settings.context_xg_delta:+.2f}",
+        )
+    else:
+        decomp.record_unchanged(
+            name="match_context",
+            display_name="הקשר / מזג / נסיעה",
+            status="disabled" if not settings.use_match_context else "skipped",
+            explanation=(
+                "הקשר משחק כבוי"
+                if not settings.use_match_context
+                else "אין דלתא הקשר זמינה"
+            ),
+            home_xg=home_xg,
+            away_xg=away_xg,
+        )
 
+    before_h, before_a = home_xg, away_xg
     home_xg, away_xg = _scale_xg_for_avg_goals(
         home_xg, away_xg, settings.avg_goals
     )
+    if abs(home_xg - before_h) > 1e-6 or abs(away_xg - before_a) > 1e-6:
+        decomp.record(
+            name="avg_goals",
+            display_name="ממוצע שערים",
+            before_home_xg=before_h,
+            before_away_xg=before_a,
+            after_home_xg=home_xg,
+            after_away_xg=away_xg,
+            status="applied",
+            explanation=f"scale לפי avg_goals={settings.avg_goals}",
+        )
+    else:
+        decomp.record_unchanged(
+            name="avg_goals",
+            display_name="ממוצע שערים",
+            status="skipped",
+            explanation="avg_goals ברירת מחדל — ללא שינוי",
+            home_xg=home_xg,
+            away_xg=away_xg,
+        )
+
+    before_h, before_a = home_xg, away_xg
     home_xg, away_xg = _apply_altitude_xg_penalty(
         home_xg, away_xg, settings.altitude
     )
+    if abs(home_xg - before_h) > 1e-6 or abs(away_xg - before_a) > 1e-6:
+        decomp.record(
+            name="altitude",
+            display_name="גובה",
+            before_home_xg=before_h,
+            before_away_xg=before_a,
+            after_home_xg=home_xg,
+            after_away_xg=away_xg,
+            status="applied",
+            explanation=f"עונש גובה {settings.altitude}m",
+        )
+    else:
+        decomp.record_unchanged(
+            name="altitude",
+            display_name="גובה",
+            status="skipped",
+            explanation="ללא עונש גובה פעיל",
+            home_xg=home_xg,
+            away_xg=away_xg,
+        )
 
     fusion_applied = False
     odds_blend_applied = False
@@ -313,6 +455,24 @@ def run_nr3_fcc_integrated_prediction(
         home_xg, away_xg = blowout.home_xg, blowout.away_xg
         fusion_applied = blowout.active
         fusion_note = blowout.note
+        decomp.record(
+            name="fusion_blowout",
+            display_name="Goliath / Fusion",
+            before_home_xg=before_home,
+            before_away_xg=before_away,
+            after_home_xg=home_xg,
+            after_away_xg=away_xg,
+            status="applied" if fusion_applied else "skipped",
+            explanation=fusion_note or "אות גולנט משולב",
+        )
+        decomp.record_unchanged(
+            name="standard_blowout",
+            display_name="Blowout סטנדרטי",
+            status="disabled",
+            explanation="מבוטל כי Goliath / Fusion פעיל",
+            home_xg=home_xg,
+            away_xg=away_xg,
+        )
         fav = fusion_signal.favorite_outcome.replace("_win", "")
         logger.warning(
             "nr3_fcc_fusion_applied home_team=%s away_team=%s favorite=%s "
@@ -336,6 +496,7 @@ def run_nr3_fcc_integrated_prediction(
             flush=True,
         )
     else:
+        before_h, before_a = home_xg, away_xg
         blowout = apply_blowout_adjustment(
             home_xg,
             away_xg,
@@ -347,6 +508,31 @@ def run_nr3_fcc_integrated_prediction(
             away_elo=ae,
         )
         home_xg, away_xg = blowout.home_xg, blowout.away_xg
+        std_status = (
+            "applied"
+            if blowout.active
+            or abs(home_xg - before_h) > 1e-6
+            or abs(away_xg - before_a) > 1e-6
+            else "skipped"
+        )
+        decomp.record(
+            name="standard_blowout",
+            display_name="Blowout סטנדרטי",
+            before_home_xg=before_h,
+            before_away_xg=before_a,
+            after_home_xg=home_xg,
+            after_away_xg=away_xg,
+            status=std_status,
+            explanation=blowout.note or "התאמת blowout סטנדרטית",
+        )
+        decomp.record_unchanged(
+            name="fusion_blowout",
+            display_name="Goliath / Fusion",
+            status="disabled",
+            explanation="כבוי בהגדרות המשתמש",
+            home_xg=home_xg,
+            away_xg=away_xg,
+        )
 
     matrix_result = _generate_matrix(
         home_power=home_power,
@@ -367,6 +553,14 @@ def run_nr3_fcc_integrated_prediction(
         before_probs = dict(raw_probs)
         final_probs = blend_1x2(raw_probs, settings.market_odds)
         odds_blend_applied = True
+        decomp.record_unchanged(
+            name="odds_blend",
+            display_name="שוק הימורים",
+            status="applied",
+            explanation="משפיע על הסתברויות 1X2 בלבד, לא על xG",
+            home_xg=home_xg,
+            away_xg=away_xg,
+        )
         logger.warning(
             "nr3_fcc_odds_blend_applied home_team=%s away_team=%s model_weight=%s "
             "market_weight=%s before_probs=%s after_probs=%s",
@@ -385,6 +579,14 @@ def run_nr3_fcc_integrated_prediction(
             flush=True,
         )
     elif settings.odds_affect_prediction:
+        decomp.record_unchanged(
+            name="odds_blend",
+            display_name="שוק הימורים",
+            status="skipped",
+            explanation="אין נתוני שוק זמינים",
+            home_xg=home_xg,
+            away_xg=away_xg,
+        )
         logger.warning(
             "nr3_fcc_odds_blend_skipped home_team=%s away_team=%s reason=no_market_data",
             home_team,
@@ -394,6 +596,15 @@ def run_nr3_fcc_integrated_prediction(
             f"nr3_fcc_odds_blend_skipped home_team={home_team} away_team={away_team} "
             "reason=no_market_data",
             flush=True,
+        )
+    else:
+        decomp.record_unchanged(
+            name="odds_blend",
+            display_name="שוק הימורים",
+            status="disabled",
+            explanation="כבוי בהגדרות המשתמש",
+            home_xg=home_xg,
+            away_xg=away_xg,
         )
 
     if fusion_applied:
@@ -411,6 +622,11 @@ def run_nr3_fcc_integrated_prediction(
         matrix_result = regen
 
     matrix_result["probabilities_1x2"] = final_probs
+    final_home = float(matrix_result.get("home_xg", home_xg))
+    final_away = float(matrix_result.get("away_xg", away_xg))
+    decomp.set_final(final_home, final_away)
+    nr3_xg_decomposition = decomp.build()
+
     baseline_probs = _normalize_probs_pct(baseline_probabilities_1x2)
     shadow_probs = _normalize_probs_pct(matrix_result.get("probabilities_1x2", {}))
 
@@ -470,4 +686,5 @@ def run_nr3_fcc_integrated_prediction(
         "warnings": warnings,
         "fcc_diagnostics": fcc_diag,
         "strength_diagnostics": strength_diag,
+        "nr3_xg_decomposition": nr3_xg_decomposition,
     }

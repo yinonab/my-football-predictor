@@ -486,6 +486,144 @@ class MatchContextDiagnostics {
   }
 }
 
+class Nr3XgPair {
+  final double homeXg;
+  final double awayXg;
+  final String label;
+
+  const Nr3XgPair({
+    required this.homeXg,
+    required this.awayXg,
+    required this.label,
+  });
+
+  factory Nr3XgPair.fromJson(Map<String, dynamic> json) {
+    return Nr3XgPair(
+      homeXg: (json['home_xg'] as num).toDouble(),
+      awayXg: (json['away_xg'] as num).toDouble(),
+      label: json['label'] as String? ?? '',
+    );
+  }
+}
+
+class Nr3XgAdjustment {
+  final String name;
+  final String displayName;
+  final String status;
+  final double beforeHomeXg;
+  final double beforeAwayXg;
+  final double afterHomeXg;
+  final double afterAwayXg;
+  final double deltaHomeXg;
+  final double deltaAwayXg;
+  final String explanation;
+
+  const Nr3XgAdjustment({
+    required this.name,
+    required this.displayName,
+    required this.status,
+    required this.beforeHomeXg,
+    required this.beforeAwayXg,
+    required this.afterHomeXg,
+    required this.afterAwayXg,
+    required this.deltaHomeXg,
+    required this.deltaAwayXg,
+    this.explanation = '',
+  });
+
+  factory Nr3XgAdjustment.fromJson(Map<String, dynamic> json) {
+    return Nr3XgAdjustment(
+      name: json['name'] as String,
+      displayName: json['display_name'] as String? ?? json['name'] as String,
+      status: json['status'] as String? ?? 'skipped',
+      beforeHomeXg: (json['before_home_xg'] as num).toDouble(),
+      beforeAwayXg: (json['before_away_xg'] as num).toDouble(),
+      afterHomeXg: (json['after_home_xg'] as num).toDouble(),
+      afterAwayXg: (json['after_away_xg'] as num).toDouble(),
+      deltaHomeXg: (json['delta_home_xg'] as num).toDouble(),
+      deltaAwayXg: (json['delta_away_xg'] as num).toDouble(),
+      explanation: json['explanation'] as String? ?? '',
+    );
+  }
+}
+
+class Nr3XgLegacyReference {
+  final double homeXg;
+  final double awayXg;
+  final String label;
+  final String note;
+
+  const Nr3XgLegacyReference({
+    required this.homeXg,
+    required this.awayXg,
+    required this.label,
+    required this.note,
+  });
+
+  factory Nr3XgLegacyReference.fromJson(Map<String, dynamic> json) {
+    return Nr3XgLegacyReference(
+      homeXg: (json['home_xg'] as num).toDouble(),
+      awayXg: (json['away_xg'] as num).toDouble(),
+      label: json['label'] as String? ?? '',
+      note: json['note'] as String? ?? '',
+    );
+  }
+}
+
+class Nr3XgDecomposition {
+  final String activeModel;
+  final String homeTeam;
+  final String awayTeam;
+  final Nr3XgPair nr3Base;
+  final List<Nr3XgAdjustment> adjustments;
+  final Nr3XgPair finalXg;
+  final Nr3XgLegacyReference legacyReference;
+
+  const Nr3XgDecomposition({
+    required this.activeModel,
+    required this.homeTeam,
+    required this.awayTeam,
+    required this.nr3Base,
+    required this.adjustments,
+    required this.finalXg,
+    required this.legacyReference,
+  });
+
+  factory Nr3XgDecomposition.fromJson(Map<String, dynamic> json) {
+    return Nr3XgDecomposition(
+      activeModel: json['active_model'] as String,
+      homeTeam: json['home_team'] as String,
+      awayTeam: json['away_team'] as String,
+      nr3Base: Nr3XgPair.fromJson(json['nr3_base'] as Map<String, dynamic>),
+      adjustments: (json['adjustments'] as List<dynamic>? ?? [])
+          .map((e) => Nr3XgAdjustment.fromJson(e as Map<String, dynamic>))
+          .toList(),
+      finalXg: Nr3XgPair.fromJson(json['final'] as Map<String, dynamic>),
+      legacyReference: Nr3XgLegacyReference.fromJson(
+        json['legacy_reference'] as Map<String, dynamic>,
+      ),
+    );
+  }
+}
+
+class ModelDiagnostics {
+  final String? modelVersion;
+  final Nr3XgDecomposition? nr3XgDecomposition;
+
+  const ModelDiagnostics({this.modelVersion, this.nr3XgDecomposition});
+
+  factory ModelDiagnostics.fromJson(Map<String, dynamic> json) {
+    return ModelDiagnostics(
+      modelVersion: json['model_version'] as String?,
+      nr3XgDecomposition: json['nr3_xg_decomposition'] != null
+          ? Nr3XgDecomposition.fromJson(
+              json['nr3_xg_decomposition'] as Map<String, dynamic>,
+            )
+          : null,
+    );
+  }
+}
+
 class PredictionResult {
   final String homeTeam;
   final String awayTeam;
@@ -513,6 +651,10 @@ class PredictionResult {
   final RecentFormProviderDiagnostics? recentFormProviderDiagnostics;
   final ProbabilityDiagnostics? probabilityDiagnostics;
   final MarketDiagnosticsPayload? marketDiagnostics;
+  final ModelDiagnostics? modelDiagnostics;
+
+  Nr3XgDecomposition? get nr3XgDecomposition =>
+      modelDiagnostics?.nr3XgDecomposition;
 
   bool get oddsAffectPrediction =>
       probabilityDiagnostics?.oddsAffectPrediction ?? false;
@@ -547,6 +689,7 @@ class PredictionResult {
     this.recentFormProviderDiagnostics,
     this.probabilityDiagnostics,
     this.marketDiagnostics,
+    this.modelDiagnostics,
   });
 
   factory PredictionResult.fromJson(Map<String, dynamic> json) {
@@ -618,6 +761,11 @@ class PredictionResult {
       marketDiagnostics: json['market_diagnostics'] != null
           ? MarketDiagnosticsPayload.fromJson(
               json['market_diagnostics'] as Map<String, dynamic>,
+            )
+          : null,
+      modelDiagnostics: json['model_diagnostics'] != null
+          ? ModelDiagnostics.fromJson(
+              json['model_diagnostics'] as Map<String, dynamic>,
             )
           : null,
     );
