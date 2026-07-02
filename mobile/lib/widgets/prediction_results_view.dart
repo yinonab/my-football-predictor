@@ -4,6 +4,7 @@ import '../models/prediction_result.dart';
 import '../models/venue_mode.dart';
 import '../utils/score_format.dart';
 import '../utils/underdog_scoring_narrative.dart';
+import 'matchup_goal_capability_card.dart';
 import 'outcome_cards.dart';
 import 'prediction_insight_sections.dart';
 import 'prediction_market_panel.dart';
@@ -34,6 +35,7 @@ class _PredictionResultsViewState extends State<PredictionResultsView> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final result = widget.result;
+    final matchupCapability = result.matchupGoalCapability;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -54,7 +56,7 @@ class _PredictionResultsViewState extends State<PredictionResultsView> {
           ),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         SegmentedButton<PredictionResultTab>(
           segments: const [
             ButtonSegment(
@@ -77,58 +79,64 @@ class _PredictionResultsViewState extends State<PredictionResultsView> {
           onSelectionChanged: (s) => setState(() => _tab = s.first),
         ),
         const SizedBox(height: 16),
-        OutcomeCards(
-          probabilities: result.probabilities,
-          explanations: result.outcomeExplanations,
-          teamALabel: result.homeTeam,
-          teamBLabel: result.awayTeam,
-          isNeutralGround: widget.isNeutralGround,
-        ),
-        const SizedBox(height: 12),
         PredictionStatusBanner(result: result),
         PredictionDataLimitBanner(result: result),
-        const SizedBox(height: 12),
         if (_tab == PredictionResultTab.prediction) ...[
+          const SizedBox(height: 8),
           PredictionPrimaryScoreCard(
             result: result,
             isNeutralGround: widget.isNeutralGround,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
+          KeyProbabilitiesCard(
+            probabilities: result.probabilities,
+            teamALabel: result.homeTeam,
+            teamBLabel: result.awayTeam,
+            isNeutralGround: widget.isNeutralGround,
+          ),
+          const SizedBox(height: 16),
+          ExpectedGoalsCard(result: result),
+          if (matchupCapability != null) ...[
+            const SizedBox(height: 16),
+            MatchupGoalCapabilityCard(capability: matchupCapability),
+          ],
+          const SizedBox(height: 16),
           UnderdogScoringNarrativeCard(
             result: result,
             isNeutralGround: widget.isNeutralGround,
+            compactWhenMatchupShown: matchupCapability != null,
           ),
           if (result.scorelineDecision != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             PredictionWhyCard(
               result: result,
               requestedVenueMode: widget.venueMode,
             ),
           ] else if (result.matchSummary.isNotEmpty) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             PredictionWhyCard(
               result: result,
               requestedVenueMode: widget.venueMode,
             ),
           ],
           if (result.h2hSummary.isNotEmpty) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             Card(
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(16),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(
                       Icons.history,
-                      size: 20,
+                      size: 22,
                       color: theme.colorScheme.secondary,
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         result.h2hSummary,
-                        style: theme.textTheme.bodyMedium,
+                        style: theme.textTheme.bodyLarge,
                         textAlign: TextAlign.right,
                       ),
                     ),
@@ -137,25 +145,25 @@ class _PredictionResultsViewState extends State<PredictionResultsView> {
               ),
             ),
           ],
-          const SizedBox(height: 12),
-          ExpectedGoalsCard(result: result),
           const SizedBox(height: 16),
           Text(
-            'תוצאות אפשריות מובילות',
-            style: theme.textTheme.titleMedium,
+            'התוצאות האפשריות לפי הסתברות גולמית',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
             textAlign: TextAlign.right,
           ),
           if (shouldShowTopScoresRepresentativeNote(result)) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 8),
             Text(
               kTopScoresRepresentativeNote,
-              style: theme.textTheme.bodySmall?.copyWith(
+              style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
               textAlign: TextAlign.right,
             ),
           ],
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           ScoreList(
             scores: result.topScores,
             teamAName: result.homeTeam,
@@ -163,18 +171,26 @@ class _PredictionResultsViewState extends State<PredictionResultsView> {
             isNeutralGround: widget.isNeutralGround,
             initialVisibleCount: 3,
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           PredictionContextCard(
             result: result,
             requestedVenueMode: widget.venueMode,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           PredictionTechnicalDetails(
             result: result,
             requestedVenueMode: widget.venueMode,
             isNeutralGround: widget.isNeutralGround,
           ),
         ] else if (_tab == PredictionResultTab.market) ...[
+          OutcomeCards(
+            probabilities: result.probabilities,
+            explanations: result.outcomeExplanations,
+            teamALabel: result.homeTeam,
+            teamBLabel: result.awayTeam,
+            isNeutralGround: widget.isNeutralGround,
+          ),
+          const SizedBox(height: 12),
           PredictionMarketPanel(result: result),
         ] else ...[
           PredictionEnvironmentDataCard(result: result),
@@ -185,6 +201,55 @@ class _PredictionResultsViewState extends State<PredictionResultsView> {
           ),
         ],
       ],
+    );
+  }
+}
+
+class KeyProbabilitiesCard extends StatelessWidget {
+  final Probabilities1X2 probabilities;
+  final String teamALabel;
+  final String teamBLabel;
+  final bool isNeutralGround;
+
+  const KeyProbabilitiesCard({
+    super.key,
+    required this.probabilities,
+    required this.teamALabel,
+    required this.teamBLabel,
+    this.isNeutralGround = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'הסתברויות עיקריות (1X2)',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.right,
+            ),
+            const SizedBox(height: 12),
+            OutcomeCards(
+              probabilities: probabilities,
+              explanations: const OutcomeExplanations(
+                homeWin: '',
+                draw: '',
+                awayWin: '',
+              ),
+              teamALabel: teamALabel,
+              teamBLabel: teamBLabel,
+              isNeutralGround: isNeutralGround,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

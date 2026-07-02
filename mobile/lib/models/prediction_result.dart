@@ -1,5 +1,6 @@
 import '../config/api_config.dart';
 import 'market_diagnostics.dart';
+import 'matchup_goal_capability.dart';
 import 'venue_mode.dart';
 
 class ScoreProbability {
@@ -622,8 +623,13 @@ class Nr3XgDecomposition {
 class ModelDiagnostics {
   final String? modelVersion;
   final Nr3XgDecomposition? nr3XgDecomposition;
+  final MatchupGoalCapability? matchupGoalCapability;
 
-  const ModelDiagnostics({this.modelVersion, this.nr3XgDecomposition});
+  const ModelDiagnostics({
+    this.modelVersion,
+    this.nr3XgDecomposition,
+    this.matchupGoalCapability,
+  });
 
   factory ModelDiagnostics.fromJson(Map<String, dynamic> json) {
     return ModelDiagnostics(
@@ -631,6 +637,11 @@ class ModelDiagnostics {
       nr3XgDecomposition: json['nr3_xg_decomposition'] != null
           ? Nr3XgDecomposition.fromJson(
               json['nr3_xg_decomposition'] as Map<String, dynamic>,
+            )
+          : null,
+      matchupGoalCapability: json['matchup_goal_capability'] != null
+          ? MatchupGoalCapability.fromJson(
+              json['matchup_goal_capability'] as Map<String, dynamic>,
             )
           : null,
     );
@@ -668,6 +679,9 @@ class PredictionResult {
 
   Nr3XgDecomposition? get nr3XgDecomposition =>
       modelDiagnostics?.nr3XgDecomposition;
+
+  MatchupGoalCapability? get matchupGoalCapability =>
+      modelDiagnostics?.matchupGoalCapability;
 
   bool get oddsAffectPrediction =>
       probabilityDiagnostics?.oddsAffectPrediction ?? false;

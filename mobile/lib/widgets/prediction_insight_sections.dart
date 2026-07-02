@@ -98,6 +98,19 @@ class PredictionPrimaryScoreCard extends StatelessWidget {
     required this.isNeutralGround,
   });
 
+  String _confidenceHebrew(String label) {
+    switch (label) {
+      case 'high':
+        return 'גבוהה';
+      case 'medium':
+        return 'בינונית';
+      case 'low':
+        return 'נמוכה';
+      default:
+        return label;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (isMatchCompletedOrInvalid(result)) {
@@ -125,30 +138,63 @@ class PredictionPrimaryScoreCard extends StatelessWidget {
     return Card(
       color: theme.colorScheme.primaryContainer.withValues(alpha: 0.45),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
               'תחזית מרכזית',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
               ),
               textAlign: TextAlign.right,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
+            Text(
+              '${shortTeamName(result.homeTeam)} נגד ${shortTeamName(result.awayTeam)}',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
             Text(
               scoreText,
-              style: theme.textTheme.headlineSmall?.copyWith(
+              style: theme.textTheme.displaySmall?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 16),
             Text(
-              'תרחיש מוביל: $favoriteText (${sd.favoriteOutcomeProbability.toStringAsFixed(1)}%)',
-              style: theme.textTheme.bodyMedium,
+              'ניצחון / תיקו / הפסד',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
               textAlign: TextAlign.right,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              favoriteText,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            Text(
+              '${sd.favoriteOutcomeProbability.toStringAsFixed(1)}%',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.primary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'רמת ביטחון: ${_confidenceHebrew(sd.confidenceLabel)}',
+              style: theme.textTheme.bodyLarge,
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -160,11 +206,13 @@ class PredictionPrimaryScoreCard extends StatelessWidget {
 class UnderdogScoringNarrativeCard extends StatelessWidget {
   final PredictionResult result;
   final bool isNeutralGround;
+  final bool compactWhenMatchupShown;
 
   const UnderdogScoringNarrativeCard({
     super.key,
     required this.result,
     this.isNeutralGround = true,
+    this.compactWhenMatchupShown = false,
   });
 
   @override
@@ -180,46 +228,63 @@ class UnderdogScoringNarrativeCard extends StatelessWidget {
     if (narrative == null) return const SizedBox.shrink();
 
     final theme = Theme.of(context);
+    final compact = compactWhenMatchupShown;
+    final hasAlternatives = narrative.alternativeLines.isNotEmpty;
+
+    if (compact && !hasAlternatives) {
+      return const SizedBox.shrink();
+    }
 
     return Card(
       color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.4),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'התחזית המרכזית היא שער נקי לפייבוריט, אבל המודל עדיין נותן לאנדרדוג סיכוי משמעותי להבקיע.',
-              style: theme.textTheme.bodyMedium,
-              textAlign: TextAlign.right,
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'לכן מוצג גם תרחיש ריאלי שבו האנדרדוג כובש.',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+            if (!compact) ...[
+              Text(
+                'התחזית המרכזית היא שער נקי לפייבוריט, אבל המודל עדיין נותן לאנדרדוג סיכוי משמעותי להבקיע.',
+                style: theme.textTheme.bodyLarge,
+                textAlign: TextAlign.right,
               ),
-              textAlign: TextAlign.right,
-            ),
-            const SizedBox(height: 12),
-            _NarrativeRow(
-              label: 'סיכוי שהאנדרדוג יבקיע',
-              value:
-                  '${narrative.underdogTeamName}: ${narrative.underdogScoringProbabilityPercent.round()}%',
-            ),
-            for (final line in narrative.alternativeLines) ...[
               const SizedBox(height: 8),
+              Text(
+                'לכן מוצג גם תרחיש ריאלי שבו האנדרדוג כובש.',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+                textAlign: TextAlign.right,
+              ),
+              const SizedBox(height: 16),
               _NarrativeRow(
-                label: line.label,
-                value: line.isIllustration
-                    ? line.scoreText
-                    : line.probabilityPercent != null
-                        ? '${line.scoreText} (${line.probabilityPercent!.toStringAsFixed(1)}%)'
-                        : line.scoreText,
+                label: 'סיכוי שהאנדרדוג יבקיע',
+                value:
+                    '${narrative.underdogTeamName}: ${narrative.underdogScoringProbabilityPercent.round()}%',
+              ),
+            ] else ...[
+              Text(
+                'תרחיש ריאלי אם האנדרדוג כובש',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+                textAlign: TextAlign.right,
+              ),
+              const SizedBox(height: 12),
+            ],
+            for (var i = 0; i < narrative.alternativeLines.length; i++) ...[
+              if (i > 0) const SizedBox(height: 12),
+              _NarrativeRow(
+                label: narrative.alternativeLines[i].label,
+                value: narrative.alternativeLines[i].isIllustration
+                    ? narrative.alternativeLines[i].scoreText
+                    : narrative.alternativeLines[i].probabilityPercent != null
+                        ? '${narrative.alternativeLines[i].scoreText} (${narrative.alternativeLines[i].probabilityPercent!.toStringAsFixed(1)}%)'
+                        : narrative.alternativeLines[i].scoreText,
               ),
             ],
-            if (narrative.bttsProbabilityPercent != null) ...[
-              const SizedBox(height: 8),
+            if (!compact && narrative.bttsProbabilityPercent != null) ...[
+              const SizedBox(height: 12),
               _NarrativeRow(
                 label: 'שתי הקבוצות כובשות',
                 value: '${narrative.bttsProbabilityPercent!.round()}%',
@@ -246,15 +311,15 @@ class _NarrativeRow extends StatelessWidget {
       children: [
         Text(
           label,
-          style: theme.textTheme.labelMedium?.copyWith(
+          style: theme.textTheme.titleSmall?.copyWith(
             fontWeight: FontWeight.w600,
           ),
           textAlign: TextAlign.right,
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Text(
           value,
-          style: theme.textTheme.titleSmall?.copyWith(
+          style: theme.textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
           ),
           textAlign: TextAlign.center,
@@ -488,10 +553,13 @@ class PredictionTechnicalDetails extends StatelessWidget {
     final theme = Theme.of(context);
     final diag = result.matchContextDiagnostics;
     final ctx = result.matchContext;
+    final matchup = result.matchupGoalCapability;
     final hasContent = result.matchSummary.isNotEmpty ||
         result.outcomeExplanations.homeWin.isNotEmpty ||
         result.scoreCoverage.scores.isNotEmpty ||
-        result.homeBreakdown.breakdown.isNotEmpty;
+        result.homeBreakdown.breakdown.isNotEmpty ||
+        matchup != null ||
+        result.nr3XgDecomposition != null;
 
     if (!hasContent) return const SizedBox.shrink();
 
@@ -516,6 +584,40 @@ class PredictionTechnicalDetails extends StatelessWidget {
           ),
           children: [
             _TeamStrengthSection(result: result),
+            if (matchup != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                'קלטי מפגש (אבחון בלבד)',
+                style: theme.textTheme.labelLarge,
+                textAlign: TextAlign.right,
+              ),
+              const SizedBox(height: 6),
+              _TechnicalLine(
+                title: 'xG מוגש',
+                text:
+                    '${shortTeamName(result.homeTeam)} ${matchup.matchupInputs.servedHomeXg.toStringAsFixed(2)} · '
+                    '${shortTeamName(result.awayTeam)} ${matchup.matchupInputs.servedAwayXg.toStringAsFixed(2)}',
+              ),
+              if (matchup.matchupInputs.powerGap != null)
+                _TechnicalLine(
+                  title: 'פער כוח',
+                  text: matchup.matchupInputs.powerGap!.toStringAsFixed(2),
+                ),
+              if (matchup.reasonCodes.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'קודי סיבה',
+                  style: theme.textTheme.labelLarge,
+                  textAlign: TextAlign.right,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  matchup.reasonCodes.join(', '),
+                  style: theme.textTheme.bodySmall,
+                  textAlign: TextAlign.right,
+                ),
+              ],
+            ],
             if (result.matchSummary.isNotEmpty) ...[
               const SizedBox(height: 8),
               Text(
@@ -872,16 +974,16 @@ class ExpectedGoalsCard extends StatelessWidget {
                 decomp.finalXg.label.isNotEmpty
                     ? decomp.finalXg.label
                     : 'xG סופי לחיזוי',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
                 ),
                 textAlign: TextAlign.right,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Text(
                 _formatPair(result.homeXg, result.awayXg),
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
                 ),
                 textAlign: TextAlign.center,
               ),

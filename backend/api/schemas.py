@@ -362,6 +362,7 @@ class ModelDiagnosticsResponse(BaseModel):
     final_away_power: float | None = None
     gap_delta: float | None = None
     nr3_xg_decomposition: Nr3XgDecompositionResponse | None = None
+    matchup_goal_capability: dict[str, Any] | None = None
 
 
 class ScorelineCandidateResponse(BaseModel):

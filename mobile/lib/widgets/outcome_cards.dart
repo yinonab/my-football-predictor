@@ -144,13 +144,18 @@ class _OutcomeCard extends StatelessWidget {
             Text(
               '${percent.toStringAsFixed(1)}%',
               style: TextStyle(
-                fontSize: 22,
+                fontSize: 26,
                 fontWeight: FontWeight.bold,
                 color: color,
               ),
             ),
-            const SizedBox(height: 4),
-            Text(sideLabel, style: Theme.of(context).textTheme.labelMedium),
+            const SizedBox(height: 6),
+            Text(
+              sideLabel,
+              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
             Text(
               team,
               style: Theme.of(context).textTheme.bodySmall,

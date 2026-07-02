@@ -969,6 +969,44 @@ def predict(request: PredictRequest) -> PredictResponse:
         if decomp:
             model_diag_dict["nr3_xg_decomposition"] = decomp
 
+    if request.include_diagnostics:
+        from core.maher import estimate_xg_pair
+        from core.matchup_goal_capability import build_matchup_goal_capability
+
+        maher_ref_home, maher_ref_away = estimate_xg_pair(
+            home_data.get("goals_for_per_game", 0.0),
+            home_data.get("goals_against_per_game", 0.0),
+            away_data.get("goals_for_per_game", 0.0),
+            away_data.get("goals_against_per_game", 0.0),
+            global_avg=request.avg_goals,
+        )
+        active_model_label = (
+            nr3_fcc_served_model_version
+            if nr3_fcc_served_applied and nr3_fcc_served_model_version
+            else model_diag_dict.get("model_version") or config.BASELINE_MODEL_VERSION
+        )
+        model_diag_dict["matchup_goal_capability"] = build_matchup_goal_capability(
+            home_team=home_name,
+            away_team=away_name,
+            served_home_xg=result["home_xg"],
+            served_away_xg=result["away_xg"],
+            maher_reference_home_xg=maher_ref_home,
+            maher_reference_away_xg=maher_ref_away,
+            home_attack_rating=home_data.get("attack"),
+            home_defense_rating=home_data.get("defense"),
+            away_attack_rating=away_data.get("attack"),
+            away_defense_rating=away_data.get("defense"),
+            home_gf_per_game=home_data.get("goals_for_per_game"),
+            home_ga_per_game=home_data.get("goals_against_per_game"),
+            away_gf_per_game=away_data.get("goals_for_per_game"),
+            away_ga_per_game=away_data.get("goals_against_per_game"),
+            home_power=strength.final_home_power,
+            away_power=strength.final_away_power,
+            probabilities_1x2=probs,
+            scoreline_decision=scoreline_decision,
+            active_model=active_model_label,
+        )
+
     return PredictResponse(
         home_team=home_name,
         away_team=away_name,
