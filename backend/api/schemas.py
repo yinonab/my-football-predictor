@@ -375,6 +375,12 @@ class ModelDiagnosticsResponse(BaseModel):
     home_xg_source: str | None = None
     away_xg_source: str | None = None
     matchup_relative_diagnostics: dict[str, Any] | None = None
+    model_variant_fallback: bool = False
+    requested_xg_model_variant: str | None = None
+    fallback_reason: str | None = None
+    model_variant_fallback: bool = False
+    model_variant_fallback_reason: str | None = None
+    requested_xg_model_variant: str | None = None
 
 
 class ScorelineCandidateResponse(BaseModel):

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -14,6 +15,10 @@ sys.path.insert(0, str(BACKEND_ROOT))
 import config
 from api.main import app
 from core.live_nr3_fcc_shadow_runner import NR3_FCC_SERVED_MODEL_VERSION
+from core.matchup_relative_xg_v1 import (
+    FUSION_IGNORE_REASON,
+    build_matchup_shift_reason_codes,
+)
 
 client = TestClient(app)
 
@@ -39,6 +44,12 @@ FRANCE_CROATIA = {
     **BASE_PAYLOAD,
     "home_team": "France",
     "away_team": "Croatia",
+}
+
+BRAZIL_JAPAN = {
+    **BASE_PAYLOAD,
+    "home_team": "Brazil",
+    "away_team": "Japan",
 }
 
 
@@ -177,3 +188,98 @@ def test_include_diagnostics_returns_variant_details(
     assert "suppression_applied" in rel
     assert "adaptive_floor_details" in rel
     assert "total_goals_guard" in rel
+    assert "reason_codes" in rel
+
+
+def test_matchup_failure_falls_back_to_nr3(monkeypatch, production_model_activation):
+    _enable_served(monkeypatch)
+    nr3 = _predict({**BASE_PAYLOAD, "xg_model_variant": "nr3_fcc"})
+
+    def _boom(**_kwargs):
+        raise RuntimeError("matchup_relative_v1_test_failure")
+
+    with patch(
+        "core.matchup_relative_xg_v1.run_matchup_relative_v1_prediction",
+        side_effect=_boom,
+    ):
+        fallback = _predict(
+            {**BASE_PAYLOAD, "xg_model_variant": "matchup_relative_v1"}
+        )
+
+    assert _core_prediction_fields(fallback) == _core_prediction_fields(nr3)
+    diag = fallback["model_diagnostics"]
+    assert diag.get("model_variant_fallback") is True
+    assert diag.get("requested_xg_model_variant") == "matchup_relative_v1"
+    assert diag.get("active_xg_source") == "nr3_fcc"
+    assert diag.get("model_variant") == "nr3_fcc"
+    assert diag.get("fallback_reason")
+
+
+def test_matchup_fusion_ignored_with_diagnostics(
+    monkeypatch, production_model_activation
+):
+    _enable_served(monkeypatch)
+    off = _predict(
+        {
+            **FRANCE_HAITI,
+            "xg_model_variant": "matchup_relative_v1",
+            "fusion_blowout_enabled": False,
+        }
+    )
+    on = _predict(
+        {
+            **FRANCE_HAITI,
+            "xg_model_variant": "matchup_relative_v1",
+            "fusion_blowout_enabled": True,
+        }
+    )
+    rel = on["model_diagnostics"]["matchup_relative_diagnostics"]
+    assert rel["fusion_blowout_enabled"] is True
+    assert rel["fusion_applied"] is False
+    assert rel["fusion_ignored_for_model_variant"] is True
+    assert rel["fusion_ignore_reason"] == FUSION_IGNORE_REASON
+    assert rel["pre_fusion_xg"]
+    assert rel["post_fusion_xg"]
+    assert on["home_xg"] == off["home_xg"]
+    assert on["away_xg"] == off["away_xg"]
+
+
+def test_nr3_fusion_still_applies_when_enabled(
+    monkeypatch, production_model_activation
+):
+    _enable_served(monkeypatch)
+    off = _predict({**FRANCE_HAITI, "xg_model_variant": "nr3_fcc", "fusion_blowout_enabled": False})
+    on = _predict({**FRANCE_HAITI, "xg_model_variant": "nr3_fcc", "fusion_blowout_enabled": True})
+    assert on["home_xg"] != off["home_xg"] or on["away_xg"] != off["away_xg"]
+
+
+def test_brazil_japan_large_delta_reason_codes(
+    monkeypatch, production_model_activation
+):
+    _enable_served(monkeypatch)
+    data = _predict({**BRAZIL_JAPAN, "xg_model_variant": "matchup_relative_v1"})
+    rel = data["model_diagnostics"]["matchup_relative_diagnostics"]
+    codes = rel.get("reason_codes") or []
+    assert "model_variant_experimental" in codes
+    assert "MATCHUP_RELATIVE_LARGE_DELTA_FROM_NR3" in codes
+    assert "large_delta_from_nr3" in codes
+
+
+def test_build_matchup_shift_reason_codes_detects_favorite_flip():
+    codes = build_matchup_shift_reason_codes(
+        mr_home_xg=0.9,
+        mr_away_xg=1.2,
+        mr_probs={"home_win": 26.0, "draw": 33.0, "away_win": 41.0},
+        feature_vector_summary={
+            "attack_vs_defense_edges": {
+                "favorite": 0.2,
+                "underdog": 0.5,
+            }
+        },
+        nr3_home_xg=1.3,
+        nr3_away_xg=0.8,
+        nr3_probs={"home_win": 46.0, "draw": 31.0, "away_win": 23.0},
+    )
+    assert "favorite_attack_edge_low" in codes
+    assert "underdog_attack_edge_high" in codes
+    assert "MATCHUP_RELATIVE_LARGE_DELTA_FROM_NR3" in codes

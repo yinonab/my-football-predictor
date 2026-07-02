@@ -6,7 +6,6 @@ from dataclasses import dataclass, field
 from types import SimpleNamespace
 from typing import Any
 
-from core.fusion_blowout import apply_fusion_blowout, compute_fusion_blowout_signal
 from core.blowout import BlowoutAdjustment
 from core.matchup_feature_vector import MatchupFeatureVector, build_matchup_feature_vector
 from core.nr3_finalist_spec import nr3_finalist_spec
@@ -15,6 +14,8 @@ from core.strength_based_xg_generator import StrengthSignals, generate_strength_
 MATCHUP_RELATIVE_V1_MODEL_VERSION = "matchup_relative_xg_v1"
 MATCHUP_RELATIVE_V1_ACTIVE_SOURCE = "matchup_relative_v1"
 
+FUSION_IGNORE_REASON = "Goliath/Fusion is not calibrated for Matchup Relative v1 yet"
+LARGE_DELTA_PP_THRESHOLD = 10.0
 GAP_STRONG_FAVORITE = 250.0
 ATTACK_WEAK = 0.20
 DEF_STRONG = 0.70
@@ -47,6 +48,48 @@ def normalize_xg_model_variant(value: str | None) -> str:
     if raw == MATCHUP_RELATIVE_V1_ACTIVE_SOURCE:
         return MATCHUP_RELATIVE_V1_ACTIVE_SOURCE
     return "nr3_fcc"
+
+
+def _favorite_from_probs(probs: dict[str, float]) -> str:
+    key = max(probs, key=probs.get)
+    return {"home_win": "home", "draw": "draw", "away_win": "away"}.get(key, "home")
+
+
+def build_matchup_shift_reason_codes(
+    *,
+    mr_home_xg: float,
+    mr_away_xg: float,
+    mr_probs: dict[str, float],
+    feature_vector_summary: dict[str, Any],
+    nr3_home_xg: float | None = None,
+    nr3_away_xg: float | None = None,
+    nr3_probs: dict[str, float] | None = None,
+) -> list[str]:
+    codes = ["model_variant_experimental"]
+    edges = feature_vector_summary.get("attack_vs_defense_edges", {})
+    fav_edge = edges.get("favorite")
+    ud_edge = edges.get("underdog")
+    if fav_edge is not None and float(fav_edge) < 0.35:
+        codes.append("favorite_attack_edge_low")
+    if ud_edge is not None and float(ud_edge) >= 0.45:
+        codes.append("underdog_attack_edge_high")
+    if edges:
+        codes.append("attack_defense_edge_driver")
+
+    if nr3_probs is not None and nr3_home_xg is not None and nr3_away_xg is not None:
+        if _favorite_from_probs(mr_probs) != _favorite_from_probs(nr3_probs):
+            codes.extend(
+                ["MATCHUP_RELATIVE_LARGE_DELTA_FROM_NR3", "large_delta_from_nr3"]
+            )
+        else:
+            for key in ("home_win", "draw", "away_win"):
+                if abs(float(mr_probs[key]) - float(nr3_probs[key])) >= LARGE_DELTA_PP_THRESHOLD:
+                    codes.extend(
+                        ["MATCHUP_RELATIVE_LARGE_DELTA_FROM_NR3", "large_delta_from_nr3"]
+                    )
+                    break
+
+    return sorted(set(codes))
 
 
 @dataclass
@@ -451,6 +494,7 @@ def run_matchup_relative_v1_prediction(
     odds_affect_prediction: bool,
     match_stage: str | None = None,
     population_powers: list[float] | None = None,
+    nr3_reference: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Compute full served prediction for matchup_relative_v1 variant."""
     from core.context_adjustments import apply_xg_context_delta
@@ -527,56 +571,21 @@ def run_matchup_relative_v1_prediction(
     he = float(home_elo) if home_elo is not None else float(home_power)
     ae = float(away_elo) if away_elo is not None else float(away_power)
 
-    fusion_applied = False
-    fusion_note = ""
-    if fusion_blowout_enabled:
-        pre_blowout = BlowoutAdjustment(
-            home_xg=home_xg,
-            away_xg=away_xg,
-            alpha=alpha,
-            max_goals=6,
-            active=False,
-        )
-        pre_matrix = _generate_matrix(
-            home_power=home_power,
-            away_power=away_power,
-            advantage=advantage,
-            home_xg=home_xg,
-            away_xg=away_xg,
-            settings=settings,
-            blowout=pre_blowout,
-            home_elo=he,
-            away_elo=ae,
-        )
-        pre_probs = _normalize_probs_pct(pre_matrix.get("probabilities_1x2", {}))
-        fusion_signal = compute_fusion_blowout_signal(
-            pre_probs,
-            market_odds,
-            power_gap=settings.power_gap,
-            weather_xg_delta=settings.context_xg_delta,
-        )
-        fusion_blowout = apply_fusion_blowout(
-            home_xg,
-            away_xg,
-            fusion_signal,
-            base_alpha=alpha,
-        )
-        blowout = fusion_blowout
-        home_xg, away_xg = fusion_blowout.home_xg, fusion_blowout.away_xg
-        fusion_applied = fusion_blowout.active
-        fusion_note = fusion_blowout.note or ""
-    else:
-        blowout = apply_matchup_relative_blowout_adjustment(
-            home_xg,
-            away_xg,
-            float(home_power),
-            float(away_power),
-            advantage,
-            base_alpha=alpha,
-            home_elo=he,
-            away_elo=ae,
-        )
-        home_xg, away_xg = blowout.home_xg, blowout.away_xg
+    pre_blowout_xg = {"home": round(home_xg, 2), "away": round(away_xg, 2)}
+    fusion_ignored = bool(fusion_blowout_enabled)
+
+    blowout = apply_matchup_relative_blowout_adjustment(
+        home_xg,
+        away_xg,
+        float(home_power),
+        float(away_power),
+        advantage,
+        base_alpha=alpha,
+        home_elo=he,
+        away_elo=ae,
+    )
+    home_xg, away_xg = blowout.home_xg, blowout.away_xg
+    post_blowout_xg = {"home": round(home_xg, 2), "away": round(away_xg, 2)}
 
     matrix_result = _generate_matrix(
         home_power=home_power,
@@ -598,9 +607,31 @@ def run_matchup_relative_v1_prediction(
         odds_blend_applied = True
 
     diagnostics = candidate.diagnostics_payload()
-    diagnostics["fusion_applied"] = fusion_applied
-    diagnostics["fusion_note"] = fusion_note
+    diagnostics["fusion_blowout_enabled"] = bool(fusion_blowout_enabled)
+    diagnostics["fusion_applied"] = False
+    diagnostics["fusion_ignored_for_model_variant"] = fusion_ignored
+    diagnostics["fusion_ignore_reason"] = (
+        FUSION_IGNORE_REASON if fusion_ignored else None
+    )
+    diagnostics["pre_fusion_xg"] = pre_blowout_xg
+    diagnostics["post_fusion_xg"] = post_blowout_xg
     diagnostics["odds_blend_applied"] = odds_blend_applied
+    nr3_probs = (nr3_reference or {}).get("probabilities_1x2")
+    diagnostics["reason_codes"] = build_matchup_shift_reason_codes(
+        mr_home_xg=float(matrix_result["home_xg"]),
+        mr_away_xg=float(matrix_result["away_xg"]),
+        mr_probs=final_probs,
+        feature_vector_summary=candidate.feature_vector_summary,
+        nr3_home_xg=(nr3_reference or {}).get("home_xg"),
+        nr3_away_xg=(nr3_reference or {}).get("away_xg"),
+        nr3_probs=nr3_probs,
+    )
+    if nr3_reference:
+        diagnostics["nr3_reference_xg"] = {
+            "home": nr3_reference.get("home_xg"),
+            "away": nr3_reference.get("away_xg"),
+        }
+        diagnostics["nr3_reference_probabilities_1x2"] = nr3_probs
 
     return {
         "home_xg": round(float(matrix_result["home_xg"]), 2),
@@ -612,8 +643,8 @@ def run_matchup_relative_v1_prediction(
         "all_scores": matrix_result.get("all_scores"),
         "model_version": MATCHUP_RELATIVE_V1_MODEL_VERSION,
         "matchup_relative_diagnostics": diagnostics,
-        "fusion_applied": fusion_applied,
-        "fusion_note": fusion_note,
+        "fusion_applied": False,
+        "fusion_note": "",
         "odds_blend_applied": odds_blend_applied,
         "blowout_active": bool(getattr(blowout, "active", False)),
     }
