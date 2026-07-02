@@ -168,3 +168,5 @@ def test_missing_inputs_degrade_safely():
     assert payload["home_goal_capability"] in ("LOW", "MEDIUM", "HIGH")
     assert payload["matchup_inputs"]["power_gap"] is None
     assert payload["matchup_inputs"]["home_attack_rating"] is None
+    assert payload["probabilities"]["favorite_scores_2_plus_probability"] > 0.0
+    assert payload["probabilities"]["btts_probability"] < payload["probabilities"]["underdog_scores_probability"]

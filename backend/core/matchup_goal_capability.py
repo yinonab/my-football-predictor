@@ -14,6 +14,22 @@ def _poisson_scores_probability(xg: float) -> float:
     return round((1.0 - math.exp(-max(float(xg), 0.0))) * 100.0, 2)
 
 
+def _poisson_scores_at_least_probability(xg: float, goals: int) -> float:
+    lam = max(float(xg), 0.0)
+    cumulative = 0.0
+    term = math.exp(-lam)
+    for k in range(goals):
+        cumulative += term
+        term = term * lam / (k + 1)
+    return round((1.0 - cumulative) * 100.0, 2)
+
+
+def _poisson_btts_probability(home_xg: float, away_xg: float) -> float:
+    p_home = (1.0 - math.exp(-max(float(home_xg), 0.0))) * 100.0
+    p_away = (1.0 - math.exp(-max(float(away_xg), 0.0))) * 100.0
+    return round((p_home / 100.0) * (p_away / 100.0) * 100.0, 2)
+
+
 def _bucket_side_goal_capability(p_scores: float, xg: float) -> CapabilityLevel:
     if p_scores >= 50.0 or xg >= 0.75:
         return "HIGH"
@@ -253,12 +269,12 @@ def build_matchup_goal_capability(
     )
     p_fav_2_plus = float(goal_bands.get("favorite_2_plus", 0.0))
     p_fav_3_plus = float(goal_bands.get("favorite_3_plus", 0.0))
+    if p_fav_2_plus <= 0.0:
+        p_fav_2_plus = _poisson_scores_at_least_probability(fav_xg, 2)
+    if p_fav_3_plus <= 0.0:
+        p_fav_3_plus = _poisson_scores_at_least_probability(fav_xg, 3)
 
-    p_btts = (
-        float(scoreline_decision.both_teams_score_probability)
-        if scoreline_decision and scoreline_decision.both_teams_score_probability is not None
-        else round(min(p_home_scores, p_away_scores), 2)
-    )
+    p_btts = _poisson_btts_probability(served_home_xg, served_away_xg)
 
     home_goal_capability = _bucket_side_goal_capability(p_home_scores, served_home_xg)
     away_goal_capability = _bucket_side_goal_capability(p_away_scores, served_away_xg)
