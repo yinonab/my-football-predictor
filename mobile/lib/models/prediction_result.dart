@@ -2,6 +2,7 @@ import '../config/api_config.dart';
 import 'market_diagnostics.dart';
 import 'matchup_goal_capability.dart';
 import 'venue_mode.dart';
+import 'xg_model_variant.dart';
 
 class ScoreProbability {
   final String score;
@@ -624,12 +625,25 @@ class ModelDiagnostics {
   final String? modelVersion;
   final Nr3XgDecomposition? nr3XgDecomposition;
   final MatchupGoalCapability? matchupGoalCapability;
+  final String? activeXgSource;
+  final String? modelVariant;
+  final String? homeXgSource;
+  final String? awayXgSource;
 
   const ModelDiagnostics({
     this.modelVersion,
     this.nr3XgDecomposition,
     this.matchupGoalCapability,
+    this.activeXgSource,
+    this.modelVariant,
+    this.homeXgSource,
+    this.awayXgSource,
   });
+
+  XgModelVariant get resolvedVariant =>
+      XgModelVariantApi.fromApi(modelVariant ?? activeXgSource);
+
+  String get activeModelBadgeLabel => resolvedVariant.activeBadgeLabel;
 
   factory ModelDiagnostics.fromJson(Map<String, dynamic> json) {
     return ModelDiagnostics(
@@ -644,6 +658,10 @@ class ModelDiagnostics {
               json['matchup_goal_capability'] as Map<String, dynamic>,
             )
           : null,
+      activeXgSource: json['active_xg_source'] as String?,
+      modelVariant: json['model_variant'] as String?,
+      homeXgSource: json['home_xg_source'] as String?,
+      awayXgSource: json['away_xg_source'] as String?,
     );
   }
 }
@@ -856,6 +874,7 @@ class PredictionSettings {
   final bool fusionBlowoutEnabled;
   final bool useMatchContext;
   final bool autoStadiumAltitude;
+  final XgModelVariant xgModelVariant;
 
   const PredictionSettings({
     this.rho = -0.15,
@@ -874,6 +893,7 @@ class PredictionSettings {
     this.fusionBlowoutEnabled = false,
     this.useMatchContext = true,
     this.autoStadiumAltitude = true,
+    this.xgModelVariant = XgModelVariant.nr3Fcc,
   });
 
   bool get neutralGround => venueMode.isNeutralGround;
@@ -896,6 +916,7 @@ class PredictionSettings {
     bool? fusionBlowoutEnabled,
     bool? useMatchContext,
     bool? autoStadiumAltitude,
+    XgModelVariant? xgModelVariant,
     bool clearVenueCity = false,
     bool clearMatchDate = false,
   }) {
@@ -920,6 +941,7 @@ class PredictionSettings {
       fusionBlowoutEnabled: fusionBlowoutEnabled ?? this.fusionBlowoutEnabled,
       useMatchContext: useMatchContext ?? this.useMatchContext,
       autoStadiumAltitude: autoStadiumAltitude ?? this.autoStadiumAltitude,
+      xgModelVariant: xgModelVariant ?? this.xgModelVariant,
     );
   }
 }

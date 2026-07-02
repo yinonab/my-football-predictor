@@ -726,6 +726,13 @@ def predict(request: PredictRequest) -> PredictResponse:
     nr3_fcc_sidecar_diagnostics: dict | None = None
     nr3_fcc_served_applied = False
     nr3_fcc_served_model_version: str | None = None
+    matchup_relative_applied = False
+    matchup_relative_model_version: str | None = None
+    matchup_relative_diagnostics: dict | None = None
+
+    from core.matchup_relative_xg_v1 import normalize_xg_model_variant
+
+    xg_model_variant = normalize_xg_model_variant(request.xg_model_variant)
 
     from core.nr3_fcc_served_integration import Nr3FccIntegratedSettings
 
@@ -772,7 +779,104 @@ def predict(request: PredictRequest) -> PredictResponse:
             match_context={"stage": ctx_info.stage},
         )
 
-    if config.nr3_fcc_served_enabled():
+    if xg_model_variant == "matchup_relative_v1":
+        logger.warning(
+            "matchup_relative_v1_requested home_team=%s away_team=%s",
+            home_name,
+            away_name,
+        )
+        try:
+            from core.matchup_relative_xg_v1 import (
+                MATCHUP_RELATIVE_V1_MODEL_VERSION,
+                apply_matchup_relative_v1_overlay,
+                run_matchup_relative_v1_prediction,
+            )
+
+            matchup_served = run_matchup_relative_v1_prediction(
+                home_team=home_name,
+                away_team=away_name,
+                home_power=float(home_power),
+                away_power=float(away_power),
+                home_elo=home_elo,
+                away_elo=away_elo,
+                home_attack=home_data.get("attack"),
+                home_defense=home_data.get("defense"),
+                away_attack=away_data.get("attack"),
+                away_defense=away_data.get("defense"),
+                home_gf_per_game=home_data.get("goals_for_per_game"),
+                home_ga_per_game=home_data.get("goals_against_per_game"),
+                away_gf_per_game=away_data.get("goals_for_per_game"),
+                away_ga_per_game=away_data.get("goals_against_per_game"),
+                home_form=home_raw_form,
+                away_form=away_raw_form,
+                baseline_home_xg=float(result["home_xg"]),
+                baseline_away_xg=float(result["away_xg"]),
+                advantage=float(advantage),
+                avg_goals=request.avg_goals,
+                rho=request.rho,
+                alpha=request.alpha,
+                top_n=request.top_n,
+                use_match_context=request.use_match_context,
+                context_xg_delta=(
+                    ctx_adj.xg_total_delta if request.use_match_context else 0.0
+                ),
+                fusion_blowout_enabled=request.fusion_blowout_enabled,
+                market_odds=market_odds,
+                odds_affect_prediction=request.odds_affect_prediction,
+                match_stage=ctx_info.stage,
+            )
+            apply_matchup_relative_v1_overlay(result, probs, matchup_served)
+            matchup_relative_applied = True
+            matchup_relative_model_version = MATCHUP_RELATIVE_V1_MODEL_VERSION
+            matchup_relative_diagnostics = matchup_served.get(
+                "matchup_relative_diagnostics"
+            )
+            pipeline = finalize_probability_pipeline(
+                home_team=home_name,
+                away_team=away_name,
+                home_xg=result["home_xg"],
+                away_xg=result["away_xg"],
+                raw_probabilities_1x2=matchup_served.get(
+                    "shadow_raw_probabilities_1x2", dict(probs)
+                ),
+                top_scores=result["top_scores"],
+                score_coverage=result["score_coverage"],
+                market_odds=market_odds,
+                odds_affect_prediction=False,
+            )
+            if matchup_served.get("odds_blend_applied"):
+                pipeline.probability_result.odds_blend_applied = True
+                pipeline.odds_affect_prediction = True
+            pipeline.final_probabilities_1x2 = dict(probs)
+            if matchup_served.get("fusion_applied"):
+                fusion_note = matchup_served.get("fusion_note", "")
+                blowout = BlowoutAdjustment(
+                    home_xg=result["home_xg"],
+                    away_xg=result["away_xg"],
+                    alpha=request.alpha,
+                    max_goals=8,
+                    active=True,
+                    note=fusion_note,
+                )
+            elif matchup_served.get("blowout_active"):
+                blowout = BlowoutAdjustment(
+                    home_xg=result["home_xg"],
+                    away_xg=result["away_xg"],
+                    alpha=request.alpha,
+                    max_goals=6,
+                    active=True,
+                )
+            logger.warning(
+                "matchup_relative_v1_prediction home_team=%s away_team=%s home_xg=%s away_xg=%s model_version=%s",
+                home_name,
+                away_name,
+                result["home_xg"],
+                result["away_xg"],
+                matchup_relative_model_version,
+            )
+        except Exception:
+            logger.exception("matchup_relative_v1_failed_fallback")
+    elif config.nr3_fcc_served_enabled():
         logger.warning(
             "nr3_fcc_served_enabled home_team=%s away_team=%s",
             home_name,
@@ -955,10 +1059,35 @@ def predict(request: PredictRequest) -> PredictResponse:
             print("nr3_fcc_shadow_sidecar_failed", flush=True)
 
     model_diag_dict = strength.to_model_diagnostics_dict()
-    if nr3_fcc_served_applied and nr3_fcc_served_model_version:
+    if matchup_relative_applied and matchup_relative_model_version:
+        model_diag_dict = {
+            **model_diag_dict,
+            "model_version": matchup_relative_model_version,
+            "active_xg_source": "matchup_relative_v1",
+            "model_variant": "matchup_relative_v1",
+            "home_xg_source": "matchup_relative_v1",
+            "away_xg_source": "matchup_relative_v1",
+        }
+        if request.include_diagnostics and matchup_relative_diagnostics:
+            model_diag_dict["matchup_relative_diagnostics"] = (
+                matchup_relative_diagnostics
+            )
+    elif nr3_fcc_served_applied and nr3_fcc_served_model_version:
         model_diag_dict = {
             **model_diag_dict,
             "model_version": nr3_fcc_served_model_version,
+            "active_xg_source": "nr3_fcc",
+            "model_variant": "nr3_fcc",
+            "home_xg_source": "nr3_fcc",
+            "away_xg_source": "nr3_fcc",
+        }
+    else:
+        model_diag_dict = {
+            **model_diag_dict,
+            "active_xg_source": "nr3_fcc",
+            "model_variant": "nr3_fcc",
+            "home_xg_source": "nr3_fcc",
+            "away_xg_source": "nr3_fcc",
         }
     if (
         request.include_diagnostics
@@ -981,9 +1110,13 @@ def predict(request: PredictRequest) -> PredictResponse:
             global_avg=request.avg_goals,
         )
         active_model_label = (
-            nr3_fcc_served_model_version
-            if nr3_fcc_served_applied and nr3_fcc_served_model_version
-            else model_diag_dict.get("model_version") or config.BASELINE_MODEL_VERSION
+            matchup_relative_model_version
+            if matchup_relative_applied and matchup_relative_model_version
+            else (
+                nr3_fcc_served_model_version
+                if nr3_fcc_served_applied and nr3_fcc_served_model_version
+                else model_diag_dict.get("model_version") or config.BASELINE_MODEL_VERSION
+            )
         )
         model_diag_dict["matchup_goal_capability"] = build_matchup_goal_capability(
             home_team=home_name,

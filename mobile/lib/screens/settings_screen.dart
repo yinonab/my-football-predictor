@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../config/api_config.dart';
 import '../models/prediction_result.dart';
+import '../models/xg_model_variant.dart';
 import '../services/api_service.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -24,6 +25,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late bool _fusionBlowoutEnabled;
   late bool _useMatchContext;
   late bool _autoStadiumAltitude;
+  late XgModelVariant _xgModelVariant;
   bool _serverOnline = false;
   bool _checking = false;
 
@@ -35,6 +37,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _fusionBlowoutEnabled = widget.settings.fusionBlowoutEnabled;
     _useMatchContext = widget.settings.useMatchContext;
     _autoStadiumAltitude = widget.settings.autoStadiumAltitude;
+    _xgModelVariant = widget.settings.xgModelVariant;
     _checkServer();
   }
 
@@ -62,6 +65,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       fusionBlowoutEnabled: _fusionBlowoutEnabled,
       useMatchContext: _useMatchContext,
       autoStadiumAltitude: _autoStadiumAltitude,
+      xgModelVariant: _xgModelVariant,
     );
     await widget.apiService.saveSettings(settings);
     if (mounted) Navigator.pop(context, settings);
@@ -130,6 +134,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const Divider(height: 32),
             Text('חיזוי', style: Theme.of(context).textTheme.titleMedium),
             const SizedBox(height: 8),
+            Text(
+              'מודל תחזית',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            const SizedBox(height: 4),
+            ...XgModelVariant.values.map(
+              (variant) => RadioListTile<XgModelVariant>(
+                title: Text(variant.settingsLabel),
+                subtitle: variant == XgModelVariant.matchupRelativeV1
+                    ? const Text(
+                        'מודל לפי מפגש — בודק התקפה מול הגנה של היריבה',
+                      )
+                    : null,
+                value: variant,
+                groupValue: _xgModelVariant,
+                onChanged: (v) {
+                  if (v != null) setState(() => _xgModelVariant = v);
+                },
+              ),
+            ),
+            if (_xgModelVariant == XgModelVariant.matchupRelativeV1)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  'המודל הניסיוני עשוי להשתנות ועדיין בבדיקה.',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.error,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
             SwitchListTile(
               title: const Text('שקול שוק הימורים בחיזוי'),
               subtitle: const Text(

@@ -62,6 +62,7 @@ Map<String, dynamic> buildPredictRequestBody({
   String? venueCity,
   String? matchDate,
   int topN = 3,
+  String xgModelVariant = 'nr3_fcc',
 }) {
   final body = <String, dynamic>{
     'home_team': homeTeam,
@@ -82,6 +83,7 @@ Map<String, dynamic> buildPredictRequestBody({
     'auto_stadium_altitude': autoStadiumAltitude,
     'include_diagnostics': includeDiagnostics,
     'top_n': topN,
+    'xg_model_variant': xgModelVariant,
   };
   if (venueCity != null && venueCity.trim().isNotEmpty) {
     body['venue_city'] = venueCity.trim();

@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
 import '../models/prediction_result.dart';
 import '../models/venue_mode.dart';
+import '../models/xg_model_variant.dart';
 
 class ApiException implements Exception {
   final String message;
@@ -66,6 +67,7 @@ class ApiService {
       fusionBlowoutEnabled: prefs.getBool('fusionBlowoutEnabled') ?? false,
       useMatchContext: prefs.getBool('useMatchContext') ?? true,
       autoStadiumAltitude: prefs.getBool('autoStadiumAltitude') ?? true,
+      xgModelVariant: XgModelVariantApi.fromPrefs(prefs.getString('xgModelVariant')),
     );
   }
 
@@ -86,6 +88,7 @@ class ApiService {
     await prefs.setBool('fusionBlowoutEnabled', settings.fusionBlowoutEnabled);
     await prefs.setBool('useMatchContext', settings.useMatchContext);
     await prefs.setBool('autoStadiumAltitude', settings.autoStadiumAltitude);
+    await prefs.setString('xgModelVariant', settings.xgModelVariant.apiValue);
     if (settings.venueCity != null) {
       await prefs.setString('venueCity', settings.venueCity!);
     } else {
@@ -195,6 +198,7 @@ class ApiService {
         autoStadiumAltitude: settings.autoStadiumAltitude,
         venueCity: settings.venueCity,
         matchDate: settings.matchDate,
+        xgModelVariant: settings.xgModelVariant.apiValue,
       ),
     );
 

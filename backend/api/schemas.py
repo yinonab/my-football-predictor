@@ -62,6 +62,13 @@ class PredictRequest(BaseModel):
         default=False,
         description="Include extended model diagnostics (NR3 xG decomposition, etc.)",
     )
+    xg_model_variant: str = Field(
+        default="nr3_fcc",
+        description=(
+            'xG model variant: "nr3_fcc" (default stable) or '
+            '"matchup_relative_v1" (experimental matchup-relative candidate)'
+        ),
+    )
 
 
 class Nr3XgPairResponse(BaseModel):
@@ -363,6 +370,11 @@ class ModelDiagnosticsResponse(BaseModel):
     gap_delta: float | None = None
     nr3_xg_decomposition: Nr3XgDecompositionResponse | None = None
     matchup_goal_capability: dict[str, Any] | None = None
+    active_xg_source: str | None = None
+    model_variant: str | None = None
+    home_xg_source: str | None = None
+    away_xg_source: str | None = None
+    matchup_relative_diagnostics: dict[str, Any] | None = None
 
 
 class ScorelineCandidateResponse(BaseModel):

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/prediction_result.dart';
 import '../models/venue_mode.dart';
+import '../models/xg_model_variant.dart';
 import '../utils/score_format.dart';
 import '../utils/underdog_scoring_narrative.dart';
 import 'matchup_goal_capability_card.dart';
@@ -80,6 +81,22 @@ class _PredictionResultsViewState extends State<PredictionResultsView> {
         ),
         const SizedBox(height: 16),
         PredictionStatusBanner(result: result),
+        if (result.modelDiagnostics != null) ...[
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.center,
+            child: Chip(
+              avatar: Icon(
+                result.modelDiagnostics!.resolvedVariant ==
+                        XgModelVariant.matchupRelativeV1
+                    ? Icons.science_outlined
+                    : Icons.verified_outlined,
+                size: 18,
+              ),
+              label: Text(result.modelDiagnostics!.activeModelBadgeLabel),
+            ),
+          ),
+        ],
         PredictionDataLimitBanner(result: result),
         if (_tab == PredictionResultTab.prediction) ...[
           const SizedBox(height: 8),
