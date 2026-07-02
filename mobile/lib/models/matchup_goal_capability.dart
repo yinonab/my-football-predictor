@@ -1,4 +1,10 @@
-enum GoalCapabilityLevel { low, medium, high }
+enum GoalCapabilityLevel {
+  low,
+  medium,
+  significant,
+  mediumHigh,
+  high,
+}
 
 GoalCapabilityLevel? goalCapabilityLevelFromString(String? raw) {
   switch (raw?.toUpperCase()) {
@@ -6,6 +12,10 @@ GoalCapabilityLevel? goalCapabilityLevelFromString(String? raw) {
       return GoalCapabilityLevel.low;
     case 'MEDIUM':
       return GoalCapabilityLevel.medium;
+    case 'SIGNIFICANT':
+      return GoalCapabilityLevel.significant;
+    case 'MEDIUM_HIGH':
+      return GoalCapabilityLevel.mediumHigh;
     case 'HIGH':
       return GoalCapabilityLevel.high;
     default:
@@ -16,11 +26,15 @@ GoalCapabilityLevel? goalCapabilityLevelFromString(String? raw) {
 String goalCapabilityLevelHebrew(GoalCapabilityLevel level) {
   switch (level) {
     case GoalCapabilityLevel.low:
-      return 'נמוך';
+      return 'נמוכה';
     case GoalCapabilityLevel.medium:
-      return 'בינוני';
+      return 'בינונית';
+    case GoalCapabilityLevel.significant:
+      return 'משמעותית';
+    case GoalCapabilityLevel.mediumHigh:
+      return 'בינונית-גבוהה';
     case GoalCapabilityLevel.high:
-      return 'גבוה';
+      return 'גבוהה';
   }
 }
 

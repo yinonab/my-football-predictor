@@ -375,12 +375,27 @@ class ModelDiagnosticsResponse(BaseModel):
     home_xg_source: str | None = None
     away_xg_source: str | None = None
     matchup_relative_diagnostics: dict[str, Any] | None = None
+    matchup_relative_xg_breakdown: dict[str, Any] | None = None
+    nr3_reference: dict[str, Any] | None = None
     model_variant_fallback: bool = False
     requested_xg_model_variant: str | None = None
     fallback_reason: str | None = None
-    model_variant_fallback: bool = False
     model_variant_fallback_reason: str | None = None
-    requested_xg_model_variant: str | None = None
+    active_model_badge_label: str | None = None
+    reason_codes: list[str] = Field(default_factory=list)
+    primary_score_adjusted_to_match_1x2: bool = False
+    original_primary_score: str | None = None
+    adjusted_primary_score: str | None = None
+    predicted_outcome_bucket: str | None = None
+    primary_score_adjustment_reason: str | None = None
+    clean_sheet_primary_adjusted: bool = False
+    clean_sheet_primary_warning: bool = False
+    opponent_score_probability: float | None = None
+    clean_sheet_adjustment_reason: str | None = None
+    clean_sheet_warning_reason: str | None = None
+    fusion_ignored_for_model_variant: bool = False
+    fusion_ignore_reason: str | None = None
+    large_delta_from_nr3: bool = False
 
 
 class ScorelineCandidateResponse(BaseModel):

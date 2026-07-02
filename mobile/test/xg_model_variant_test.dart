@@ -51,11 +51,11 @@ void main() {
       'home_xg_source': 'matchup_relative_v1',
       'away_xg_source': 'matchup_relative_v1',
     });
-    expect(diag.activeModelBadgeLabel, 'מודל פעיל: Matchup Relative — ניסיוני');
+    expect(diag.activeModelBadgeLabelResolved, 'מודל פעיל: Matchup Relative — ניסיוני');
   });
 
   test('ModelDiagnostics defaults to NR3 badge when variant missing', () {
     const diag = ModelDiagnostics(modelVersion: 'v2.3.0-nr3-fcc-served');
-    expect(diag.activeModelBadgeLabel, 'מודל פעיל: NR3+FCC');
+    expect(diag.activeModelBadgeLabelResolved, 'מודל פעיל: NR3+FCC');
   });
 }

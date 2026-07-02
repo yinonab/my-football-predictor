@@ -7,7 +7,9 @@ from typing import Any, Literal
 
 from core.scoreline_decision import ScorelineDecision
 
-CapabilityLevel = Literal["LOW", "MEDIUM", "HIGH"]
+CapabilityLevel = Literal[
+    "LOW", "MEDIUM", "SIGNIFICANT", "MEDIUM_HIGH", "HIGH"
+]
 
 
 def _poisson_scores_probability(xg: float) -> float:
@@ -31,9 +33,13 @@ def _poisson_btts_probability(home_xg: float, away_xg: float) -> float:
 
 
 def _bucket_side_goal_capability(p_scores: float, xg: float) -> CapabilityLevel:
-    if p_scores >= 50.0 or xg >= 0.75:
+    if p_scores >= 70.0 or xg >= 1.40:
         return "HIGH"
-    if p_scores >= 40.0 or xg >= 0.55:
+    if p_scores >= 62.0 or xg >= 1.15:
+        return "MEDIUM_HIGH"
+    if p_scores >= 50.0 or xg >= 0.85:
+        return "SIGNIFICANT"
+    if p_scores >= 35.0 or xg >= 0.50:
         return "MEDIUM"
     return "LOW"
 
@@ -126,7 +132,13 @@ def _primary_is_favorite_clean_sheet(
 
 
 def _level_hebrew(level: CapabilityLevel) -> str:
-    return {"LOW": "נמוך", "MEDIUM": "בינוני", "HIGH": "גבוה"}[level]
+    return {
+        "LOW": "נמוכה",
+        "MEDIUM": "בינונית",
+        "SIGNIFICANT": "משמעותית",
+        "MEDIUM_HIGH": "בינונית-גבוהה",
+        "HIGH": "גבוהה",
+    }[level]
 
 
 def _short_team_name(full: str) -> str:
@@ -172,6 +184,10 @@ def _build_summary(
 
     underdog_text = ""
     if underdog_goal_capability == "HIGH":
+        underdog_text = "לאנדרדוג יש סיכוי גבוה להבקיע במשחק הזה."
+    elif underdog_goal_capability == "MEDIUM_HIGH":
+        underdog_text = "לאנדרדוג יש סיכוי בינוני-גבוה להבקיע במשחק הזה."
+    elif underdog_goal_capability == "SIGNIFICANT":
         underdog_text = "לאנדרדוג יש סיכוי משמעותי להבקיע במשחק הזה."
     elif underdog_goal_capability == "MEDIUM":
         underdog_text = "לאנדרדוג יש סיכוי סביר להבקיע במשחק הזה."
@@ -199,7 +215,12 @@ def _build_reason_codes(
     clean_sheet_risk: CapabilityLevel,
 ) -> list[str]:
     codes: list[str] = []
-    if underdog_goal_capability in ("HIGH", "MEDIUM") or underdog_xg >= 0.55:
+    if underdog_goal_capability in (
+        "HIGH",
+        "MEDIUM_HIGH",
+        "SIGNIFICANT",
+        "MEDIUM",
+    ) or underdog_xg >= 0.55:
         codes.append("UNDERDOG_XG_MEANINGFUL")
     if btts_likelihood in ("HIGH", "MEDIUM") or btts_probability >= 35.0:
         codes.append("BTTS_PROBABILITY_MEANINGFUL")

@@ -113,15 +113,17 @@ void main() {
       ),
     );
 
+    expect(find.text('שערים צפויים'), findsOneWidget);
     expect(find.text('xG סופי לחיזוי'), findsOneWidget);
     expect(find.textContaining('1.60'), findsWidgets);
     expect(find.text('פירוט חישוב NR3'), findsOneWidget);
     await tester.tap(find.text('פירוט חישוב NR3'));
     await tester.pumpAndSettle();
+    expect(find.text('xG בסיסי'), findsOneWidget);
+    expect(find.text('אחרי התאמות'), findsOneWidget);
     expect(find.text('בסיס NR3 לפני התאמות'), findsOneWidget);
     expect(find.text('ייחוס מודל ישן / Maher'), findsOneWidget);
     expect(find.textContaining('להשוואה בלבד'), findsOneWidget);
-    expect(find.text('xG בסיסי'), findsNothing);
   });
 
   testWidgets('legacy model does not show NR3 breakdown', (tester) async {

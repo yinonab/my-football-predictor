@@ -92,6 +92,39 @@ def build_matchup_shift_reason_codes(
     return sorted(set(codes))
 
 
+def build_matchup_relative_xg_breakdown(
+    *,
+    final_home_xg: float,
+    final_away_xg: float,
+    diagnostics: dict[str, Any],
+) -> dict[str, Any]:
+    components = diagnostics.get("components") or {}
+    adaptive = diagnostics.get("adaptive_floor_details") or {}
+    feature_summary = diagnostics.get("feature_vector_summary") or {}
+    home_floor = adaptive.get("home") or {}
+    away_floor = adaptive.get("away") or {}
+    suppression = diagnostics.get("suppression_applied") or []
+    return {
+        "base_home_xg": round(float(components.get("home_raw", home_floor.get("raw_xg", 0.0))), 2),
+        "base_away_xg": round(float(components.get("away_raw", away_floor.get("raw_xg", 0.0))), 2),
+        "final_home_xg": round(float(final_home_xg), 2),
+        "final_away_xg": round(float(final_away_xg), 2),
+        "attack_defense_edges": diagnostics.get("attack_vs_defense_edges")
+        or components.get("attack_vs_defense_edges"),
+        "adaptive_floor": adaptive,
+        "weak_underdog_suppression": suppression,
+        "weak_underdog_suppression_applied": "WEAK_UNDERDOG_SUPPRESSION" in suppression,
+        "total_goals_guard": diagnostics.get("total_goals_guard"),
+        "total_goals_guard_applied": bool(
+            (diagnostics.get("total_goals_guard") or {}).get("action") not in (None, "none")
+        ),
+        "reason_codes": diagnostics.get("reason_codes") or [],
+        "favorite_side": feature_summary.get("favorite_side"),
+        "underdog_side": feature_summary.get("underdog_side"),
+        "confidence": diagnostics.get("confidence"),
+    }
+
+
 @dataclass
 class MatchupRelativeXgV1Result:
     home_xg: float

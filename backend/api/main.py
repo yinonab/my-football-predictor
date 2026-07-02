@@ -1031,6 +1031,23 @@ def predict(request: PredictRequest) -> PredictResponse:
         match_context_diagnostics=match_context_diagnostics,
     )
 
+    scoreline_guard_diagnostics: dict[str, Any] = {}
+    if matchup_relative_applied:
+        from core.matchup_relative_scoreline_guards import (
+            apply_matchup_relative_scoreline_guards,
+        )
+
+        scoreline_decision, scoreline_guard_diagnostics = (
+            apply_matchup_relative_scoreline_guards(
+                scoreline_decision=scoreline_decision,
+                probabilities_1x2=probs,
+                top_scores=result["top_scores"],
+                all_scores=result.get("all_scores"),
+                home_xg=result["home_xg"],
+                away_xg=result["away_xg"],
+            )
+        )
+
     if config.nr3_fcc_shadow_enabled():
         logger.warning(
             "nr3_fcc_shadow_flag_seen home_team=%s away_team=%s",
@@ -1083,19 +1100,52 @@ def predict(request: PredictRequest) -> PredictResponse:
             print("nr3_fcc_shadow_sidecar_failed", flush=True)
 
     model_diag_dict = strength.to_model_diagnostics_dict()
+    model_diag_dict["requested_xg_model_variant"] = (
+        requested_xg_model_variant or xg_model_variant
+    )
     if matchup_relative_applied and matchup_relative_model_version:
+        rel_diag = matchup_relative_diagnostics or {}
+        reason_codes = list(rel_diag.get("reason_codes") or [])
+        large_delta = "large_delta_from_nr3" in reason_codes
         model_diag_dict = {
             **model_diag_dict,
+            **scoreline_guard_diagnostics,
             "model_version": matchup_relative_model_version,
             "active_xg_source": "matchup_relative_v1",
             "model_variant": "matchup_relative_v1",
             "home_xg_source": "matchup_relative_v1",
             "away_xg_source": "matchup_relative_v1",
+            "active_model_badge_label": "מודל פעיל: Matchup Relative — ניסיוני",
+            "reason_codes": reason_codes,
+            "fusion_ignored_for_model_variant": bool(
+                rel_diag.get("fusion_ignored_for_model_variant")
+            ),
+            "fusion_ignore_reason": rel_diag.get("fusion_ignore_reason"),
+            "large_delta_from_nr3": large_delta,
         }
         if request.include_diagnostics and matchup_relative_diagnostics:
+            from core.matchup_relative_xg_v1 import build_matchup_relative_xg_breakdown
+
             model_diag_dict["matchup_relative_diagnostics"] = (
                 matchup_relative_diagnostics
             )
+            model_diag_dict["matchup_relative_xg_breakdown"] = (
+                build_matchup_relative_xg_breakdown(
+                    final_home_xg=result["home_xg"],
+                    final_away_xg=result["away_xg"],
+                    diagnostics=matchup_relative_diagnostics,
+                )
+            )
+            nr3_ref_xg = rel_diag.get("nr3_reference_xg")
+            if nr3_ref_xg:
+                model_diag_dict["nr3_reference"] = {
+                    "home_xg": nr3_ref_xg.get("home"),
+                    "away_xg": nr3_ref_xg.get("away"),
+                    "model_variant": "nr3_fcc",
+                    "probabilities_1x2": rel_diag.get(
+                        "nr3_reference_probabilities_1x2"
+                    ),
+                }
     elif nr3_fcc_served_applied and nr3_fcc_served_model_version:
         model_diag_dict = {
             **model_diag_dict,
@@ -1104,9 +1154,11 @@ def predict(request: PredictRequest) -> PredictResponse:
             "model_variant": "nr3_fcc",
             "home_xg_source": "nr3_fcc",
             "away_xg_source": "nr3_fcc",
+            "active_model_badge_label": "מודל פעיל: NR3+FCC",
             "model_variant_fallback": model_variant_fallback,
             "requested_xg_model_variant": requested_xg_model_variant,
             "fallback_reason": model_variant_fallback_reason,
+            "model_variant_fallback_reason": model_variant_fallback_reason,
         }
     else:
         model_diag_dict = {
@@ -1115,6 +1167,7 @@ def predict(request: PredictRequest) -> PredictResponse:
             "model_variant": "nr3_fcc",
             "home_xg_source": "nr3_fcc",
             "away_xg_source": "nr3_fcc",
+            "active_model_badge_label": "מודל פעיל: NR3+FCC",
         }
     if (
         request.include_diagnostics

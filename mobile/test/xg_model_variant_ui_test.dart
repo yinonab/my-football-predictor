@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:football_predictor/models/prediction_result.dart';
 import 'package:football_predictor/models/venue_mode.dart';
+import 'package:football_predictor/widgets/prediction_insight_sections.dart';
 import 'package:football_predictor/widgets/prediction_results_view.dart';
 
 Map<String, dynamic> _baseResponse({Map<String, dynamic>? modelDiagnostics}) {
@@ -175,5 +176,127 @@ void main() {
 
     expect(find.text('מודל פעיל: Matchup Relative — ניסיוני'), findsOneWidget);
     expect(find.text('יכולת הבקעה לפי מפגש'), findsOneWidget);
+  });
+
+  testWidgets('NR3 result renders expected goals breakdown labels', (
+    tester,
+  ) async {
+    final result = PredictionResult.fromJson(
+      _baseResponse(
+        modelDiagnostics: {
+          'model_variant': 'nr3_fcc',
+          'active_xg_source': 'nr3_fcc',
+          'nr3_xg_decomposition': {
+            'active_model': 'v2.3.0-nr3-fcc-served',
+            'home_team': 'France',
+            'away_team': 'Haiti',
+            'nr3_base': {
+              'home_xg': 2.4,
+              'away_xg': 0.6,
+              'label': 'בסיס NR3 לפני התאמות',
+            },
+            'adjustments': [],
+            'final': {
+              'home_xg': 2.5,
+              'away_xg': 0.5,
+              'label': 'xG סופי לחיזוי',
+            },
+            'legacy_reference': {
+              'home_xg': 2.3,
+              'away_xg': 0.55,
+              'label': 'ייחוס מודל ישן / Maher',
+              'note': 'להשוואה בלבד',
+            },
+          },
+        },
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: Scaffold(body: ExpectedGoalsCard(result: result))),
+    );
+
+    expect(find.text('שערים צפויים'), findsOneWidget);
+    expect(find.text('פירוט חישוב NR3'), findsOneWidget);
+    await tester.tap(find.text('פירוט חישוב NR3'));
+    await tester.pumpAndSettle();
+    expect(find.text('xG בסיסי'), findsOneWidget);
+    expect(find.text('אחרי התאמות'), findsOneWidget);
+  });
+
+  testWidgets('Matchup Relative renders breakdown and NR3 comparison', (
+    tester,
+  ) async {
+    final result = PredictionResult.fromJson(
+      _baseResponse(
+        modelDiagnostics: {
+          'model_variant': 'matchup_relative_v1',
+          'active_xg_source': 'matchup_relative_v1',
+          'large_delta_from_nr3': true,
+          'matchup_relative_xg_breakdown': {
+            'base_home_xg': 2.1,
+            'base_away_xg': 0.7,
+            'final_home_xg': 2.5,
+            'final_away_xg': 0.5,
+            'attack_defense_edges': {'home': 0.6, 'away': 0.3},
+            'adaptive_floor': {'home': {}},
+            'weak_underdog_suppression': [],
+            'weak_underdog_suppression_applied': false,
+            'total_goals_guard_applied': false,
+            'reason_codes': ['model_variant_experimental'],
+            'favorite_side': 'home',
+            'underdog_side': 'away',
+          },
+          'nr3_reference': {
+            'home_xg': 2.8,
+            'away_xg': 0.4,
+            'model_variant': 'nr3_fcc',
+          },
+        },
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(home: Scaffold(body: ExpectedGoalsCard(result: result))),
+    );
+
+    expect(find.text('שערים צפויים'), findsOneWidget);
+    expect(find.text('Matchup Relative — ניסיוני'), findsOneWidget);
+    expect(find.text('פירוט חישוב Matchup Relative'), findsOneWidget);
+    expect(find.text('השוואה ל-NR3+FCC'), findsOneWidget);
+    await tester.tap(find.text('השוואה ל-NR3+FCC'));
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('קיים פער משמעותי בין המודל הניסיוני למודל היציב.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('fallback banner renders when model variant fallback', (
+    tester,
+  ) async {
+    final result = PredictionResult.fromJson(
+      _baseResponse(
+        modelDiagnostics: {
+          'model_variant': 'nr3_fcc',
+          'active_xg_source': 'nr3_fcc',
+          'model_variant_fallback': true,
+          'requested_xg_model_variant': 'matchup_relative_v1',
+          'fallback_reason': 'matchup_relative_v1 failed',
+        },
+      ),
+    );
+
+    await tester.pumpWidget(
+      _wrap(
+        PredictionResultsView(
+          result: result,
+          venueMode: VenueMode.neutral,
+        ),
+      ),
+    );
+
+    expect(find.textContaining('המודל הניסיוני נכשל'), findsOneWidget);
+    expect(find.text('מודל פעיל: NR3+FCC'), findsOneWidget);
   });
 }

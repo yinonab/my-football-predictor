@@ -112,7 +112,12 @@ def test_belgium_senegal_meaningful_underdog_and_clean_sheet_risk(
     _enable_served(monkeypatch)
     data = _predict(BELGIUM_SENEGAL)
     mgc = _mgc(data)
-    assert mgc["underdog_goal_capability"] in ("MEDIUM", "HIGH")
+    assert mgc["underdog_goal_capability"] in (
+        "MEDIUM",
+        "SIGNIFICANT",
+        "MEDIUM_HIGH",
+        "HIGH",
+    )
     assert mgc["clean_sheet_risk"] in ("MEDIUM", "HIGH")
     assert mgc["probabilities"]["underdog_scores_probability"] >= 35.0
     assert "FAVORITE_CLEAN_SHEET_RISKY" in mgc["reason_codes"]

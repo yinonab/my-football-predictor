@@ -629,6 +629,16 @@ class ModelDiagnostics {
   final String? modelVariant;
   final String? homeXgSource;
   final String? awayXgSource;
+  final MatchupRelativeXgBreakdown? matchupRelativeXgBreakdown;
+  final Nr3Reference? nr3Reference;
+  final bool modelVariantFallback;
+  final String? requestedXgModelVariant;
+  final String? fallbackReason;
+  final String? activeModelBadgeLabel;
+  final List<String> reasonCodes;
+  final bool largeDeltaFromNr3;
+  final bool cleanSheetPrimaryWarning;
+  final bool cleanSheetPrimaryAdjusted;
 
   const ModelDiagnostics({
     this.modelVersion,
@@ -638,12 +648,23 @@ class ModelDiagnostics {
     this.modelVariant,
     this.homeXgSource,
     this.awayXgSource,
+    this.matchupRelativeXgBreakdown,
+    this.nr3Reference,
+    this.modelVariantFallback = false,
+    this.requestedXgModelVariant,
+    this.fallbackReason,
+    this.activeModelBadgeLabel,
+    this.reasonCodes = const [],
+    this.largeDeltaFromNr3 = false,
+    this.cleanSheetPrimaryWarning = false,
+    this.cleanSheetPrimaryAdjusted = false,
   });
 
   XgModelVariant get resolvedVariant =>
       XgModelVariantApi.fromApi(modelVariant ?? activeXgSource);
 
-  String get activeModelBadgeLabel => resolvedVariant.activeBadgeLabel;
+  String get activeModelBadgeLabelResolved =>
+      activeModelBadgeLabel ?? resolvedVariant.activeBadgeLabel;
 
   factory ModelDiagnostics.fromJson(Map<String, dynamic> json) {
     return ModelDiagnostics(
@@ -662,6 +683,105 @@ class ModelDiagnostics {
       modelVariant: json['model_variant'] as String?,
       homeXgSource: json['home_xg_source'] as String?,
       awayXgSource: json['away_xg_source'] as String?,
+      matchupRelativeXgBreakdown: json['matchup_relative_xg_breakdown'] != null
+          ? MatchupRelativeXgBreakdown.fromJson(
+              json['matchup_relative_xg_breakdown'] as Map<String, dynamic>,
+            )
+          : null,
+      nr3Reference: json['nr3_reference'] != null
+          ? Nr3Reference.fromJson(json['nr3_reference'] as Map<String, dynamic>)
+          : null,
+      modelVariantFallback: json['model_variant_fallback'] as bool? ?? false,
+      requestedXgModelVariant: json['requested_xg_model_variant'] as String?,
+      fallbackReason: json['fallback_reason'] as String?,
+      activeModelBadgeLabel: json['active_model_badge_label'] as String?,
+      reasonCodes: (json['reason_codes'] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .toList(),
+      largeDeltaFromNr3: json['large_delta_from_nr3'] as bool? ?? false,
+      cleanSheetPrimaryWarning:
+          json['clean_sheet_primary_warning'] as bool? ?? false,
+      cleanSheetPrimaryAdjusted:
+          json['clean_sheet_primary_adjusted'] as bool? ?? false,
+    );
+  }
+}
+
+class MatchupRelativeXgBreakdown {
+  final double baseHomeXg;
+  final double baseAwayXg;
+  final double finalHomeXg;
+  final double finalAwayXg;
+  final Map<String, dynamic> attackDefenseEdges;
+  final Map<String, dynamic> adaptiveFloor;
+  final List<String> weakUnderdogSuppression;
+  final bool weakUnderdogSuppressionApplied;
+  final Map<String, dynamic>? totalGoalsGuard;
+  final bool totalGoalsGuardApplied;
+  final List<String> reasonCodes;
+  final String? favoriteSide;
+  final String? underdogSide;
+
+  const MatchupRelativeXgBreakdown({
+    required this.baseHomeXg,
+    required this.baseAwayXg,
+    required this.finalHomeXg,
+    required this.finalAwayXg,
+    this.attackDefenseEdges = const {},
+    this.adaptiveFloor = const {},
+    this.weakUnderdogSuppression = const [],
+    this.weakUnderdogSuppressionApplied = false,
+    this.totalGoalsGuard,
+    this.totalGoalsGuardApplied = false,
+    this.reasonCodes = const [],
+    this.favoriteSide,
+    this.underdogSide,
+  });
+
+  factory MatchupRelativeXgBreakdown.fromJson(Map<String, dynamic> json) {
+    double read(String key) => (json[key] as num?)?.toDouble() ?? 0.0;
+    return MatchupRelativeXgBreakdown(
+      baseHomeXg: read('base_home_xg'),
+      baseAwayXg: read('base_away_xg'),
+      finalHomeXg: read('final_home_xg'),
+      finalAwayXg: read('final_away_xg'),
+      attackDefenseEdges:
+          Map<String, dynamic>.from(json['attack_defense_edges'] as Map? ?? {}),
+      adaptiveFloor:
+          Map<String, dynamic>.from(json['adaptive_floor'] as Map? ?? {}),
+      weakUnderdogSuppression: (json['weak_underdog_suppression'] as List? ?? [])
+          .map((e) => e.toString())
+          .toList(),
+      weakUnderdogSuppressionApplied:
+          json['weak_underdog_suppression_applied'] as bool? ?? false,
+      totalGoalsGuard: json['total_goals_guard'] as Map<String, dynamic>?,
+      totalGoalsGuardApplied: json['total_goals_guard_applied'] as bool? ?? false,
+      reasonCodes: (json['reason_codes'] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .toList(),
+      favoriteSide: json['favorite_side'] as String?,
+      underdogSide: json['underdog_side'] as String?,
+    );
+  }
+}
+
+class Nr3Reference {
+  final double homeXg;
+  final double awayXg;
+  final String modelVariant;
+
+  const Nr3Reference({
+    required this.homeXg,
+    required this.awayXg,
+    this.modelVariant = 'nr3_fcc',
+  });
+
+  factory Nr3Reference.fromJson(Map<String, dynamic> json) {
+    double read(String key) => (json[key] as num?)?.toDouble() ?? 0.0;
+    return Nr3Reference(
+      homeXg: read('home_xg'),
+      awayXg: read('away_xg'),
+      modelVariant: json['model_variant'] as String? ?? 'nr3_fcc',
     );
   }
 }

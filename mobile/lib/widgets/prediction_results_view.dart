@@ -81,6 +81,23 @@ class _PredictionResultsViewState extends State<PredictionResultsView> {
         ),
         const SizedBox(height: 16),
         PredictionStatusBanner(result: result),
+        if (result.modelDiagnostics?.modelVariantFallback == true) ...[
+          const SizedBox(height: 8),
+          Card(
+            color: theme.colorScheme.errorContainer.withValues(alpha: 0.35),
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Text(
+                'המודל הניסיוני נכשל, הוצגה תחזית NR3+FCC',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onErrorContainer,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.right,
+              ),
+            ),
+          ),
+        ],
         if (result.modelDiagnostics != null) ...[
           const SizedBox(height: 8),
           Align(
@@ -93,7 +110,7 @@ class _PredictionResultsViewState extends State<PredictionResultsView> {
                     : Icons.verified_outlined,
                 size: 18,
               ),
-              label: Text(result.modelDiagnostics!.activeModelBadgeLabel),
+              label: Text(result.modelDiagnostics!.activeModelBadgeLabelResolved),
             ),
           ),
         ],

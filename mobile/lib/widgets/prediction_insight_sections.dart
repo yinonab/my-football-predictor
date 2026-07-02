@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/prediction_result.dart';
 import '../models/venue_mode.dart';
+import '../models/xg_model_variant.dart';
 import '../utils/environment_ui_copy.dart';
 import '../utils/prediction_ui_copy.dart';
 import '../utils/score_format.dart';
@@ -962,32 +963,55 @@ class ExpectedGoalsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final decomp = result.nr3XgDecomposition;
+    final mrBreakdown = result.modelDiagnostics?.matchupRelativeXgBreakdown;
+    final nr3Ref = result.modelDiagnostics?.nr3Reference;
+    final isMatchupRelative =
+        result.modelDiagnostics?.resolvedVariant ==
+        XgModelVariant.matchupRelativeV1;
 
-    if (decomp != null) {
-      return Card(
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              'שערים צפויים',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.right,
+            ),
+            if (isMatchupRelative) ...[
+              const SizedBox(height: 4),
+              Text(
+                'Matchup Relative — ניסיוני',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: theme.colorScheme.secondary,
+                ),
+                textAlign: TextAlign.right,
+              ),
+            ],
+            const SizedBox(height: 12),
+            Text(
+              _formatPair(result.homeXg, result.awayXg),
+              style: theme.textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            if (decomp != null) ...[
+              const SizedBox(height: 4),
               Text(
                 decomp.finalXg.label.isNotEmpty
                     ? decomp.finalXg.label
                     : 'xG סופי לחיזוי',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.right,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                _formatPair(result.homeXg, result.awayXg),
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: theme.textTheme.labelMedium,
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
+            ],
+            const SizedBox(height: 8),
+            if (decomp != null)
               ExpansionTile(
                 tilePadding: EdgeInsets.zero,
                 title: Text(
@@ -999,7 +1023,7 @@ class ExpectedGoalsCard extends StatelessWidget {
                   Align(
                     alignment: Alignment.centerRight,
                     child: Text(
-                      decomp.nr3Base.label,
+                      'xG בסיסי',
                       style: theme.textTheme.labelMedium,
                     ),
                   ),
@@ -1009,6 +1033,16 @@ class ExpectedGoalsCard extends StatelessWidget {
                     style: theme.textTheme.bodyMedium,
                     textAlign: TextAlign.center,
                   ),
+                  if (decomp.nr3Base.label.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      decomp.nr3Base.label,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      textAlign: TextAlign.right,
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   Align(
                     alignment: Alignment.centerRight,
@@ -1023,7 +1057,7 @@ class ExpectedGoalsCard extends StatelessWidget {
                   Align(
                     alignment: Alignment.centerRight,
                     child: Text(
-                      'xG סופי של המודל',
+                      'אחרי התאמות',
                       style: theme.textTheme.labelMedium,
                     ),
                   ),
@@ -1033,6 +1067,20 @@ class ExpectedGoalsCard extends StatelessWidget {
                     style: theme.textTheme.bodyMedium?.copyWith(
                       fontWeight: FontWeight.w600,
                     ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      'xG סופי לחיזוי',
+                      style: theme.textTheme.labelMedium,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _formatPair(decomp.finalXg.homeXg, decomp.finalXg.awayXg),
+                    style: theme.textTheme.bodyMedium,
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
@@ -1064,34 +1112,107 @@ class ExpectedGoalsCard extends StatelessWidget {
                     textAlign: TextAlign.right,
                   ),
                 ],
+              )
+            else if (mrBreakdown != null)
+              ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                title: Text(
+                  'פירוט חישוב Matchup Relative',
+                  style: theme.textTheme.labelLarge,
+                  textAlign: TextAlign.right,
+                ),
+                children: [
+                  _breakdownLine(
+                    context,
+                    'xG בסיסי',
+                    _formatPair(mrBreakdown.baseHomeXg, mrBreakdown.baseAwayXg),
+                  ),
+                  if (mrBreakdown.favoriteSide != null)
+                    _breakdownLine(
+                      context,
+                      'מועדף / אנדרדוג',
+                      'מועדף: ${mrBreakdown.favoriteSide} · אנדרדוג: ${mrBreakdown.underdogSide ?? '-'}',
+                    ),
+                  if (mrBreakdown.attackDefenseEdges.isNotEmpty)
+                    _breakdownLine(
+                      context,
+                      'יתרון התקפה מול הגנה',
+                      mrBreakdown.attackDefenseEdges.entries
+                          .map((e) => '${e.key}: ${e.value}')
+                          .join(' · '),
+                    ),
+                  _breakdownLine(
+                    context,
+                    'רצפת xG אדפטיבית',
+                    mrBreakdown.adaptiveFloor.isNotEmpty ? 'הופעלה' : 'לא הופעלה',
+                  ),
+                  _breakdownLine(
+                    context,
+                    'דיכוי אנדרדוג חלש',
+                    mrBreakdown.weakUnderdogSuppressionApplied
+                        ? 'הופעל'
+                        : 'לא הופעל',
+                  ),
+                  _breakdownLine(
+                    context,
+                    'שומר סך שערים',
+                    mrBreakdown.totalGoalsGuardApplied ? 'הופעל' : 'לא הופעל',
+                  ),
+                  if (mrBreakdown.reasonCodes.isNotEmpty)
+                    _breakdownLine(
+                      context,
+                      'קודי סיבה',
+                      mrBreakdown.reasonCodes.join(', '),
+                    ),
+                  const Divider(),
+                  _breakdownLine(
+                    context,
+                    'xG סופי לחיזוי',
+                    _formatPair(mrBreakdown.finalHomeXg, mrBreakdown.finalAwayXg),
+                  ),
+                ],
+              ),
+            if (isMatchupRelative && nr3Ref != null) ...[
+              const SizedBox(height: 8),
+              ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                title: Text(
+                  'השוואה ל-NR3+FCC',
+                  style: theme.textTheme.labelLarge,
+                  textAlign: TextAlign.right,
+                ),
+                children: [
+                  _breakdownLine(
+                    context,
+                    'NR3+FCC',
+                    _formatPair(nr3Ref.homeXg, nr3Ref.awayXg),
+                  ),
+                  _breakdownLine(
+                    context,
+                    'Matchup Relative',
+                    _formatPair(result.homeXg, result.awayXg),
+                  ),
+                  _breakdownLine(
+                    context,
+                    'Δ xG',
+                    '${shortTeamName(result.homeTeam)}: ${(result.homeXg - nr3Ref.homeXg).toStringAsFixed(2)} · '
+                    '${shortTeamName(result.awayTeam)}: ${(result.awayXg - nr3Ref.awayXg).toStringAsFixed(2)}',
+                  ),
+                  if (result.modelDiagnostics?.largeDeltaFromNr3 == true)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        'קיים פער משמעותי בין המודל הניסיוני למודל היציב.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          fontStyle: FontStyle.italic,
+                        ),
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                ],
               ),
             ],
-          ),
-        ),
-      );
-    }
-
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              'שערים צפויים',
-              style: theme.textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-              textAlign: TextAlign.right,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              _formatPair(result.homeXg, result.awayXg),
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-              textAlign: TextAlign.center,
-            ),
             const SizedBox(height: 6),
             Text(
               'זהו אומדן לכמות השערים הצפויה, לא תוצאה מובטחת.',
@@ -1102,6 +1223,27 @@ class ExpectedGoalsCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _breakdownLine(BuildContext context, String title, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            title,
+            style: Theme.of(context).textTheme.labelMedium,
+            textAlign: TextAlign.right,
+          ),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.bodySmall,
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }

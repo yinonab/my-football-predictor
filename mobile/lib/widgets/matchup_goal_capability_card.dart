@@ -158,6 +158,9 @@ class _LevelBadge extends StatelessWidget {
     switch (level) {
       case GoalCapabilityLevel.high:
         return scheme.errorContainer;
+      case GoalCapabilityLevel.mediumHigh:
+        return scheme.errorContainer.withValues(alpha: 0.65);
+      case GoalCapabilityLevel.significant:
       case GoalCapabilityLevel.medium:
         return scheme.tertiaryContainer;
       case GoalCapabilityLevel.low:
@@ -171,6 +174,9 @@ class _LevelBadge extends StatelessWidget {
     switch (level) {
       case GoalCapabilityLevel.high:
         return scheme.onErrorContainer;
+      case GoalCapabilityLevel.mediumHigh:
+        return scheme.onErrorContainer;
+      case GoalCapabilityLevel.significant:
       case GoalCapabilityLevel.medium:
         return scheme.onTertiaryContainer;
       case GoalCapabilityLevel.low:

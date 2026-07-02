@@ -52,6 +52,18 @@ BRAZIL_JAPAN = {
     "away_team": "Japan",
 }
 
+SWITZERLAND_ALGERIA = {
+    **BASE_PAYLOAD,
+    "home_team": "Switzerland",
+    "away_team": "Algeria",
+}
+
+PORTUGAL_CROATIA = {
+    **BASE_PAYLOAD,
+    "home_team": "Portugal",
+    "away_team": "Croatia",
+}
+
 
 @pytest.fixture(autouse=True)
 def _default_flags(monkeypatch):
@@ -283,3 +295,73 @@ def test_build_matchup_shift_reason_codes_detects_favorite_flip():
     assert "favorite_attack_edge_low" in codes
     assert "underdog_attack_edge_high" in codes
     assert "MATCHUP_RELATIVE_LARGE_DELTA_FROM_NR3" in codes
+
+
+def _top_1x2_bucket(probs: dict) -> str:
+    return max(("home_win", "draw", "away_win"), key=lambda k: float(probs[k]))
+
+
+def _primary_outcome(primary: dict) -> str:
+    h = int(primary["home_goals"])
+    a = int(primary["away_goals"])
+    if h > a:
+        return "home_win"
+    if a > h:
+        return "away_win"
+    return "draw"
+
+
+def test_switzerland_algeria_primary_matches_top_1x2_bucket(
+    monkeypatch, production_model_activation
+):
+    _enable_served(monkeypatch)
+    data = _predict({**SWITZERLAND_ALGERIA, "xg_model_variant": "matchup_relative_v1"})
+    probs = data["probabilities_1x2"]
+    primary = data["scoreline_decision"]["primary_predicted_score"]
+    bucket = _top_1x2_bucket(probs)
+    assert _primary_outcome(primary) == bucket
+    if bucket != "draw":
+        assert primary["home_goals"] != primary["away_goals"]
+
+
+def test_portugal_croatia_clean_sheet_guard(
+    monkeypatch, production_model_activation
+):
+    _enable_served(monkeypatch)
+    data = _predict({**PORTUGAL_CROATIA, "xg_model_variant": "matchup_relative_v1"})
+    diag = data["model_diagnostics"]
+    primary = data["scoreline_decision"]["primary_predicted_score"]
+    is_clean_sheet = (
+        int(primary["home_goals"]) > int(primary["away_goals"])
+        and int(primary["away_goals"]) == 0
+    ) or (
+        int(primary["away_goals"]) > int(primary["home_goals"])
+        and int(primary["home_goals"]) == 0
+    )
+    if is_clean_sheet:
+        assert (
+            diag.get("clean_sheet_primary_adjusted")
+            or diag.get("clean_sheet_primary_warning")
+        )
+    assert diag.get("matchup_relative_xg_breakdown")
+    assert diag.get("nr3_reference")
+
+
+def test_nr3_diagnostics_still_returned(monkeypatch, production_model_activation):
+    _enable_served(monkeypatch)
+    data = _predict({**BASE_PAYLOAD, "xg_model_variant": "nr3_fcc"})
+    diag = data["model_diagnostics"]
+    assert diag["model_variant"] == "nr3_fcc"
+    assert diag.get("nr3_xg_decomposition")
+
+
+def test_matchup_breakdown_diagnostics_returned(
+    monkeypatch, production_model_activation
+):
+    _enable_served(monkeypatch)
+    data = _predict({**BASE_PAYLOAD, "xg_model_variant": "matchup_relative_v1"})
+    diag = data["model_diagnostics"]
+    breakdown = diag.get("matchup_relative_xg_breakdown") or {}
+    assert breakdown.get("final_home_xg") == data["home_xg"]
+    assert breakdown.get("final_away_xg") == data["away_xg"]
+    assert "reason_codes" in breakdown

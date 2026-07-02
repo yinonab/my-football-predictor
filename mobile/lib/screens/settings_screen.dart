@@ -158,7 +158,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Text(
-                  'המודל הניסיוני עשוי להשתנות ועדיין בבדיקה.',
+                  'מודל זה עדיין ניסיוני ועלול להציג תחזיות לא יציבות.',
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.error,
                     fontSize: 13,
