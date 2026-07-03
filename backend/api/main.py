@@ -41,6 +41,8 @@ from api.schemas import (
     ActualScoreResponse,
     VenueDiagnosticsResponse,
     FusionBlowoutDiagnosticsResponse,
+    StandardBlowoutDiagnosticsResponse,
+    UnderdogFoundationDiagnosticsResponse,
     EnvironmentDiagnosticsResponse,
     RecentFormProviderDiagnosticsResponse,
     ModelDiagnosticsResponse,
@@ -160,6 +162,36 @@ _opponent_index = build_opponent_index(
     build_all_matches(),
     set(FIFA_ELO_2026.keys()),
 )
+
+
+def _gf_ga_source(team_data: dict) -> str:
+    """Classify a team's goal-rate history: real, fallback_zero, or unknown."""
+    matches = int(team_data.get("matches_used") or 0)
+    gf = float(team_data.get("goals_for_per_game") or 0.0)
+    ga = float(team_data.get("goals_against_per_game") or 0.0)
+    if matches > 0 and (gf > 0 or ga > 0):
+        return "real"
+    if gf == 0 and ga == 0:
+        return "fallback_zero"
+    return "fallback_partial"
+
+
+def _maher_fallback_confidence(home_source: str, away_source: str) -> float:
+    """Stage 2 Maher blend confidence based on GF/GA sources.
+
+    Real history on both sides keeps full confidence. Fallback GF/GA (symmetric
+    global_avg/2 with no real signal) lowers confidence toward the configured
+    weight so power/Elo differentiation leads. A single fallback side is treated
+    as the midpoint between full and fallback confidence.
+    """
+    weight = config.MAHER_FALLBACK_CONFIDENCE_WEIGHT
+    home_fallback = home_source != "real"
+    away_fallback = away_source != "real"
+    if not home_fallback and not away_fallback:
+        return 1.0
+    if home_fallback and away_fallback:
+        return weight
+    return round((1.0 + weight) / 2.0, 4)
 
 
 def _refresh_model_data() -> None:
@@ -545,6 +577,9 @@ def predict(request: PredictRequest) -> PredictResponse:
         _opponent_index,
         global_avg=request.avg_goals,
     )
+    home_gf_ga_source = _gf_ga_source(home_data)
+    away_gf_ga_source = _gf_ga_source(away_data)
+    maher_confidence = _maher_fallback_confidence(home_gf_ga_source, away_gf_ga_source)
     home_xg, away_xg = blend_maher_with_power(
         home_xg,
         away_xg,
@@ -554,7 +589,9 @@ def predict(request: PredictRequest) -> PredictResponse:
         global_avg=request.avg_goals,
         home_elo=home_elo,
         away_elo=away_elo,
+        maher_confidence=maher_confidence,
     )
+    underdog_floor_diag: dict = {}
     home_xg, away_xg = floor_underdog_xg(
         home_xg,
         away_xg,
@@ -563,6 +600,26 @@ def predict(request: PredictRequest) -> PredictResponse:
         advantage,
         home_elo=home_elo,
         away_elo=away_elo,
+        home_attack=home_data.get("attack"),
+        home_defense=home_data.get("defense"),
+        away_attack=away_data.get("attack"),
+        away_defense=away_data.get("defense"),
+        home_gf_ga_fallback=home_gf_ga_source != "real",
+        away_gf_ga_fallback=away_gf_ga_source != "real",
+        diagnostics=underdog_floor_diag,
+    )
+    underdog_foundation_diag = UnderdogFoundationDiagnosticsResponse(
+        maher_gf_ga_source_home=home_gf_ga_source,
+        maher_gf_ga_source_away=away_gf_ga_source,
+        maher_fallback_confidence=maher_confidence,
+        maher_fallback_confidence_applied=maher_confidence < 1.0,
+        underdog_side=underdog_floor_diag.get("underdog_side"),
+        underdog_floor_applied=bool(underdog_floor_diag.get("underdog_floor_applied")),
+        underdog_floor_standard=underdog_floor_diag.get("underdog_floor_standard"),
+        underdog_floor_adaptive=underdog_floor_diag.get("underdog_floor_adaptive"),
+        underdog_floor_reason=underdog_floor_diag.get("underdog_floor_reason"),
+        underdog_attack=underdog_floor_diag.get("underdog_attack"),
+        favorite_defense=underdog_floor_diag.get("favorite_defense"),
     )
     if request.use_match_context and abs(ctx_adj.xg_total_delta) > 1e-6:
         home_xg, away_xg = apply_xg_context_delta(
@@ -572,6 +629,7 @@ def predict(request: PredictRequest) -> PredictResponse:
         )
     base_home_xg = round(home_xg, 2)
     base_away_xg = round(away_xg, 2)
+    standard_blowout_response: StandardBlowoutDiagnosticsResponse | None = None
     if request.fusion_blowout_enabled:
         blowout = BlowoutAdjustment(
             home_xg=home_xg,
@@ -590,6 +648,22 @@ def predict(request: PredictRequest) -> PredictResponse:
             base_alpha=request.alpha,
             home_elo=home_elo,
             away_elo=away_elo,
+            home_attack=home_data.get("attack"),
+            home_defense=home_data.get("defense"),
+            away_attack=away_data.get("attack"),
+            away_defense=away_data.get("defense"),
+            home_gf_ga_fallback=home_gf_ga_source != "real",
+            away_gf_ga_fallback=away_gf_ga_source != "real",
+        )
+        standard_blowout_response = StandardBlowoutDiagnosticsResponse(
+            active=blowout.active,
+            dog_floor_adaptive_applied=blowout.dog_floor_adaptive_applied,
+            dog_floor_original=blowout.dog_floor_original,
+            dog_floor_adaptive=blowout.dog_floor_adaptive,
+            dog_floor_reason=blowout.dog_floor_reason,
+            underdog_attack=blowout.underdog_attack,
+            favorite_defense=blowout.favorite_defense,
+            underdog_gf_ga_fallback=blowout.underdog_gf_ga_fallback,
         )
     home_xg, away_xg = blowout.home_xg, blowout.away_xg
 
@@ -669,6 +743,13 @@ def predict(request: PredictRequest) -> PredictResponse:
             result["away_xg"],
             fusion_signal,
             base_alpha=blowout.alpha,
+            power_gap=power_gap,
+            home_attack=home_data.get("attack"),
+            home_defense=home_data.get("defense"),
+            away_attack=away_data.get("attack"),
+            away_defense=away_data.get("defense"),
+            home_gf_ga_fallback=home_gf_ga_source != "real",
+            away_gf_ga_fallback=away_gf_ga_source != "real",
         )
         matrix_regenerated = False
         if fusion_blowout.active:
@@ -719,6 +800,17 @@ def predict(request: PredictRequest) -> PredictResponse:
             }
             if fusion_blowout.active
             else None,
+            fusion_favorite_uplift_capped=fusion_blowout.fusion_favorite_uplift_capped,
+            fusion_favorite_uplift_cap=fusion_blowout.fusion_favorite_uplift_cap,
+            original_uncapped_favorite_xg=fusion_blowout.original_uncapped_favorite_xg,
+            capped_favorite_xg=fusion_blowout.capped_favorite_xg,
+            fusion_dog_floor_adaptive_applied=fusion_blowout.dog_floor_adaptive_applied,
+            fusion_dog_floor_original=fusion_blowout.dog_floor_original,
+            fusion_dog_floor_adaptive=fusion_blowout.dog_floor_adaptive,
+            fusion_dog_floor_reason=fusion_blowout.dog_floor_reason,
+            fusion_underdog_attack=fusion_blowout.underdog_attack,
+            fusion_favorite_defense=fusion_blowout.favorite_defense,
+            fusion_underdog_gf_ga_fallback=fusion_blowout.underdog_gf_ga_fallback,
             matrix_regenerated=matrix_regenerated,
             note=fusion_note,
         )
@@ -1091,6 +1183,8 @@ def predict(request: PredictRequest) -> PredictResponse:
         ),
         market_diagnostics=MarketDiagnosticsResponse(**market_diagnostics_payload.to_dict()),
         fusion_blowout_diagnostics=fusion_blowout_response,
+        standard_blowout_diagnostics=standard_blowout_response,
+        underdog_foundation_diagnostics=underdog_foundation_diag,
         scoreline_decision=_scoreline_decision_response(scoreline_decision),
     )
 

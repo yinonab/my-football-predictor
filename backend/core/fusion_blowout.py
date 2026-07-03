@@ -5,7 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
-from core.blowout import BlowoutAdjustment
+from core.blowout import BlowoutAdjustment, compute_adaptive_dog_floor
+
+import config
 
 FavoriteSide = Literal["home", "away"]
 
@@ -118,8 +120,20 @@ def apply_fusion_blowout(
     signal: FusionBlowoutSignal,
     *,
     base_alpha: float = 0.0,
+    power_gap: float = 0.0,
+    home_attack: float | None = None,
+    home_defense: float | None = None,
+    away_attack: float | None = None,
+    away_defense: float | None = None,
+    home_gf_ga_fallback: bool = False,
+    away_gf_ga_fallback: bool = False,
 ) -> BlowoutAdjustment:
-    """Inflate favorite xG when fusion signal is strong (regenerates score matrix)."""
+    """Inflate favorite xG when fusion signal is strong (regenerates score matrix).
+
+    Stage 3A: the underdog floor is attack-aware. For very weak attacks in large
+    mismatches the floor is relaxed so it does not re-inflate the Stage 2 base
+    reduction back toward ~0.75-0.80. The favorite Stage 1 cap is unchanged.
+    """
     if not signal.active:
         return BlowoutAdjustment(
             home_xg=home_xg,
@@ -133,13 +147,43 @@ def apply_fusion_blowout(
     t = signal.blowout_t
     if signal.favorite_side == "home":
         fav_xg, dog_xg = home_xg, away_xg
+        underdog_attack, favorite_defense = away_attack, home_defense
+        underdog_fallback = away_gf_ga_fallback
     else:
         fav_xg, dog_xg = away_xg, home_xg
+        underdog_attack, favorite_defense = home_attack, away_defense
+        underdog_fallback = home_gf_ga_fallback
 
+    pre_fusion_fav_xg = fav_xg
     fav_target = 2.75 + t * 2.05
-    fav_xg = fav_xg + t * max(0.0, fav_target - fav_xg)
-    dog_floor = 0.45 + 0.35 * t
+    uncapped_fav_xg = fav_xg + t * max(0.0, fav_target - fav_xg)
+
+    standard_dog_floor = round(0.45 + 0.35 * t, 4)
+    dog_floor = standard_dog_floor
+    dog_floor_reason = "standard_dog_floor"
+    if config.FUSION_ADAPTIVE_DOG_FLOOR_ENABLED:
+        dog_floor, dog_floor_reason = compute_adaptive_dog_floor(
+            standard_dog_floor,
+            underdog_attack=underdog_attack,
+            favorite_defense=favorite_defense,
+            gf_ga_fallback=underdog_fallback,
+            power_gap=power_gap,
+            weak_attack_threshold=config.FUSION_WEAK_ATTACK_THRESHOLD,
+            weak_floor_low=config.FUSION_WEAK_DOG_FLOOR_LOW,
+            weak_floor_high=config.FUSION_WEAK_DOG_FLOOR_HIGH,
+            favorite_defense_strong=config.FUSION_DOG_FLOOR_FAVORITE_DEFENSE_STRONG,
+            favorite_defense_max_penalty=config.FUSION_DOG_FLOOR_FAVORITE_DEFENSE_MAX_PENALTY,
+            fallback_extra_reduction=config.FUSION_DOG_FLOOR_FALLBACK_EXTRA_REDUCTION,
+            floor_min=config.FUSION_DOG_FLOOR_MIN,
+            gap_threshold=config.FUSION_DOG_FLOOR_GAP_THRESHOLD,
+        )
+    dog_floor_adaptive_applied = dog_floor < standard_dog_floor - 1e-9
     dog_xg = max(dog_floor, dog_xg * (1.0 - 0.12 * t))
+
+    cap_limit = config.FUSION_MAX_FAVORITE_UPLIFT
+    max_fav_xg = pre_fusion_fav_xg + cap_limit
+    uplift_capped = uncapped_fav_xg > max_fav_xg + 1e-9
+    fav_xg = min(uncapped_fav_xg, max_fav_xg)
 
     if signal.favorite_side == "home":
         home_adj, away_adj = fav_xg, dog_xg
@@ -164,4 +208,15 @@ def apply_fusion_blowout(
         max_goals=max_goals,
         active=True,
         note=note,
+        fusion_favorite_uplift_capped=uplift_capped,
+        fusion_favorite_uplift_cap=cap_limit,
+        original_uncapped_favorite_xg=round(uncapped_fav_xg, 2),
+        capped_favorite_xg=round(fav_xg, 2),
+        dog_floor_adaptive_applied=dog_floor_adaptive_applied,
+        dog_floor_original=standard_dog_floor,
+        dog_floor_adaptive=dog_floor,
+        dog_floor_reason=dog_floor_reason,
+        underdog_attack=underdog_attack,
+        favorite_defense=favorite_defense,
+        underdog_gf_ga_fallback=underdog_fallback,
     )

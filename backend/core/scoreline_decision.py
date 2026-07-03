@@ -43,6 +43,9 @@ BALANCED_MATCH_LOW_CONFIDENCE = "BALANCED_MATCH_LOW_CONFIDENCE"
 PREDICTION_NOT_VALID = "PREDICTION_NOT_VALID"
 CONTEXT_LIMITED = "CONTEXT_LIMITED"
 SCORE_MATRIX_LIMITED = "SCORE_MATRIX_LIMITED"
+# Stage 3B — clean-sheet guard
+CLEAN_SHEET_GUARD_SWITCHED_TO_BTTS = "CLEAN_SHEET_GUARD_SWITCHED_TO_BTTS"
+CLEAN_SHEET_GUARD_LOW_CONFIDENCE = "CLEAN_SHEET_GUARD_LOW_CONFIDENCE"
 
 # Phase 4Q — representative primary score realism warnings
 PRIMARY_CLEAN_SHEET_WITH_UNDERDOG_XG_HIGH = "PRIMARY_CLEAN_SHEET_WITH_UNDERDOG_XG_HIGH"
@@ -122,6 +125,12 @@ class ScorelineDecision:
     candidate_comparison_summary: dict[str, Any] = field(default_factory=dict)
     recent_form_shadow: dict[str, Any] = field(default_factory=dict)
     representative_selection: dict[str, Any] = field(default_factory=dict)
+    clean_sheet_guard_applied: bool = False
+    clean_sheet_guard_reason: str | None = None
+    original_primary_score: str | None = None
+    guarded_primary_score: str | None = None
+    best_btts_candidate: str | None = None
+    clean_sheet_guard_utility_gap: float | None = None
 
     def to_dict(self) -> dict[str, Any]:
         primary = self.primary_predicted_score.to_dict() if self.primary_predicted_score else None
@@ -174,6 +183,20 @@ class ScorelineDecision:
             payload["recent_form_shadow"] = self.recent_form_shadow
         if self.representative_selection:
             payload["representative_selection"] = self.representative_selection
+        if self.clean_sheet_guard_applied:
+            payload["clean_sheet_guard_applied"] = self.clean_sheet_guard_applied
+        if self.clean_sheet_guard_reason:
+            payload["clean_sheet_guard_reason"] = self.clean_sheet_guard_reason
+        if self.original_primary_score is not None:
+            payload["original_primary_score"] = self.original_primary_score
+        if self.guarded_primary_score is not None:
+            payload["guarded_primary_score"] = self.guarded_primary_score
+        if self.best_btts_candidate is not None:
+            payload["best_btts_candidate"] = self.best_btts_candidate
+        if self.clean_sheet_guard_utility_gap is not None:
+            payload["clean_sheet_guard_utility_gap"] = round(
+                self.clean_sheet_guard_utility_gap, 2
+            )
         return payload
 
 
@@ -1117,6 +1140,116 @@ def build_primary_score_reason(
     )
 
 
+def _apply_clean_sheet_guard(
+    primary: ScorelineCandidate | None,
+    favorite: OutcomeKey,
+    favorite_pool: list[ScorelineCandidate],
+    *,
+    underdog_scores_probability: float | None,
+    both_teams_score_probability: float | None,
+    gate_level: str | None = None,
+) -> dict[str, Any]:
+    """Stage 3B — keep the primary scoreline coherent with underdog scoring odds.
+
+    If the favorite's primary is a clean sheet but the underdog still has a
+    meaningful chance to score (or BTTS is high), prefer a close BTTS candidate;
+    otherwise keep the clean sheet but mark it low-confidence. Display-only: never
+    touches xG, probabilities, or top_scores.
+
+    Defers to the existing underdog-goal gate: when the gate deliberately
+    suppresses underdog goals (``BLOCK`` / ``WEAK_ALLOW``) the guard does not
+    override it, so an intentional clean sheet is preserved.
+    """
+    result: dict[str, Any] = {
+        "applied": False,
+        "reason": None,
+        "original": None,
+        "guarded": None,
+        "best_btts": None,
+        "utility_gap": None,
+        "primary": primary,
+        "force_low_confidence": False,
+        "warning": None,
+    }
+    if not config.SCORELINE_CLEAN_SHEET_GUARD_ENABLED:
+        return result
+    if primary is None or favorite not in ("home_win", "away_win"):
+        return result
+    # Respect a deliberate underdog-goal-gate decision to keep a clean sheet.
+    if gate_level is not None and gate_level not in ("ALLOW", "STRONG_ALLOW"):
+        return result
+
+    if favorite == "home_win":
+        fav_goals, underdog_goals = primary.home_goals, primary.away_goals
+    else:
+        fav_goals, underdog_goals = primary.away_goals, primary.home_goals
+    if underdog_goals != 0 or fav_goals == 0:
+        return result  # not a favorite clean-sheet win
+
+    ud_trigger = (
+        underdog_scores_probability is not None
+        and underdog_scores_probability
+        >= config.SCORELINE_CS_GUARD_UNDERDOG_SCORE_PROB_THRESHOLD
+    )
+    btts_trigger = (
+        both_teams_score_probability is not None
+        and both_teams_score_probability >= config.SCORELINE_CS_GUARD_BTTS_THRESHOLD
+    )
+    if not (ud_trigger or btts_trigger):
+        return result
+
+    result["original"] = primary.score_label
+
+    def _fav_dog(cand: ScorelineCandidate) -> tuple[int, int]:
+        if favorite == "home_win":
+            return cand.home_goals, cand.away_goals
+        return cand.away_goals, cand.home_goals
+
+    btts_candidates = [
+        c
+        for c in favorite_pool
+        if _fav_dog(c)[0] >= 1 and _fav_dog(c)[1] >= 1
+    ]
+    if not btts_candidates:
+        result.update(
+            applied=True,
+            reason="clean_sheet_kept_no_btts_candidate",
+            force_low_confidence=True,
+            warning=CLEAN_SHEET_GUARD_LOW_CONFIDENCE,
+        )
+        return result
+
+    best_btts = max(btts_candidates, key=lambda c: c.probability)
+    result["best_btts"] = best_btts.score_label
+    utility_gap = primary.probability - best_btts.probability
+    result["utility_gap"] = utility_gap
+
+    if utility_gap <= config.SCORELINE_CS_GUARD_MAX_UTILITY_GAP:
+        chosen = best_btts
+        # Prefer keeping the favorite goal count (e.g. 3-0 -> 3-1) when close enough.
+        same_fav = [c for c in btts_candidates if _fav_dog(c)[0] == fav_goals]
+        if same_fav:
+            same_best = max(same_fav, key=lambda c: c.probability)
+            if primary.probability - same_best.probability <= config.SCORELINE_CS_GUARD_MAX_UTILITY_GAP:
+                chosen = same_best
+        result.update(
+            applied=True,
+            reason="switched_to_btts_close_utility",
+            guarded=chosen.score_label,
+            best_btts=chosen.score_label,
+            primary=chosen,
+            warning=CLEAN_SHEET_GUARD_SWITCHED_TO_BTTS,
+        )
+    else:
+        result.update(
+            applied=True,
+            reason="clean_sheet_dominant_low_confidence",
+            force_low_confidence=True,
+            warning=CLEAN_SHEET_GUARD_LOW_CONFIDENCE,
+        )
+    return result
+
+
 def build_scoreline_decision(
     *,
     final_probabilities_1x2: dict[str, float],
@@ -1247,6 +1380,20 @@ def build_scoreline_decision(
         )
         rep_diagnostics["primary_score_warnings"] = merged
 
+    # Stage 3B — clean-sheet guard (display-only; runs only for a decided favorite).
+    guard = _apply_clean_sheet_guard(
+        primary,
+        favorite,
+        favorite_pool,
+        underdog_scores_probability=rep_diagnostics.get("underdog_scores_probability"),
+        both_teams_score_probability=rep_diagnostics.get("both_teams_score_probability"),
+        gate_level=(rep_diagnostics.get("underdog_goal_gate") or {}).get("level"),
+    )
+    if guard["applied"]:
+        primary = guard["primary"]
+        if guard["warning"] and guard["warning"] not in warnings:
+            warnings.append(guard["warning"])
+
     differs = bool(
         primary
         and top_exact
@@ -1263,6 +1410,8 @@ def build_scoreline_decision(
         prediction_invalid=prediction_invalid,
     )
     if prediction_invalid:
+        confidence = "low"
+    if guard["applied"] and guard["force_low_confidence"]:
         confidence = "low"
 
     reason = build_primary_score_reason(
@@ -1307,4 +1456,10 @@ def build_scoreline_decision(
         candidate_comparison_summary=rep_diagnostics.get("candidate_comparison_summary", {}),
         recent_form_shadow=rep_diagnostics.get("recent_form_shadow", {}),
         representative_selection=rep_diagnostics.get("representative_selection", {}),
+        clean_sheet_guard_applied=guard["applied"],
+        clean_sheet_guard_reason=guard["reason"],
+        original_primary_score=guard["original"],
+        guarded_primary_score=guard["guarded"],
+        best_btts_candidate=guard["best_btts"],
+        clean_sheet_guard_utility_gap=guard["utility_gap"],
     )
