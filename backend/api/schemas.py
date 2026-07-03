@@ -456,6 +456,22 @@ class FusionBlowoutDiagnosticsResponse(BaseModel):
     original_uncapped_favorite_xg: float | None = None
     capped_favorite_xg: float | None = None
     matrix_regenerated: bool = False
+
+
+class UnderdogFoundationDiagnosticsResponse(BaseModel):
+    """Stage 2 — Maher fallback confidence + adaptive underdog floor diagnostics."""
+
+    maher_gf_ga_source_home: str | None = None
+    maher_gf_ga_source_away: str | None = None
+    maher_fallback_confidence: float | None = None
+    maher_fallback_confidence_applied: bool = False
+    underdog_side: str | None = None
+    underdog_floor_applied: bool = False
+    underdog_floor_standard: float | None = None
+    underdog_floor_adaptive: float | None = None
+    underdog_floor_reason: str | None = None
+    underdog_attack: float | None = None
+    favorite_defense: float | None = None
     note: str = ""
 
 
@@ -488,6 +504,7 @@ class PredictResponse(BaseModel):
     environment_diagnostics: EnvironmentDiagnosticsResponse | None = None
     market_diagnostics: MarketDiagnosticsResponse | None = None
     fusion_blowout_diagnostics: FusionBlowoutDiagnosticsResponse | None = None
+    underdog_foundation_diagnostics: UnderdogFoundationDiagnosticsResponse | None = None
     recent_form_provider_diagnostics: RecentFormProviderDiagnosticsResponse | None = None
     scoreline_decision: ScorelineDecisionResponse | None = None
 

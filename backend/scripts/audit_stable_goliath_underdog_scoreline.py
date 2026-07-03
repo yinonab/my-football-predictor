@@ -214,6 +214,7 @@ def _extract_row(
     fusion = data.get("fusion_blowout_diagnostics") or {}
     env = data.get("environment_diagnostics") or {}
     mcd = data.get("match_context_diagnostics") or {}
+    uf = data.get("underdog_foundation_diagnostics") or {}
 
     ud_side = _underdog_side(data)
     if ud_side == "home":
@@ -294,6 +295,12 @@ def _extract_row(
         "away_gf_ga_source": meta["away_gf_ga_source"],
         "home_matches_used": meta["home_matches_used"],
         "away_matches_used": meta["away_matches_used"],
+        "maher_fallback_confidence": uf.get("maher_fallback_confidence"),
+        "maher_fallback_confidence_applied": uf.get("maher_fallback_confidence_applied"),
+        "underdog_floor_applied": uf.get("underdog_floor_applied"),
+        "underdog_floor_standard": uf.get("underdog_floor_standard"),
+        "underdog_floor_adaptive": uf.get("underdog_floor_adaptive"),
+        "underdog_floor_reason": uf.get("underdog_floor_reason"),
         "scoreline_warnings": sd.get("primary_score_warnings"),
         "representative_method": sd.get("representative_score_method"),
         "gate_level": (sd.get("underdog_goal_gate") or {}).get("level"),

@@ -76,3 +76,35 @@ def test_power_based_xg_splits_by_elo() -> None:
     h, a = power_based_xg(1900.0, 1300.0, 0.0, global_avg=2.6)
     assert h > 2.0
     assert a < 0.5
+
+
+# --- Stage 2: Maher fallback confidence -----------------------------------
+
+
+def test_maher_confidence_default_matches_full_confidence() -> None:
+    args = (1.8, 0.7, 760.0, 660.0, 0.0)
+    kwargs = {"global_avg": 2.6}
+    base = blend_maher_with_power(*args, **kwargs)
+    explicit = blend_maher_with_power(*args, maher_confidence=1.0, **kwargs)
+    assert base == explicit
+
+
+def test_maher_confidence_shifts_toward_power_on_medium_gap() -> None:
+    """Lower confidence lets power/Elo lead: favorite up, underdog down."""
+    maher_h, maher_a = 1.3, 1.3  # symmetric fallback pair
+    full_h, full_a = blend_maher_with_power(
+        maher_h, maher_a, 820.0, 700.0, 0.0, global_avg=2.6, maher_confidence=1.0
+    )
+    low_h, low_a = blend_maher_with_power(
+        maher_h, maher_a, 820.0, 700.0, 0.0, global_avg=2.6, maher_confidence=0.6
+    )
+    assert low_h >= full_h
+    assert low_a <= full_a
+
+
+def test_maher_confidence_clamped() -> None:
+    args = (1.8, 0.7, 820.0, 700.0, 0.0)
+    kwargs = {"global_avg": 2.6}
+    assert blend_maher_with_power(
+        *args, maher_confidence=5.0, **kwargs
+    ) == blend_maher_with_power(*args, maher_confidence=1.0, **kwargs)

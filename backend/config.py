@@ -22,6 +22,42 @@ OVERDISPERSION_ALPHA: float = 0.0  # Calibrated: Poisson core fits WC 2022 best
 # Goliath / Fusion blowout — max favorite xG uplift above pre-fusion value (Stage 1 cap)
 FUSION_MAX_FAVORITE_UPLIFT: float = float(os.getenv("FUSION_MAX_FAVORITE_UPLIFT", "1.00"))
 
+# Stage 2 — weak-underdog foundation fix (Maher fallback confidence + adaptive floor)
+# When GF/GA history is missing, Maher returns symmetric global_avg/2 with no real
+# signal. Down-weight that fallback in the power blend so power/Elo differentiation
+# leads. Conservative default; 1.0 restores pre-Stage-2 behaviour.
+MAHER_FALLBACK_CONFIDENCE_WEIGHT: float = float(
+    os.getenv("MAHER_FALLBACK_CONFIDENCE_WEIGHT", "0.60")
+)
+# Adaptive underdog floor: on large gaps (>200), lower the weaker side's xG floor
+# for genuinely weak attacks instead of the flat ~0.80 floor. Weak attack is the
+# primary trigger (a very low attack rating is a real weakness signal even when the
+# team has recent GF/GA history); fallback GF/GA only lowers the floor a touch more.
+ADAPTIVE_UNDERDOG_FLOOR_ENABLED: bool = _env_bool("ADAPTIVE_UNDERDOG_FLOOR_ENABLED", True)
+ADAPTIVE_UNDERDOG_FLOOR_MIN: float = float(os.getenv("ADAPTIVE_UNDERDOG_FLOOR_MIN", "0.35"))
+# Weak-attack band: attack <= threshold is treated as a weak underdog.
+ADAPTIVE_UNDERDOG_WEAK_ATTACK_THRESHOLD: float = float(
+    os.getenv("ADAPTIVE_UNDERDOG_WEAK_ATTACK_THRESHOLD", "0.40")
+)
+# Floor band for weak underdogs: weakest attack → LOW, threshold attack → MAX_FLOOR.
+ADAPTIVE_UNDERDOG_WEAK_ATTACK_FLOOR_LOW: float = float(
+    os.getenv("ADAPTIVE_UNDERDOG_WEAK_ATTACK_FLOOR_LOW", "0.50")
+)
+ADAPTIVE_UNDERDOG_WEAK_ATTACK_MAX_FLOOR: float = float(
+    os.getenv("ADAPTIVE_UNDERDOG_WEAK_ATTACK_MAX_FLOOR", "0.62")
+)
+# Only a strong favorite defense nudges the weak-underdog floor down further.
+ADAPTIVE_UNDERDOG_FAVORITE_DEFENSE_STRONG: float = float(
+    os.getenv("ADAPTIVE_UNDERDOG_FAVORITE_DEFENSE_STRONG", "0.70")
+)
+ADAPTIVE_UNDERDOG_FAVORITE_DEFENSE_MAX_PENALTY: float = float(
+    os.getenv("ADAPTIVE_UNDERDOG_FAVORITE_DEFENSE_MAX_PENALTY", "0.06")
+)
+# Extra reduction when GF/GA is a fallback (no real history to trust).
+ADAPTIVE_UNDERDOG_FALLBACK_EXTRA_REDUCTION: float = float(
+    os.getenv("ADAPTIVE_UNDERDOG_FALLBACK_EXTRA_REDUCTION", "0.04")
+)
+
 # Power decomposition weights
 WEIGHT_ELO: float = 0.45
 WEIGHT_FORM: float = 0.25

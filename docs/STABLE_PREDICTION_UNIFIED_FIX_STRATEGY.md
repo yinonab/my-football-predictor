@@ -394,6 +394,31 @@ Implement Stage 1 only from docs/STABLE_PREDICTION_UNIFIED_FIX_STRATEGY.md:
 
 ---
 
+## Stage 2 Outcome & Stage 3 Input (measured)
+
+Stage 2 (`fix/stable-underdog-foundation-maher-floor`) implemented Maher fallback
+confidence + adaptive underdog floor. Audit findings:
+
+- **Base (pre-fusion) xG lowered into target band** for the weak underdogs:
+  Cape Verde 0.80→**0.54**, Haiti 0.80→**0.60**, Curaçao 0.80→**0.56**.
+- **Strong underdogs and competitive/reference fixtures unchanged** (all have gap < 200
+  so the floor never engages; attack > 0.40 also excludes them). 0.0 1X2 shift on 9–12.
+- **Structural blocker for FINAL xG under Goliath ON / Standard Blowout OFF:** both
+  blowout paths apply their own underdog floor *after* Stage 2 —
+  Goliath `dog_floor = 0.45 + 0.35·t`, Standard `0.55 + 0.4·t`. A lower underdog base
+  widens the favorite margin, nudging `t` up, so the underdog is re-inflated to ≈ or
+  slightly above the Stage 1 final value. Net: final P(underdog scores) does **not**
+  drop under Goliath ON (rises ~1–2pp; e.g. Cape Verde 53.2→54.6). Confirmed independent
+  of Maher confidence (Cape Verde keeps confidence 1.0 yet still shows the feedback).
+
+**Stage 3 input:** make the Goliath/Standard-Blowout underdog `dog_floor` attack-aware
+(e.g. scale the 0.45/0.55 base by underdog attack rating, or gate the re-floor when the
+underdog attack is very weak), and add the scoreline clean-sheet coherence guard. Only
+then will the weak-underdog base-xG gains from Stage 2 translate into lower final
+P(underdog scores) and coherent clean-sheet primaries under Goliath ON.
+
+---
+
 ## Decision
 
 **STABLE_PREDICTION_UNIFIED_FIX_STRATEGY_COMPLETE**
