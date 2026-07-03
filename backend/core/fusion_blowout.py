@@ -7,6 +7,8 @@ from typing import Any, Literal
 
 from core.blowout import BlowoutAdjustment
 
+import config
+
 FavoriteSide = Literal["home", "away"]
 
 
@@ -136,10 +138,16 @@ def apply_fusion_blowout(
     else:
         fav_xg, dog_xg = away_xg, home_xg
 
+    pre_fusion_fav_xg = fav_xg
     fav_target = 2.75 + t * 2.05
-    fav_xg = fav_xg + t * max(0.0, fav_target - fav_xg)
+    uncapped_fav_xg = fav_xg + t * max(0.0, fav_target - fav_xg)
     dog_floor = 0.45 + 0.35 * t
     dog_xg = max(dog_floor, dog_xg * (1.0 - 0.12 * t))
+
+    cap_limit = config.FUSION_MAX_FAVORITE_UPLIFT
+    max_fav_xg = pre_fusion_fav_xg + cap_limit
+    uplift_capped = uncapped_fav_xg > max_fav_xg + 1e-9
+    fav_xg = min(uncapped_fav_xg, max_fav_xg)
 
     if signal.favorite_side == "home":
         home_adj, away_adj = fav_xg, dog_xg
@@ -164,4 +172,8 @@ def apply_fusion_blowout(
         max_goals=max_goals,
         active=True,
         note=note,
+        fusion_favorite_uplift_capped=uplift_capped,
+        fusion_favorite_uplift_cap=cap_limit,
+        original_uncapped_favorite_xg=round(uncapped_fav_xg, 2),
+        capped_favorite_xg=round(fav_xg, 2),
     )

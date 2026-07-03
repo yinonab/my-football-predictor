@@ -719,6 +719,10 @@ def predict(request: PredictRequest) -> PredictResponse:
             }
             if fusion_blowout.active
             else None,
+            fusion_favorite_uplift_capped=fusion_blowout.fusion_favorite_uplift_capped,
+            fusion_favorite_uplift_cap=fusion_blowout.fusion_favorite_uplift_cap,
+            original_uncapped_favorite_xg=fusion_blowout.original_uncapped_favorite_xg,
+            capped_favorite_xg=fusion_blowout.capped_favorite_xg,
             matrix_regenerated=matrix_regenerated,
             note=fusion_note,
         )

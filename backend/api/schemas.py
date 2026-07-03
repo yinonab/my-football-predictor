@@ -451,6 +451,10 @@ class FusionBlowoutDiagnosticsResponse(BaseModel):
     suppressed_by: list[str] = Field(default_factory=list)
     xg_before: dict[str, float] | None = None
     xg_after: dict[str, float] | None = None
+    fusion_favorite_uplift_capped: bool = False
+    fusion_favorite_uplift_cap: float | None = None
+    original_uncapped_favorite_xg: float | None = None
+    capped_favorite_xg: float | None = None
     matrix_regenerated: bool = False
     note: str = ""
 

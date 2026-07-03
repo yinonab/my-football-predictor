@@ -13,6 +13,10 @@ class BlowoutAdjustment:
     max_goals: int
     active: bool
     note: str = ""
+    fusion_favorite_uplift_capped: bool = False
+    fusion_favorite_uplift_cap: float | None = None
+    original_uncapped_favorite_xg: float | None = None
+    capped_favorite_xg: float | None = None
 
 
 from core.maher import signed_mismatch_gap

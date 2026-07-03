@@ -19,6 +19,9 @@ HOME_ADVANTAGE_POWER_POINTS: float = float(
 )
 OVERDISPERSION_ALPHA: float = 0.0  # Calibrated: Poisson core fits WC 2022 best
 
+# Goliath / Fusion blowout — max favorite xG uplift above pre-fusion value (Stage 1 cap)
+FUSION_MAX_FAVORITE_UPLIFT: float = float(os.getenv("FUSION_MAX_FAVORITE_UPLIFT", "1.00"))
+
 # Power decomposition weights
 WEIGHT_ELO: float = 0.45
 WEIGHT_FORM: float = 0.25
