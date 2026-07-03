@@ -404,6 +404,12 @@ class ScorelineDecisionResponse(BaseModel):
     candidate_comparison_summary: dict[str, Any] = Field(default_factory=dict)
     recent_form_shadow: dict[str, Any] = Field(default_factory=dict)
     representative_selection: dict[str, Any] = Field(default_factory=dict)
+    clean_sheet_guard_applied: bool = False
+    clean_sheet_guard_reason: str | None = None
+    original_primary_score: str | None = None
+    guarded_primary_score: str | None = None
+    best_btts_candidate: str | None = None
+    clean_sheet_guard_utility_gap: float | None = None
 
 
 class ProbabilityCoherenceResponse(BaseModel):
@@ -455,7 +461,27 @@ class FusionBlowoutDiagnosticsResponse(BaseModel):
     fusion_favorite_uplift_cap: float | None = None
     original_uncapped_favorite_xg: float | None = None
     capped_favorite_xg: float | None = None
+    fusion_dog_floor_adaptive_applied: bool = False
+    fusion_dog_floor_original: float | None = None
+    fusion_dog_floor_adaptive: float | None = None
+    fusion_dog_floor_reason: str | None = None
+    fusion_underdog_attack: float | None = None
+    fusion_favorite_defense: float | None = None
+    fusion_underdog_gf_ga_fallback: bool | None = None
     matrix_regenerated: bool = False
+
+
+class StandardBlowoutDiagnosticsResponse(BaseModel):
+    """Part 4 (Stage 3) — Standard Blowout (Goliath OFF) adaptive dog-floor parity."""
+
+    active: bool = False
+    dog_floor_adaptive_applied: bool = False
+    dog_floor_original: float | None = None
+    dog_floor_adaptive: float | None = None
+    dog_floor_reason: str | None = None
+    underdog_attack: float | None = None
+    favorite_defense: float | None = None
+    underdog_gf_ga_fallback: bool | None = None
 
 
 class UnderdogFoundationDiagnosticsResponse(BaseModel):
@@ -504,6 +530,7 @@ class PredictResponse(BaseModel):
     environment_diagnostics: EnvironmentDiagnosticsResponse | None = None
     market_diagnostics: MarketDiagnosticsResponse | None = None
     fusion_blowout_diagnostics: FusionBlowoutDiagnosticsResponse | None = None
+    standard_blowout_diagnostics: StandardBlowoutDiagnosticsResponse | None = None
     underdog_foundation_diagnostics: UnderdogFoundationDiagnosticsResponse | None = None
     recent_form_provider_diagnostics: RecentFormProviderDiagnosticsResponse | None = None
     scoreline_decision: ScorelineDecisionResponse | None = None

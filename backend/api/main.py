@@ -41,6 +41,7 @@ from api.schemas import (
     ActualScoreResponse,
     VenueDiagnosticsResponse,
     FusionBlowoutDiagnosticsResponse,
+    StandardBlowoutDiagnosticsResponse,
     UnderdogFoundationDiagnosticsResponse,
     EnvironmentDiagnosticsResponse,
     RecentFormProviderDiagnosticsResponse,
@@ -628,6 +629,7 @@ def predict(request: PredictRequest) -> PredictResponse:
         )
     base_home_xg = round(home_xg, 2)
     base_away_xg = round(away_xg, 2)
+    standard_blowout_response: StandardBlowoutDiagnosticsResponse | None = None
     if request.fusion_blowout_enabled:
         blowout = BlowoutAdjustment(
             home_xg=home_xg,
@@ -646,6 +648,22 @@ def predict(request: PredictRequest) -> PredictResponse:
             base_alpha=request.alpha,
             home_elo=home_elo,
             away_elo=away_elo,
+            home_attack=home_data.get("attack"),
+            home_defense=home_data.get("defense"),
+            away_attack=away_data.get("attack"),
+            away_defense=away_data.get("defense"),
+            home_gf_ga_fallback=home_gf_ga_source != "real",
+            away_gf_ga_fallback=away_gf_ga_source != "real",
+        )
+        standard_blowout_response = StandardBlowoutDiagnosticsResponse(
+            active=blowout.active,
+            dog_floor_adaptive_applied=blowout.dog_floor_adaptive_applied,
+            dog_floor_original=blowout.dog_floor_original,
+            dog_floor_adaptive=blowout.dog_floor_adaptive,
+            dog_floor_reason=blowout.dog_floor_reason,
+            underdog_attack=blowout.underdog_attack,
+            favorite_defense=blowout.favorite_defense,
+            underdog_gf_ga_fallback=blowout.underdog_gf_ga_fallback,
         )
     home_xg, away_xg = blowout.home_xg, blowout.away_xg
 
@@ -725,6 +743,13 @@ def predict(request: PredictRequest) -> PredictResponse:
             result["away_xg"],
             fusion_signal,
             base_alpha=blowout.alpha,
+            power_gap=power_gap,
+            home_attack=home_data.get("attack"),
+            home_defense=home_data.get("defense"),
+            away_attack=away_data.get("attack"),
+            away_defense=away_data.get("defense"),
+            home_gf_ga_fallback=home_gf_ga_source != "real",
+            away_gf_ga_fallback=away_gf_ga_source != "real",
         )
         matrix_regenerated = False
         if fusion_blowout.active:
@@ -779,6 +804,13 @@ def predict(request: PredictRequest) -> PredictResponse:
             fusion_favorite_uplift_cap=fusion_blowout.fusion_favorite_uplift_cap,
             original_uncapped_favorite_xg=fusion_blowout.original_uncapped_favorite_xg,
             capped_favorite_xg=fusion_blowout.capped_favorite_xg,
+            fusion_dog_floor_adaptive_applied=fusion_blowout.dog_floor_adaptive_applied,
+            fusion_dog_floor_original=fusion_blowout.dog_floor_original,
+            fusion_dog_floor_adaptive=fusion_blowout.dog_floor_adaptive,
+            fusion_dog_floor_reason=fusion_blowout.dog_floor_reason,
+            fusion_underdog_attack=fusion_blowout.underdog_attack,
+            fusion_favorite_defense=fusion_blowout.favorite_defense,
+            fusion_underdog_gf_ga_fallback=fusion_blowout.underdog_gf_ga_fallback,
             matrix_regenerated=matrix_regenerated,
             note=fusion_note,
         )
@@ -1151,6 +1183,7 @@ def predict(request: PredictRequest) -> PredictResponse:
         ),
         market_diagnostics=MarketDiagnosticsResponse(**market_diagnostics_payload.to_dict()),
         fusion_blowout_diagnostics=fusion_blowout_response,
+        standard_blowout_diagnostics=standard_blowout_response,
         underdog_foundation_diagnostics=underdog_foundation_diag,
         scoreline_decision=_scoreline_decision_response(scoreline_decision),
     )

@@ -58,6 +58,47 @@ ADAPTIVE_UNDERDOG_FALLBACK_EXTRA_REDUCTION: float = float(
     os.getenv("ADAPTIVE_UNDERDOG_FALLBACK_EXTRA_REDUCTION", "0.04")
 )
 
+# Stage 3A — attack-aware Goliath/Fusion dog floor.
+# Goliath re-applies dog_floor = 0.45 + 0.35*t after fusion, which re-inflates weak
+# underdogs and neutralises the Stage 2 base reduction. When the underdog attack is
+# weak and the gap is large, cap that floor into a weak band instead of ~0.75-0.80.
+FUSION_ADAPTIVE_DOG_FLOOR_ENABLED: bool = _env_bool("FUSION_ADAPTIVE_DOG_FLOOR_ENABLED", True)
+FUSION_DOG_FLOOR_MIN: float = float(os.getenv("FUSION_DOG_FLOOR_MIN", "0.35"))
+FUSION_WEAK_ATTACK_THRESHOLD: float = float(os.getenv("FUSION_WEAK_ATTACK_THRESHOLD", "0.40"))
+FUSION_WEAK_DOG_FLOOR_LOW: float = float(os.getenv("FUSION_WEAK_DOG_FLOOR_LOW", "0.45"))
+FUSION_WEAK_DOG_FLOOR_HIGH: float = float(os.getenv("FUSION_WEAK_DOG_FLOOR_HIGH", "0.62"))
+FUSION_DOG_FLOOR_FAVORITE_DEFENSE_STRONG: float = float(
+    os.getenv("FUSION_DOG_FLOOR_FAVORITE_DEFENSE_STRONG", "0.70")
+)
+FUSION_DOG_FLOOR_FAVORITE_DEFENSE_MAX_PENALTY: float = float(
+    os.getenv("FUSION_DOG_FLOOR_FAVORITE_DEFENSE_MAX_PENALTY", "0.06")
+)
+FUSION_DOG_FLOOR_FALLBACK_EXTRA_REDUCTION: float = float(
+    os.getenv("FUSION_DOG_FLOOR_FALLBACK_EXTRA_REDUCTION", "0.04")
+)
+FUSION_DOG_FLOOR_GAP_THRESHOLD: float = float(os.getenv("FUSION_DOG_FLOOR_GAP_THRESHOLD", "200"))
+
+# Part 4 — Standard Blowout (Goliath OFF) dog-floor parity. Standard blowout uses
+# dog_floor = 0.55 + 0.4*t with the same re-inflation problem; reuse the same weak band.
+STANDARD_BLOWOUT_ADAPTIVE_DOG_FLOOR_ENABLED: bool = _env_bool(
+    "STANDARD_BLOWOUT_ADAPTIVE_DOG_FLOOR_ENABLED", True
+)
+
+# Stage 3B — scoreline clean-sheet guard. Avoid a favorite clean-sheet primary when
+# the underdog still has a meaningful chance to score, unless it is clearly dominant.
+SCORELINE_CLEAN_SHEET_GUARD_ENABLED: bool = _env_bool("SCORELINE_CLEAN_SHEET_GUARD_ENABLED", True)
+SCORELINE_CS_GUARD_UNDERDOG_SCORE_PROB_THRESHOLD: float = float(
+    os.getenv("SCORELINE_CS_GUARD_UNDERDOG_SCORE_PROB_THRESHOLD", "45.0")
+)
+SCORELINE_CS_GUARD_BTTS_THRESHOLD: float = float(
+    os.getenv("SCORELINE_CS_GUARD_BTTS_THRESHOLD", "40.0")
+)
+# Max probability-point gap (best clean sheet minus best BTTS) to still switch primary
+# to the BTTS candidate. Larger gap = clean sheet clearly dominant → keep but flag.
+SCORELINE_CS_GUARD_MAX_UTILITY_GAP: float = float(
+    os.getenv("SCORELINE_CS_GUARD_MAX_UTILITY_GAP", "3.0")
+)
+
 # Power decomposition weights
 WEIGHT_ELO: float = 0.45
 WEIGHT_FORM: float = 0.25

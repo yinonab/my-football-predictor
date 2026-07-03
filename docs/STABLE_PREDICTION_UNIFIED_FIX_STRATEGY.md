@@ -419,6 +419,32 @@ P(underdog scores) and coherent clean-sheet primaries under Goliath ON.
 
 ---
 
+## Stage 3 Outcome (measured)
+
+Stage 3 (`fix/stable-goliath-dogfloor-scoreline-guard`) implemented the attack-aware
+blowout dog floor (Fusion + Standard Blowout parity) and a clean-sheet guard. Audit
+(`--quick`, scenario A Goliath ON / D Goliath OFF):
+
+- **Weak-underdog FINAL xG now drops under Goliath ON** (the Stage 2 blocker is resolved):
+  Cape Verde final `0.79→0.50` P(ud) `54.6%→39.4%`; Haiti `0.75→0.55` P(ud) `52.8%→42.3%`;
+  Curaçao `0.78→0.55` P(ud) `54.2%→42.3%`. Favorites remain clear (1X2 unchanged: 1X2 is
+  taken from the probability pipeline, not the regenerated fusion matrix).
+- **Standard Blowout parity (Goliath OFF)**: Cape Verde floor `0.95→0.50`, Haiti `0.64→0.45`,
+  Curaçao `0.79→0.55` — weak underdogs no longer re-inflated on the legacy path either.
+- **Strong underdogs preserved** (attack > 0.40 ⇒ adaptive floor never engages): Croatia,
+  Portugal, Senegal, Austria xG unchanged; competitive/reference fixtures unchanged
+  (no 1X2 shift, no total-xG shift, no primary churn).
+- **Clean-sheet guard**: enabled and wired with full diagnostics, but *defers to the
+  existing `underdog_goal_gate`* — it only overrides a favorite clean-sheet primary when
+  the gate level is `ALLOW`/`STRONG_ALLOW`. It stays inactive across the current fixture
+  set because (a) weak-underdog incoherence is already resolved at the xG level by the
+  adaptive floor (P(ud) falls below the 45% trigger) and (b) the remaining clean-sheet
+  primaries sit behind deliberate gate `BLOCK`/`WEAK_ALLOW` decisions that Stage 3 must
+  not regress. Making the guard override those deliberate gate decisions is a separate,
+  test-breaking tuning choice (left for a follow-up if desired).
+
+---
+
 ## Decision
 
 **STABLE_PREDICTION_UNIFIED_FIX_STRATEGY_COMPLETE**

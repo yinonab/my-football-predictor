@@ -212,6 +212,7 @@ def _extract_row(
     sd = data.get("scoreline_decision") or {}
     probs = data["probabilities_1x2"]
     fusion = data.get("fusion_blowout_diagnostics") or {}
+    std_blowout = data.get("standard_blowout_diagnostics") or {}
     env = data.get("environment_diagnostics") or {}
     mcd = data.get("match_context_diagnostics") or {}
     uf = data.get("underdog_foundation_diagnostics") or {}
@@ -301,6 +302,26 @@ def _extract_row(
         "underdog_floor_standard": uf.get("underdog_floor_standard"),
         "underdog_floor_adaptive": uf.get("underdog_floor_adaptive"),
         "underdog_floor_reason": uf.get("underdog_floor_reason"),
+        # Stage 3A — Fusion adaptive dog floor
+        "fusion_dog_floor_original": fusion.get("fusion_dog_floor_original"),
+        "fusion_dog_floor_adaptive": fusion.get("fusion_dog_floor_adaptive"),
+        "fusion_dog_floor_adaptive_applied": fusion.get("fusion_dog_floor_adaptive_applied"),
+        "fusion_dog_floor_reason": fusion.get("fusion_dog_floor_reason"),
+        "fusion_underdog_attack": fusion.get("fusion_underdog_attack"),
+        "fusion_favorite_defense": fusion.get("fusion_favorite_defense"),
+        "fusion_underdog_gf_ga_fallback": fusion.get("fusion_underdog_gf_ga_fallback"),
+        # Part 4 — Standard Blowout adaptive dog floor
+        "standard_dog_floor_original": std_blowout.get("dog_floor_original"),
+        "standard_dog_floor_adaptive": std_blowout.get("dog_floor_adaptive"),
+        "standard_dog_floor_adaptive_applied": std_blowout.get("dog_floor_adaptive_applied"),
+        "standard_dog_floor_reason": std_blowout.get("dog_floor_reason"),
+        # Stage 3B — scoreline clean-sheet guard
+        "clean_sheet_guard_applied": sd.get("clean_sheet_guard_applied"),
+        "clean_sheet_guard_reason": sd.get("clean_sheet_guard_reason"),
+        "original_primary_score": sd.get("original_primary_score"),
+        "guarded_primary_score": sd.get("guarded_primary_score"),
+        "best_btts_candidate": sd.get("best_btts_candidate"),
+        "clean_sheet_guard_utility_gap": sd.get("clean_sheet_guard_utility_gap"),
         "scoreline_warnings": sd.get("primary_score_warnings"),
         "representative_method": sd.get("representative_score_method"),
         "gate_level": (sd.get("underdog_goal_gate") or {}).get("level"),
