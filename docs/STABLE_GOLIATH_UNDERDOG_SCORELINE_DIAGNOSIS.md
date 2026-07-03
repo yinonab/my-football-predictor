@@ -4,7 +4,8 @@
 **Branch:** `diagnosis/stable-goliath-underdog-scoreline`  
 **Mode:** Read-only diagnosis — no prediction math changes  
 **Audit script:** `backend/scripts/audit_stable_goliath_underdog_scoreline.py`  
-**Generated reports (local):** `backend/reports/stable_goliath_underdog_scoreline_audit.{json,md}`
+**Generated reports (local):** `backend/reports/stable_goliath_underdog_scoreline_audit.{json,md}`  
+**Unified fix strategy (design):** [STABLE_PREDICTION_UNIFIED_FIX_STRATEGY.md](./STABLE_PREDICTION_UNIFIED_FIX_STRATEGY.md)
 
 ---
 
