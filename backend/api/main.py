@@ -1060,6 +1060,9 @@ def predict(request: PredictRequest) -> PredictResponse:
         decomp = nr3_fcc_sidecar_diagnostics.get("nr3_xg_decomposition")
         if decomp:
             model_diag_dict["nr3_xg_decomposition"] = decomp
+        cap_diag = nr3_fcc_sidecar_diagnostics.get("weak_underdog_cap")
+        if cap_diag:
+            model_diag_dict["active_model_weak_underdog_cap"] = cap_diag
 
     return PredictResponse(
         home_team=home_name,
