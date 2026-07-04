@@ -8,6 +8,7 @@ from types import SimpleNamespace
 from typing import Any
 
 import config
+from core.active_model_weak_underdog_cap import apply_weak_underdog_xg_cap
 from core.blowout import BlowoutAdjustment, apply_blowout_adjustment
 from core.context_adjustments import apply_xg_context_delta
 from core.favorite_confidence_curve_prototype import (
@@ -534,6 +535,50 @@ def run_nr3_fcc_integrated_prediction(
             away_xg=away_xg,
         )
 
+    # Attack-aware weak-underdog cap (served NR3 path). The NR3 base structurally
+    # over-credits weak underdogs (favorite share cap + attack/defense unused), so
+    # for a weak-attack side in a large mismatch cap the served underdog xG into a
+    # target band. This is a cap, not a floor: it never raises the underdog xG.
+    before_cap_home, before_cap_away = home_xg, away_xg
+    cap_result = apply_weak_underdog_xg_cap(
+        home_xg,
+        away_xg,
+        home_power=float(home_power),
+        away_power=float(away_power),
+        home_attack=home_attack,
+        home_defense=home_defense,
+        away_attack=away_attack,
+        away_defense=away_defense,
+        power_gap=settings.power_gap,
+    )
+    weak_underdog_cap = cap_result.to_dict()
+    if cap_result.applied:
+        home_xg, away_xg = cap_result.home_xg, cap_result.away_xg
+        decomp.record(
+            name="weak_underdog_cap",
+            display_name="תקרת אנדרדוג חלש",
+            before_home_xg=before_cap_home,
+            before_away_xg=before_cap_away,
+            after_home_xg=home_xg,
+            after_away_xg=away_xg,
+            status="applied",
+            explanation=(
+                f"תקרת xG לאנדרדוג חלש ({cap_result.underdog_side}): "
+                f"{cap_result.original_underdog_xg}→{cap_result.capped_underdog_xg} "
+                f"(attack={cap_result.underdog_attack}, "
+                f"fav_def={cap_result.favorite_defense}, gap={cap_result.power_gap})"
+            ),
+        )
+    else:
+        decomp.record_unchanged(
+            name="weak_underdog_cap",
+            display_name="תקרת אנדרדוג חלש",
+            status="skipped",
+            explanation=f"לא הוחל: {cap_result.reason}",
+            home_xg=home_xg,
+            away_xg=away_xg,
+        )
+
     matrix_result = _generate_matrix(
         home_power=home_power,
         away_power=away_power,
@@ -687,4 +732,5 @@ def run_nr3_fcc_integrated_prediction(
         "fcc_diagnostics": fcc_diag,
         "strength_diagnostics": strength_diag,
         "nr3_xg_decomposition": nr3_xg_decomposition,
+        "weak_underdog_cap": weak_underdog_cap,
     }

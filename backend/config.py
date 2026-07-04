@@ -460,6 +460,49 @@ NR3_FCC_SERVED_MODEL_VERSION: str = os.getenv(
     "NR3_FCC_SERVED_MODEL_VERSION", "v2.3.0-nr3-fcc-served"
 ).strip()
 
+# Active-model (NR3-FCC served) weak-underdog xG cap.
+# Root cause: the NR3 strength generator caps the favorite's xG share
+# (max_favorite_share=0.68) and does NOT use attack/defense, so in large
+# mismatches the underdog is structurally floored at ~32% of the total (~0.9 xG)
+# even for very weak attacking sides (e.g. Cape Verde attack 0.12). Fusion only
+# preserves that high base, and lowering the fusion dog *floor* cannot help
+# because the served underdog xG already sits above it. This is a CAP (min), not
+# a floor: it lowers an already-high served underdog xG for weak-attack teams in
+# large mismatches and never raises it. Strong underdogs (attack above threshold)
+# are never touched.
+ACTIVE_MODEL_WEAK_UNDERDOG_CAP_ENABLED: bool = _env_bool(
+    "ACTIVE_MODEL_WEAK_UNDERDOG_CAP_ENABLED", True
+)
+ACTIVE_MODEL_WEAK_UNDERDOG_ATTACK_THRESHOLD: float = float(
+    os.getenv("ACTIVE_MODEL_WEAK_UNDERDOG_ATTACK_THRESHOLD", "0.40")
+)
+ACTIVE_MODEL_WEAK_UNDERDOG_POWER_GAP_THRESHOLD: float = float(
+    os.getenv("ACTIVE_MODEL_WEAK_UNDERDOG_POWER_GAP_THRESHOLD", "200")
+)
+ACTIVE_MODEL_WEAK_UNDERDOG_MAX_XG_LOW: float = float(
+    os.getenv("ACTIVE_MODEL_WEAK_UNDERDOG_MAX_XG_LOW", "0.55")
+)
+ACTIVE_MODEL_WEAK_UNDERDOG_MAX_XG_HIGH: float = float(
+    os.getenv("ACTIVE_MODEL_WEAK_UNDERDOG_MAX_XG_HIGH", "0.65")
+)
+ACTIVE_MODEL_WEAK_UNDERDOG_MIN_XG: float = float(
+    os.getenv("ACTIVE_MODEL_WEAK_UNDERDOG_MIN_XG", "0.35")
+)
+# Strong favorite defense / underdog GF-GA fallback tighten the cap slightly.
+ACTIVE_MODEL_WEAK_UNDERDOG_FAVORITE_DEFENSE_STRONG: float = float(
+    os.getenv("ACTIVE_MODEL_WEAK_UNDERDOG_FAVORITE_DEFENSE_STRONG", "0.70")
+)
+ACTIVE_MODEL_WEAK_UNDERDOG_FAVORITE_DEFENSE_PENALTY: float = float(
+    os.getenv("ACTIVE_MODEL_WEAK_UNDERDOG_FAVORITE_DEFENSE_PENALTY", "0.04")
+)
+ACTIVE_MODEL_WEAK_UNDERDOG_FALLBACK_PENALTY: float = float(
+    os.getenv("ACTIVE_MODEL_WEAK_UNDERDOG_FALLBACK_PENALTY", "0.03")
+)
+
+
+def active_model_weak_underdog_cap_enabled() -> bool:
+    return ACTIVE_MODEL_WEAK_UNDERDOG_CAP_ENABLED
+
 
 def strength_based_xg_enabled() -> bool:
     return STRENGTH_BASED_XG_ENABLED and XG_BASELINE_GENERATOR == "strength_v1"

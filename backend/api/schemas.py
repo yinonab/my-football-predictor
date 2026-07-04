@@ -342,6 +342,20 @@ class GlobalRatingDiagnosticsResponse(BaseModel):
     power_shadow_calibration: PowerShadowCalibrationResponse | None = None
 
 
+class ActiveModelWeakUnderdogCapResponse(BaseModel):
+    """Served (NR3-FCC) attack-aware weak-underdog xG cap diagnostics."""
+
+    active_model_weak_underdog_cap_applied: bool = False
+    active_model_weak_underdog_cap_reason: str | None = None
+    active_model_weak_underdog_side: str | None = None
+    active_model_weak_underdog_cap_original_xg: float | None = None
+    active_model_weak_underdog_cap_xg: float | None = None
+    active_model_weak_underdog_cap_value: float | None = None
+    active_model_weak_underdog_attack: float | None = None
+    active_model_favorite_defense: float | None = None
+    active_model_power_gap: float | None = None
+
+
 class ModelDiagnosticsResponse(BaseModel):
     model_version: str = config.BASELINE_MODEL_VERSION
     baseline_model_version: str = config.BASELINE_MODEL_VERSION
@@ -362,6 +376,7 @@ class ModelDiagnosticsResponse(BaseModel):
     final_away_power: float | None = None
     gap_delta: float | None = None
     nr3_xg_decomposition: Nr3XgDecompositionResponse | None = None
+    active_model_weak_underdog_cap: ActiveModelWeakUnderdogCapResponse | None = None
 
 
 class ScorelineCandidateResponse(BaseModel):
