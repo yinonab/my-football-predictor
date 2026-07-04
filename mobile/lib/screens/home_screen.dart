@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import '../utils/prediction_request_guard.dart';
 import '../utils/prediction_ui_copy.dart';
 import '../models/prediction_result.dart';
 import '../models/venue_mode.dart';
@@ -34,6 +36,7 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _checking = true;
   bool _teamsLoading = false;
   bool _predicting = false;
+  int _predictGeneration = 0;
   String? _error;
   String? _connectionError;
 
@@ -46,9 +49,61 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _onTeamsChanged() {
-    if (_result != null && mounted) {
-      setState(() => _result = null);
+    _invalidatePendingPredictions();
+  }
+
+  void _debugPredict(String message) {
+    if (kDebugMode) {
+      debugPrint('[predict] $message');
     }
+  }
+
+  /// Drop in-flight responses and clear stale UI when fixture/options change.
+  void _invalidatePendingPredictions({bool clearResult = true}) {
+    _predictGeneration++;
+    if (!mounted) return;
+    setState(() {
+      if (clearResult) _result = null;
+      _predicting = false;
+    });
+  }
+
+  PredictionSettings _currentPredictSettings() {
+    return _settings.copyWith(
+      venueMode: _venueMode,
+      venueCity: _venueCity,
+      matchDate: _venueCity != null
+          ? _formatIsoDate(_matchDate ?? DateTime.now())
+          : null,
+    );
+  }
+
+  bool _requestStillCurrent({
+    required int generation,
+    required PredictRequestIdentity identity,
+  }) {
+    if (generation != _predictGeneration) {
+      _debugPredict('discard gen=$generation current=$_predictGeneration');
+      return false;
+    }
+    if (_teamAController.text.trim() != identity.homeTeam) {
+      _debugPredict('discard home changed');
+      return false;
+    }
+    if (_teamBController.text.trim() != identity.awayTeam) {
+      _debugPredict('discard away changed');
+      return false;
+    }
+    if (!samePredictSettings(_currentPredictSettings(), identity.settings)) {
+      _debugPredict('discard settings changed');
+      return false;
+    }
+    return true;
+  }
+
+  void _clearPredictingIfLatest(int generation) {
+    if (!mounted || generation != _predictGeneration) return;
+    setState(() => _predicting = false);
   }
 
   void _onTeamAFocus() {
@@ -162,6 +217,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (picked == null || !mounted) return;
     setState(() => _matchDate = picked);
     await _persistVenueSettings();
+    _invalidatePendingPredictions();
   }
 
   Future<void> _predict() async {
@@ -179,37 +235,56 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
+    final generation = ++_predictGeneration;
+    final predictSettings = _currentPredictSettings();
+    final identity = PredictRequestIdentity(
+      homeTeam: teamA,
+      awayTeam: teamB,
+      settings: predictSettings,
+    );
+
     setState(() {
       _predicting = true;
       _error = null;
+      _result = null;
     });
 
     try {
-      final predictSettings = _settings.copyWith(
-        venueMode: _venueMode,
-        venueCity: _venueCity,
-        matchDate: _venueCity != null
-            ? _formatIsoDate(_matchDate ?? DateTime.now())
-            : null,
-      );
       final result = await _apiService.predict(
         baseUrl: _settings.apiBaseUrl,
         homeTeam: teamA,
         awayTeam: teamB,
         settings: predictSettings,
       );
+      if (!_requestStillCurrent(generation: generation, identity: identity)) {
+        _clearPredictingIfLatest(generation);
+        return;
+      }
+      if (result.homeTeam.trim() != teamA || result.awayTeam.trim() != teamB) {
+        _debugPredict(
+          'discard response fixture ${result.homeTeam} vs ${result.awayTeam}',
+        );
+        _clearPredictingIfLatest(generation);
+        return;
+      }
       if (!mounted) return;
       setState(() {
         _result = result;
         _predicting = false;
       });
     } on ApiException catch (e) {
+      if (!_requestStillCurrent(generation: generation, identity: identity)) {
+        return;
+      }
       if (!mounted) return;
       setState(() {
         _error = e.message;
         _predicting = false;
       });
     } catch (_) {
+      if (!_requestStillCurrent(generation: generation, identity: identity)) {
+        return;
+      }
       if (!mounted) return;
       setState(() {
         _error = 'שגיאה בחיזוי. ודא שהשרת פועל.';
@@ -229,6 +304,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
     if (updated != null) {
+      _invalidatePendingPredictions();
       setState(() {
         _settings = updated;
         _venueMode = updated.venueMode;
@@ -362,12 +438,16 @@ class _HomeScreenState extends State<HomeScreen> {
                       value: _venueMode,
                       team1: _teamAController.text.trim(),
                       team2: _teamBController.text.trim(),
-                      onChanged: (mode) => setState(() => _venueMode = mode),
+                      onChanged: (mode) {
+                        _invalidatePendingPredictions();
+                        setState(() => _venueMode = mode);
+                      },
                     ),
                     const SizedBox(height: 12),
                     VenueCityPicker(
                       value: _venueCity,
                       onChanged: (city) async {
+                        _invalidatePendingPredictions();
                         setState(() {
                           _venueCity = city;
                           if (city != null && _matchDate == null) {
