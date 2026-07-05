@@ -44,6 +44,16 @@ def test_hebrew_alias_resolution() -> None:
     assert data["elo"] == 1595
 
 
+def test_curacao_cedilla_resolves_to_registry_team() -> None:
+    dm = LiveDataManager()
+    ascii_key, ascii_data = dm.resolve_team("Curacao")
+    cedilla_key, cedilla_data = dm.resolve_team("Curaçao")
+    assert ascii_key == cedilla_key == "Curacao (קוראסאו)"
+    assert ascii_data == cedilla_data
+    assert ascii_data["elo"] != 1500.0
+    assert dm.is_known_team("Curaçao")
+
+
 def test_new_wc_teams_present() -> None:
     dm = LiveDataManager()
     teams = dm.list_teams()

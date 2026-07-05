@@ -81,10 +81,14 @@ def run_live_nr3_fcc_shadow_sidecar(
     home_defense: float | None = None,
     away_attack: float | None = None,
     away_defense: float | None = None,
+    home_attack_raw: float | None = None,
+    away_attack_raw: float | None = None,
     home_form: float | None = None,
     away_form: float | None = None,
     population_powers: list[float] | None = None,
     match_context: dict[str, Any] | None = None,
+    home_gf_ga_fallback: bool = False,
+    away_gf_ga_fallback: bool = False,
 ) -> dict[str, Any]:
     """Compute NR3+FCC diagnostics with optional request settings integration."""
     settings = integrated_settings or Nr3FccIntegratedSettings()
@@ -106,8 +110,12 @@ def run_live_nr3_fcc_shadow_sidecar(
         home_defense=home_defense,
         away_attack=away_attack,
         away_defense=away_defense,
+        home_attack_raw=home_attack_raw,
+        away_attack_raw=away_attack_raw,
         home_form=home_form,
         away_form=away_form,
         population_powers=population_powers,
         match_context=match_context,
+        home_gf_ga_fallback=home_gf_ga_fallback,
+        away_gf_ga_fallback=away_gf_ga_fallback,
     )
