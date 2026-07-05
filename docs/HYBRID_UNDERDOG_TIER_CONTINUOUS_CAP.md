@@ -1,91 +1,117 @@
-# Hybrid Tier + Continuous Weak Underdog Cap
+# Hybrid / Four-Level Underdog xG Cap
 
 **Branch:** `fix/hybrid-underdog-tier-continuous-cap`  
 **Model:** `v2.3.0-nr3-fcc-served`  
-**Scope:** Post-fusion underdog xG cap only — scoreline picker untouched.
+**Scope:** Post-fusion underdog xG cap only.
 
-## What changed
+## Why 3 tiers were not enough
 
-Replaced the single-band weak-underdog cap (attack ≤ 0.40, gap > 200, cap 0.55–0.65) with **hybrid tier + continuous cap**:
+The first hybrid implementation (commit `440c267`) used **ultra_weak / medium_weak / strong**. It fixed Haiti and Cape Verde but left a coarse ladder:
 
-| Tier | Attack | Gap floor | Cap band |
-|------|--------|-----------|----------|
-| ultra_weak | ≤ 0.15 | > 150 | **0.35–0.52** |
-| medium_weak | 0.16–0.40 | > 180 | 0.55–0.70 |
-| strong | > 0.40 | — | no cap |
+| Team | 3-tier ud xG | Issue |
+|------|--------------|-------|
+| Haiti | 0.41 | Good |
+| Cape Verde | 0.45 | Good |
+| Curaçao | 0.61 | Only −0.02 vs old |
+| Paraguay | 0.61 | Same as Curaçao |
+| DR Congo | 0.67 | Uncapped (gap / attack source) |
 
-Within each tier, cap scales continuously with attack (weaker → lower cap). Additional tightening:
+Large jump ultra → medium; no **weak** step between ultra and medium.
 
-- Favorite defense (continuous above baseline 0.55)
-- GF/GA fallback penalty (−0.03)
-- Ultra-tier gap penalty for very large mismatches
-- Attack source: `min(raw, history)` when sources conflict by ≥ 0.15, or when GF/GA is fallback
+## Four-level design (data-driven, not by country name)
 
-**Wired:** `home_gf_ga_fallback` / `away_gf_ga_fallback` and raw database attack into NR3 served cap path.
+Tier is chosen from **`attack_used`** + matchup gap. Country names are validation examples only.
 
-## Why ultra band is lower than diagnosis draft (0.50–0.58)
+| Level | attack_used | Gap floor | Cap band | Cap? |
+|-------|-------------|-----------|----------|------|
+| **ultra_weak** | ≤ 0.15 | > 130 | 0.35–0.52 | yes |
+| **weak** | 0.16–0.30 | > 115 | 0.48–0.62 | yes |
+| **medium_underdog** | 0.31–0.50 | > 200 | 0.60–0.75 | yes |
+| **strong_underdog** | > 0.50 | — | none | no |
 
-User feedback: Haiti / Cape Verde vs elite favorites should score **less** than the prior ~0.57–0.58 xG (~43–44% P(score)). The new ultra band **0.35–0.52** targets ~33–40% P(score) while keeping primaries at 2-0 / 3-0 (no 5-0 runaway).
+**Gap floors rationale:**
+- Ultra 130: large mismatches only; avoids competitive pairs.
+- Weak **115**: explicitly enables DR Congo (gap ~120) when `attack_used` resolves to weak (0.27).
+- Medium **200**: mild cap only for large favorites vs medium sides (France–Paraguay/Curaçao).
 
-## Before / after fixture matrix
+**Attack source rule:**
+- If `|raw − history| ≥ 0.15` **or** `gf_ga_fallback` → use `min(raw, history)` (`min_source_conflict` / `min_conservative`).
+- Diagnostics: `attack_used`, `raw_attack`, `history_attack`, `attack_source`, `attack_source_conflict`.
 
-Settings: NR3 served, Goliath on, neutral, no context/altitude.  
-**Before** = `origin/main` @ 9132ca4 (diagnosis audit). **After** = this branch.
+**Monotonicity:** Cap band ordering guarantees `ultra_max < weak_max < medium_max` at the formula level. Small final-xG overlap can occur when pre-cap NR3 xG differs (cap is a maximum, never raises).
 
-### Ultra-weak
+**Tier boundary cliffs:** Documented at 0.15 / 0.30 / 0.50 — tests cover boundaries.
 
-| Fixture | | ud xG | P(sc) | Primary | Cap |
-|---------|---|-------|-------|---------|-----|
-| France vs Haiti | Before | 0.57 | 43.5% | 2-0 | yes |
-| | **After** | **0.41** | **33.6%** | 2-0 | yes |
-| Argentina vs Cape Verde | Before | 0.58 | 44.0% | 3-0 | yes |
-| | **After** | **0.45** | **36.2%** | 3-0 | yes |
+## DR Congo decision
 
-### Medium-weak
+| Signal | Value |
+|--------|-------|
+| raw_attack | 0.27 |
+| history_attack | 0.58 |
+| attack_used | **0.27** (conflict → conservative min) |
+| tier | **weak** |
+| gap | 119.7 > weak floor **115** |
+| **Decision** | **Capped** as weak underdog (~0.59 ud xG) |
 
-| Fixture | | ud xG | P(sc) | Primary | Tier | Cap |
-|---------|---|-------|-------|---------|------|-----|
-| France vs Curaçao | Before | 0.63 | 46.7% | 3-0 | — | yes |
-| | **After** | **0.61** | **45.7%** | 3-0 | medium_weak | yes |
-| France vs Paraguay | Before | 0.62 | 46.2% | 3-0 | — | yes |
-| | **After** | **0.61** | **45.7%** | 3-0 | medium_weak | yes |
-| England vs DR Congo | Before | 0.67 | 48.8% | 3-0 | — | no |
-| | **After** | 0.67 | 48.8% | 3-0 | medium_weak | no (gap 120 < 180) |
+Previously (3-tier): tier `medium_weak` label but **uncapped** (gap < 180). Now explicitly weak + capped.
+
+## Before / current / amended tables
+
+Settings: NR3 served, Goliath on, neutral, no context.
+
+### Ultra
+
+| Fixture | A origin | B 3-tier | C 4-level |
+|---------|----------|----------|-----------|
+| France vs Haiti ud xG | 0.57 | 0.41 | **0.41** |
+| Haiti P(sc) | 41.9% | 32.7% | **32.7%** |
+| Haiti primary | 2-0 | 2-0 | **2-0** |
+| Argentina vs Cape Verde ud xG | 0.58 | 0.45 | **0.45** |
+| Cape Verde P(sc) | 41.6% | 34.5% | **34.5%** |
+| Cape Verde primary | 3-0 | 3-0 | **3-0** |
+
+### Weak / medium
+
+| Fixture | A | B 3-tier | C 4-level | Tier (C) |
+|---------|---|----------|-----------|----------|
+| DR Congo ud xG | 0.67 | 0.67 | **0.59** | weak |
+| Curaçao ud xG | 0.63 | 0.61 | **0.58** | medium_underdog |
+| Paraguay ud xG | 0.62 | 0.61 | **0.57** | weak* |
+
+\*Paraguay `attack_used=0.28` (conservative min vs raw 0.33) → weak tier; still above Haiti/Cape Verde.
 
 ### Strong (unchanged)
 
-| Fixture | ud xG | P(sc) | Cap |
-|---------|-------|-------|-----|
-| France vs Croatia | 0.65 | 47.8% | no |
-| Spain vs Portugal | 0.80 | 55.1% | no |
-| Belgium vs Senegal | 0.71 | 50.8% | no |
-| Spain vs Austria | 0.65 | 47.8% | no |
+| Fixture | ud xG (all) | Cap |
+|---------|-------------|-----|
+| Croatia | 0.65 | no |
+| Portugal | 0.80 | no |
+| Senegal | 0.71 | no |
+| Austria | 0.65 | no |
+
+**Favorite xG:** unchanged across A/B/C for all audited fixtures.
+
+**Exact scoreline:** no primary changes vs B; vs A only xG-driven tail shifts (no primary 4-0/5-0).
 
 ## Risks
 
-| Risk | Status |
-|------|--------|
-| Reintroduce 5-0 / 4-0 for ultra-weak | Not observed — primaries stay 2-0 / 3-0 |
-| Weak P(sc) > 50% | Ultra-weak now ~34–36%; medium ~46% |
-| Over-suppress Paraguay/Curaçao | Mild cap only; 0.61 vs Haiti 0.41 |
-| Hurt Croatia/Portugal/Senegal | No change |
-| DR Congo still high | Gap 120 < medium floor 180; tier now medium_weak in diagnostics |
+| Risk | Mitigation |
+|------|------------|
+| Tier boundary cliffs | Tests at 0.15/0.30/0.50 |
+| DR Congo over/under | Documented weak + gap 115 rule |
+| Paraguay as weak not medium | Data-driven from attack_used 0.28 |
+| 4-0 tail in top-5 | No primary 4-0/5-0 |
 
 ## Rollback
 
-Set `ACTIVE_MODEL_WEAK_UNDERDOG_CAP_ENABLED=false` or revert to legacy single-band env vars (`MAX_XG_LOW/HIGH`, `POWER_GAP_THRESHOLD=200`).
-
-Tier tuning via env:
-
-- `ACTIVE_MODEL_WEAK_UNDERDOG_ULTRA_CAP_MIN/MAX`
-- `ACTIVE_MODEL_WEAK_UNDERDOG_MEDIUM_CAP_MIN/MAX`
-- `ACTIVE_MODEL_WEAK_UNDERDOG_ULTRA/MEDIUM_POWER_GAP_THRESHOLD`
+- `ACTIVE_MODEL_WEAK_UNDERDOG_CAP_ENABLED=false`
+- Or revert branch commits
 
 ## Scoreline picker
 
-**Not modified.** xG changes flow into the existing Dixon-Coles matrix and scoreline decision unchanged.
+**Not modified.** Only underdog xG cap after fusion.
 
-## Reproduce audit
+## Audit
 
 ```powershell
 cd backend
@@ -93,4 +119,4 @@ $env:NR3_FCC_SERVED_ENABLED="true"
 py scripts/audit_hybrid_underdog_cap.py
 ```
 
-Output: `backend/reports/hybrid_underdog_cap_audit.json`
+Output: `backend/reports/four_level_cap_audit_<sha>.json`

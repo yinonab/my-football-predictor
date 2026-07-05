@@ -460,25 +460,33 @@ NR3_FCC_SERVED_MODEL_VERSION: str = os.getenv(
     "NR3_FCC_SERVED_MODEL_VERSION", "v2.3.0-nr3-fcc-served"
 ).strip()
 
-# Active-model (NR3-FCC served) hybrid tier + continuous weak-underdog xG cap.
-# NR3 ignores attack/defense; this post-fusion CAP lowers inflated underdog xG.
-# Tiers: ultra_weak (attack <= ultra thr), medium_weak (<= weak thr), strong (no cap).
+# Active-model (NR3-FCC served) four-level data-driven underdog xG cap.
+# Tiers by attack_used: ultra_weak, weak, medium_underdog, strong_underdog (no cap).
 ACTIVE_MODEL_WEAK_UNDERDOG_CAP_ENABLED: bool = _env_bool(
     "ACTIVE_MODEL_WEAK_UNDERDOG_CAP_ENABLED", True
 )
 ACTIVE_MODEL_WEAK_UNDERDOG_ULTRA_ATTACK_THRESHOLD: float = float(
     os.getenv("ACTIVE_MODEL_WEAK_UNDERDOG_ULTRA_ATTACK_THRESHOLD", "0.15")
 )
-ACTIVE_MODEL_WEAK_UNDERDOG_ATTACK_THRESHOLD: float = float(
-    os.getenv("ACTIVE_MODEL_WEAK_UNDERDOG_ATTACK_THRESHOLD", "0.40")
+ACTIVE_MODEL_WEAK_UNDERDOG_WEAK_ATTACK_THRESHOLD: float = float(
+    os.getenv("ACTIVE_MODEL_WEAK_UNDERDOG_WEAK_ATTACK_THRESHOLD", "0.30")
+)
+ACTIVE_MODEL_WEAK_UNDERDOG_MEDIUM_ATTACK_THRESHOLD: float = float(
+    os.getenv("ACTIVE_MODEL_WEAK_UNDERDOG_MEDIUM_ATTACK_THRESHOLD", "0.50")
+)
+# Back-compat alias (legacy 3-tier medium upper bound).
+ACTIVE_MODEL_WEAK_UNDERDOG_ATTACK_THRESHOLD: float = (
+    ACTIVE_MODEL_WEAK_UNDERDOG_WEAK_ATTACK_THRESHOLD
 )
 ACTIVE_MODEL_WEAK_UNDERDOG_ULTRA_POWER_GAP_THRESHOLD: float = float(
-    os.getenv("ACTIVE_MODEL_WEAK_UNDERDOG_ULTRA_POWER_GAP_THRESHOLD", "150")
+    os.getenv("ACTIVE_MODEL_WEAK_UNDERDOG_ULTRA_POWER_GAP_THRESHOLD", "130")
+)
+ACTIVE_MODEL_WEAK_UNDERDOG_WEAK_POWER_GAP_THRESHOLD: float = float(
+    os.getenv("ACTIVE_MODEL_WEAK_UNDERDOG_WEAK_POWER_GAP_THRESHOLD", "115")
 )
 ACTIVE_MODEL_WEAK_UNDERDOG_MEDIUM_POWER_GAP_THRESHOLD: float = float(
-    os.getenv("ACTIVE_MODEL_WEAK_UNDERDOG_MEDIUM_POWER_GAP_THRESHOLD", "180")
+    os.getenv("ACTIVE_MODEL_WEAK_UNDERDOG_MEDIUM_POWER_GAP_THRESHOLD", "200")
 )
-# Legacy single-band envs kept for rollback reference; tier bands take precedence.
 ACTIVE_MODEL_WEAK_UNDERDOG_POWER_GAP_THRESHOLD: float = float(
     os.getenv("ACTIVE_MODEL_WEAK_UNDERDOG_POWER_GAP_THRESHOLD", "200")
 )
@@ -488,11 +496,17 @@ ACTIVE_MODEL_WEAK_UNDERDOG_ULTRA_CAP_MIN: float = float(
 ACTIVE_MODEL_WEAK_UNDERDOG_ULTRA_CAP_MAX: float = float(
     os.getenv("ACTIVE_MODEL_WEAK_UNDERDOG_ULTRA_CAP_MAX", "0.52")
 )
+ACTIVE_MODEL_WEAK_UNDERDOG_WEAK_CAP_MIN: float = float(
+    os.getenv("ACTIVE_MODEL_WEAK_UNDERDOG_WEAK_CAP_MIN", "0.48")
+)
+ACTIVE_MODEL_WEAK_UNDERDOG_WEAK_CAP_MAX: float = float(
+    os.getenv("ACTIVE_MODEL_WEAK_UNDERDOG_WEAK_CAP_MAX", "0.62")
+)
 ACTIVE_MODEL_WEAK_UNDERDOG_MEDIUM_CAP_MIN: float = float(
-    os.getenv("ACTIVE_MODEL_WEAK_UNDERDOG_MEDIUM_CAP_MIN", "0.55")
+    os.getenv("ACTIVE_MODEL_WEAK_UNDERDOG_MEDIUM_CAP_MIN", "0.60")
 )
 ACTIVE_MODEL_WEAK_UNDERDOG_MEDIUM_CAP_MAX: float = float(
-    os.getenv("ACTIVE_MODEL_WEAK_UNDERDOG_MEDIUM_CAP_MAX", "0.70")
+    os.getenv("ACTIVE_MODEL_WEAK_UNDERDOG_MEDIUM_CAP_MAX", "0.75")
 )
 ACTIVE_MODEL_WEAK_UNDERDOG_MAX_XG_LOW: float = float(
     os.getenv("ACTIVE_MODEL_WEAK_UNDERDOG_MAX_XG_LOW", "0.55")

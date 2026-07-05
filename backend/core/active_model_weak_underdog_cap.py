@@ -1,12 +1,7 @@
-"""Hybrid tier + continuous cap on served (NR3-FCC) weak-underdog xG.
+"""Four-level data-driven cap on served (NR3-FCC) underdog xG.
 
-The NR3 strength generator ignores attack/defense and structurally over-credits
-weak underdogs via ``max_favorite_share``. This module applies a post-fusion
-**maximum** cap (never raises underdog xG) with tier-specific bands:
-
-* **ultra_weak** — attack <= ultra threshold, large gap
-* **medium_weak** — attack between ultra and weak thresholds, larger gap
-* **strong** — no cap
+Team tier is matchup-aware (attack_used, gap, defense, data confidence) — never
+by country name. Applies a post-fusion **maximum** cap only on the underdog side.
 """
 
 from __future__ import annotations
@@ -16,7 +11,9 @@ from typing import Any, Literal
 
 import config
 
-TierName = Literal["ultra_weak", "medium_weak", "strong", "unclear"]
+TierName = Literal["ultra_weak", "weak", "medium_underdog", "strong_underdog", "unclear"]
+
+_CAP_TIERS: frozenset[TierName] = frozenset({"ultra_weak", "weak", "medium_underdog"})
 
 
 @dataclass(frozen=True)
@@ -41,10 +38,12 @@ class WeakUnderdogCapResult:
     attack_source: str | None = None
     raw_attack: float | None = None
     history_attack: float | None = None
+    attack_source_conflict: bool = False
     favorite_defense_used: float | None = None
     gf_ga_fallback_used: bool = False
     ultra_attack_threshold: float | None = None
     weak_attack_threshold: float | None = None
+    medium_attack_threshold: float | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -66,27 +65,34 @@ class WeakUnderdogCapResult:
             "active_model_weak_underdog_attack_source": self.attack_source,
             "active_model_weak_underdog_raw_attack": self.raw_attack,
             "active_model_weak_underdog_history_attack": self.history_attack,
+            "active_model_weak_underdog_attack_source_conflict": self.attack_source_conflict,
             "active_model_favorite_defense_used": self.favorite_defense_used,
             "active_model_weak_underdog_gf_ga_fallback_used": self.gf_ga_fallback_used,
             "active_model_weak_underdog_ultra_attack_threshold": self.ultra_attack_threshold,
             "active_model_weak_underdog_weak_attack_threshold": self.weak_attack_threshold,
+            "active_model_weak_underdog_medium_attack_threshold": self.medium_attack_threshold,
         }
 
 
 def classify_underdog_tier(attack: float) -> TierName:
     ultra = config.ACTIVE_MODEL_WEAK_UNDERDOG_ULTRA_ATTACK_THRESHOLD
-    weak = config.ACTIVE_MODEL_WEAK_UNDERDOG_ATTACK_THRESHOLD
+    weak = config.ACTIVE_MODEL_WEAK_UNDERDOG_WEAK_ATTACK_THRESHOLD
+    medium = config.ACTIVE_MODEL_WEAK_UNDERDOG_MEDIUM_ATTACK_THRESHOLD
     if attack <= ultra:
         return "ultra_weak"
     if attack <= weak:
-        return "medium_weak"
-    return "strong"
+        return "weak"
+    if attack <= medium:
+        return "medium_underdog"
+    return "strong_underdog"
 
 
 def tier_gap_floor(tier: TierName) -> float | None:
     if tier == "ultra_weak":
         return config.ACTIVE_MODEL_WEAK_UNDERDOG_ULTRA_POWER_GAP_THRESHOLD
-    if tier == "medium_weak":
+    if tier == "weak":
+        return config.ACTIVE_MODEL_WEAK_UNDERDOG_WEAK_POWER_GAP_THRESHOLD
+    if tier == "medium_underdog":
         return config.ACTIVE_MODEL_WEAK_UNDERDOG_MEDIUM_POWER_GAP_THRESHOLD
     return None
 
@@ -96,36 +102,30 @@ def resolve_cap_attack(
     pipeline_attack: float | None,
     raw_attack: float | None,
     gf_ga_fallback: bool,
-) -> tuple[float | None, str, float | None, float | None]:
-    """Pick attack for tier/cap; conservative min when GF/GA is fallback."""
+) -> tuple[float | None, str, float | None, float | None, bool]:
+    """Conservative attack for tier/cap when sources conflict or GF/GA is fallback."""
     history = pipeline_attack
     raw = raw_attack
 
     if pipeline_attack is None and raw_attack is None:
-        return None, "none", raw, history
+        return None, "none", raw, history, False
 
     if raw is not None and history is not None:
         delta = abs(float(raw) - float(history))
-        if delta >= config.ACTIVE_MODEL_WEAK_UNDERDOG_ATTACK_SOURCE_CONFLICT_DELTA:
+        conflict = delta >= config.ACTIVE_MODEL_WEAK_UNDERDOG_ATTACK_SOURCE_CONFLICT_DELTA
+        if conflict or gf_ga_fallback:
             return (
                 min(float(raw), float(history)),
-                "min_source_conflict",
+                "min_conservative" if gf_ga_fallback and not conflict else "min_source_conflict",
                 raw,
                 history,
+                conflict,
             )
 
-    if (
-        gf_ga_fallback
-        and raw is not None
-        and history is not None
-        and abs(float(raw) - float(history)) > 1e-6
-    ):
-        return min(float(raw), float(history)), "min_fallback_conservative", raw, history
-
     if pipeline_attack is not None:
-        return float(pipeline_attack), "pipeline_get_team_data", raw, history
+        return float(pipeline_attack), "pipeline_get_team_data", raw, history, False
 
-    return float(raw_attack), "database_only", raw, history
+    return float(raw_attack), "database_only", raw, history, False
 
 
 def _clamp01(value: float) -> float:
@@ -144,12 +144,36 @@ def _defense_penalty(favorite_defense: float | None) -> float:
 
 
 def _gap_penalty(tier: TierName, power_gap: float, tier_floor: float) -> float:
-    if tier != "ultra_weak" or power_gap <= tier_floor:
+    if tier not in _CAP_TIERS or power_gap <= tier_floor:
         return 0.0
     excess = power_gap - tier_floor
     span = max(config.ACTIVE_MODEL_WEAK_UNDERDOG_GAP_TIGHTEN_SPAN, 1e-9)
     frac = _clamp01(excess / span)
-    return config.ACTIVE_MODEL_WEAK_UNDERDOG_GAP_TIGHTEN_MAX * frac
+    scale = {
+        "ultra_weak": 1.0,
+        "weak": 0.75,
+        "medium_underdog": 0.5,
+    }.get(tier, 0.0)
+    return config.ACTIVE_MODEL_WEAK_UNDERDOG_GAP_TIGHTEN_MAX * frac * scale
+
+
+def _tier_band(tier: TierName) -> tuple[float, float]:
+    if tier == "ultra_weak":
+        return (
+            config.ACTIVE_MODEL_WEAK_UNDERDOG_ULTRA_CAP_MIN,
+            config.ACTIVE_MODEL_WEAK_UNDERDOG_ULTRA_CAP_MAX,
+        )
+    if tier == "weak":
+        return (
+            config.ACTIVE_MODEL_WEAK_UNDERDOG_WEAK_CAP_MIN,
+            config.ACTIVE_MODEL_WEAK_UNDERDOG_WEAK_CAP_MAX,
+        )
+    if tier == "medium_underdog":
+        return (
+            config.ACTIVE_MODEL_WEAK_UNDERDOG_MEDIUM_CAP_MIN,
+            config.ACTIVE_MODEL_WEAK_UNDERDOG_MEDIUM_CAP_MAX,
+        )
+    raise ValueError(f"no cap band for tier {tier}")
 
 
 def compute_weak_underdog_cap(
@@ -161,20 +185,22 @@ def compute_weak_underdog_cap(
     power_gap: float,
     tier_gap_floor_value: float,
 ) -> tuple[float, float, float]:
-    """Return (cap_value, band_min, band_max) for a tier."""
+    """Return (cap_value, band_min, band_max). Continuous within tier."""
     ultra_thr = config.ACTIVE_MODEL_WEAK_UNDERDOG_ULTRA_ATTACK_THRESHOLD
-    weak_thr = config.ACTIVE_MODEL_WEAK_UNDERDOG_ATTACK_THRESHOLD
+    weak_thr = config.ACTIVE_MODEL_WEAK_UNDERDOG_WEAK_ATTACK_THRESHOLD
+    medium_thr = config.ACTIVE_MODEL_WEAK_UNDERDOG_MEDIUM_ATTACK_THRESHOLD
+    band_min, band_max = _tier_band(tier)
 
     if tier == "ultra_weak":
-        band_min = config.ACTIVE_MODEL_WEAK_UNDERDOG_ULTRA_CAP_MIN
-        band_max = config.ACTIVE_MODEL_WEAK_UNDERDOG_ULTRA_CAP_MAX
         weakness = 1.0 - _clamp01(underdog_attack / ultra_thr) if ultra_thr > 0 else 1.0
         cap = band_max - weakness * (band_max - band_min)
-    elif tier == "medium_weak":
-        band_min = config.ACTIVE_MODEL_WEAK_UNDERDOG_MEDIUM_CAP_MIN
-        band_max = config.ACTIVE_MODEL_WEAK_UNDERDOG_MEDIUM_CAP_MAX
+    elif tier == "weak":
         span = max(weak_thr - ultra_thr, 1e-9)
         frac = _clamp01((underdog_attack - ultra_thr) / span)
+        cap = band_min + frac * (band_max - band_min)
+    elif tier == "medium_underdog":
+        span = max(medium_thr - weak_thr, 1e-9)
+        frac = _clamp01((underdog_attack - weak_thr) / span)
         cap = band_min + frac * (band_max - band_min)
     else:
         raise ValueError(f"no cap for tier {tier}")
@@ -205,9 +231,10 @@ def apply_weak_underdog_xg_cap(
     home_gf_ga_fallback: bool = False,
     away_gf_ga_fallback: bool = False,
 ) -> WeakUnderdogCapResult:
-    """Cap served underdog xG using hybrid tier + continuous bands."""
+    """Cap served underdog xG using four-level continuous bands."""
     ultra_thr = config.ACTIVE_MODEL_WEAK_UNDERDOG_ULTRA_ATTACK_THRESHOLD
-    weak_thr = config.ACTIVE_MODEL_WEAK_UNDERDOG_ATTACK_THRESHOLD
+    weak_thr = config.ACTIVE_MODEL_WEAK_UNDERDOG_WEAK_ATTACK_THRESHOLD
+    medium_thr = config.ACTIVE_MODEL_WEAK_UNDERDOG_MEDIUM_ATTACK_THRESHOLD
 
     if not config.ACTIVE_MODEL_WEAK_UNDERDOG_CAP_ENABLED:
         return WeakUnderdogCapResult(
@@ -217,6 +244,7 @@ def apply_weak_underdog_xg_cap(
             reason="disabled",
             ultra_attack_threshold=ultra_thr,
             weak_attack_threshold=weak_thr,
+            medium_attack_threshold=medium_thr,
         )
 
     gap = abs(power_gap if power_gap is not None else (home_power - away_power))
@@ -236,7 +264,7 @@ def apply_weak_underdog_xg_cap(
         favorite_defense = away_defense
         underdog_fallback = home_gf_ga_fallback
 
-    attack_used, attack_source, raw_val, hist_val = resolve_cap_attack(
+    attack_used, attack_source, raw_val, hist_val, source_conflict = resolve_cap_attack(
         pipeline_attack=pipeline_attack,
         raw_attack=raw_attack,
         gf_ga_fallback=underdog_fallback,
@@ -253,9 +281,11 @@ def apply_weak_underdog_xg_cap(
         attack_source=attack_source,
         raw_attack=raw_val,
         history_attack=hist_val,
+        attack_source_conflict=source_conflict,
         gf_ga_fallback_used=underdog_fallback,
         ultra_attack_threshold=ultra_thr,
         weak_attack_threshold=weak_thr,
+        medium_attack_threshold=medium_thr,
     )
 
     if attack_used is None:
@@ -271,12 +301,12 @@ def apply_weak_underdog_xg_cap(
     tier = classify_underdog_tier(attack_used)
     gap_floor = tier_gap_floor(tier)
 
-    if tier == "strong":
+    if tier == "strong_underdog":
         return WeakUnderdogCapResult(
             home_xg=home_xg,
             away_xg=away_xg,
             applied=False,
-            reason="strong_attack_preserved",
+            reason="strong_underdog_preserved",
             tier=tier,
             tier_gap_floor=gap_floor,
             **diag_base,

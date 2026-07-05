@@ -1,4 +1,4 @@
-"""Read-only audit: hybrid tier weak-underdog cap validation."""
+"""Read-only audit: four-level underdog xG cap validation."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ import argparse
 import json
 import math
 import os
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -27,15 +28,19 @@ REPORTS = BACKEND / "reports"
 FIXTURES: list[tuple[str, str, str]] = [
     ("ultra_weak", "France", "Haiti"),
     ("ultra_weak", "Argentina", "Cape Verde"),
-    ("medium_weak", "France", "Curaçao"),
-    ("medium_weak", "France", "Paraguay"),
-    ("medium_weak", "England", "DR Congo"),
-    ("medium_weak", "Brazil", "Japan"),
-    ("strong", "France", "Croatia"),
-    ("strong", "Spain", "Portugal"),
-    ("strong", "Belgium", "Senegal"),
-    ("strong", "Spain", "Austria"),
-    ("strong", "Portugal", "Croatia"),
+    ("weak", "England", "DR Congo"),
+    ("medium_underdog", "France", "Curaçao"),
+    ("medium_underdog", "France", "Paraguay"),
+    ("reference", "Brazil", "Japan"),
+    ("strong_underdog", "France", "Croatia"),
+    ("strong_underdog", "Spain", "Portugal"),
+    ("strong_underdog", "Belgium", "Senegal"),
+    ("strong_underdog", "Spain", "Austria"),
+    ("strong_underdog", "Portugal", "Croatia"),
+    ("competitive", "Netherlands", "Morocco"),
+    ("competitive", "Switzerland", "Algeria"),
+    ("competitive", "USA", "Iran"),
+    ("competitive", "Mexico", "Canada"),
 ]
 
 BASELINE = {
@@ -53,84 +58,88 @@ BASELINE = {
 }
 
 
-def _poisson_scores_prob(xg: float) -> float:
-    return round((1.0 - math.exp(-max(float(xg), 0.0))) * 100.0, 2)
+def _score_label(row: dict | None) -> str:
+    if not row:
+        return ""
+    return f"{row['home_goals']}-{row['away_goals']}"
 
 
 def _underdog_side(data: dict) -> str:
-    hp = float(data["home_power"])
-    ap = float(data["away_power"])
+    hp, ap = float(data["home_power"]), float(data["away_power"])
     return "away" if hp >= ap else "home"
 
 
-def _extract(home: str, away: str, group: str, data: dict) -> dict[str, Any]:
+def extract_row(group: str, home: str, away: str, data: dict) -> dict[str, Any]:
     sd = data.get("scoreline_decision") or {}
     probs = data["probabilities_1x2"]
     md = data.get("model_diagnostics") or {}
     cap = md.get("active_model_weak_underdog_cap") or {}
     ud = _underdog_side(data)
-    if ud == "home":
-        fav_xg, ud_xg = float(data["away_xg"]), float(data["home_xg"])
-    else:
-        fav_xg, ud_xg = float(data["home_xg"]), float(data["away_xg"])
+    fav_xg = float(data["home_xg"] if ud == "away" else data["away_xg"])
+    ud_xg = float(data["away_xg"] if ud == "away" else data["home_xg"])
     primary = sd.get("primary_predicted_score")
-    primary_s = f"{primary['home_goals']}-{primary['away_goals']}" if primary else ""
-    top5 = [
-        {"score": t["score"], "probability": t["probability"]}
-        for t in (data.get("top_scores") or [])[:5]
-    ]
+    modal = sd.get("top_exact_score_overall")
     return {
         "group": group,
         "fixture": f"{home} vs {away}",
+        "tier": cap.get("active_model_weak_underdog_tier"),
+        "attack_used": cap.get("active_model_weak_underdog_attack_used"),
+        "raw_attack": cap.get("active_model_weak_underdog_raw_attack"),
+        "history_attack": cap.get("active_model_weak_underdog_history_attack"),
+        "attack_source": cap.get("active_model_weak_underdog_attack_source"),
+        "attack_source_conflict": cap.get("active_model_weak_underdog_attack_source_conflict"),
+        "gf_ga_fallback": cap.get("active_model_weak_underdog_gf_ga_fallback_used"),
+        "power_gap": cap.get("active_model_power_gap"),
+        "favorite_defense": cap.get("active_model_favorite_defense_used"),
+        "cap_applied": cap.get("active_model_weak_underdog_cap_applied"),
+        "cap_reason": cap.get("active_model_weak_underdog_cap_reason"),
+        "cap_band_min": cap.get("active_model_weak_underdog_cap_band_min"),
+        "cap_band_max": cap.get("active_model_weak_underdog_cap_band_max"),
+        "cap_value": cap.get("active_model_weak_underdog_cap_value"),
+        "underdog_xg_before_cap": cap.get("active_model_weak_underdog_cap_original_xg"),
         "favorite_xg": fav_xg,
         "underdog_xg": ud_xg,
         "total_xg": round(fav_xg + ud_xg, 2),
         "home_win_pct": probs["home_win"],
         "draw_pct": probs["draw"],
         "away_win_pct": probs["away_win"],
-        "underdog_p_scores": _poisson_scores_prob(ud_xg),
+        "underdog_p_scores": sd.get("underdog_scores_probability"),
         "btts_pct": sd.get("both_teams_score_probability"),
-        "primary_score": primary_s,
-        "top_5_scores": top5,
-        "cap_applied": cap.get("active_model_weak_underdog_cap_applied"),
-        "tier": cap.get("active_model_weak_underdog_tier"),
-        "cap_value": cap.get("active_model_weak_underdog_cap_value"),
-        "cap_delta": cap.get("active_model_weak_underdog_cap_delta"),
-        "cap_reason": cap.get("active_model_weak_underdog_cap_reason"),
-        "attack_used": cap.get("active_model_weak_underdog_attack_used"),
-        "attack_source": cap.get("active_model_weak_underdog_attack_source"),
-        "raw_attack": cap.get("active_model_weak_underdog_raw_attack"),
-        "history_attack": cap.get("active_model_weak_underdog_history_attack"),
-        "favorite_defense_used": cap.get("active_model_favorite_defense_used"),
-        "power_gap": cap.get("active_model_power_gap"),
-        "gf_ga_fallback": cap.get("active_model_weak_underdog_gf_ga_fallback_used"),
+        "primary_score": _score_label(primary),
+        "modal_score": _score_label(modal),
+        "top_5_scores": [
+            {"score": t["score"], "probability": t["probability"]}
+            for t in (data.get("top_scores") or [])[:5]
+        ],
     }
 
 
 def run_audit() -> list[dict[str, Any]]:
     client = TestClient(api_main.app)
-    rows: list[dict[str, Any]] = []
+    rows = []
     for group, home, away in FIXTURES:
-        body = {**BASELINE, "home_team": home, "away_team": away}
-        resp = client.post("/api/predict", json=body)
+        resp = client.post("/api/predict", json={**BASELINE, "home_team": home, "away_team": away})
         resp.raise_for_status()
-        rows.append(_extract(home, away, group, resp.json()))
+        rows.append(extract_row(group, home, away, resp.json()))
     return rows
 
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--json-out", type=Path, default=REPORTS / "hybrid_underdog_cap_audit.json")
+    parser.add_argument("--json-out", type=Path, default=None)
     args = parser.parse_args()
+    commit = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=BACKEND.parent, text=True).strip()
     rows = run_audit()
-    payload = {"generated_at": datetime.now(timezone.utc).isoformat(), "fixtures": rows}
-    args.json_out.parent.mkdir(parents=True, exist_ok=True)
-    args.json_out.write_text(json.dumps(payload, indent=2), encoding="utf-8")
-    print(f"Wrote {args.json_out}")
+    out = args.json_out or REPORTS / f"four_level_cap_audit_{commit[:8]}.json"
+    payload = {"commit": commit, "generated_at": datetime.now(timezone.utc).isoformat(), "fixtures": rows}
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
+    print(f"Wrote {out}")
     for r in rows:
         print(
-            f"{r['fixture']:32} tier={r['tier']} ud_xg={r['underdog_xg']} "
-            f"P(sc)={r['underdog_p_scores']}% primary={r['primary_score']} cap={r['cap_applied']}"
+            f"{r['fixture']:32} tier={r['tier']} atk={r['attack_used']} "
+            f"ud={r['underdog_xg']} P={r['underdog_p_scores']}% "
+            f"primary={r['primary_score']} cap={r['cap_applied']}"
         )
     return 0
 
