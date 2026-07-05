@@ -6,6 +6,7 @@ import re
 from typing import Any
 
 from data.api_football import ApiFootballClient
+from data.nt_team_aliases import registry_english_for_alias
 
 DEFAULT_TEAM: dict[str, float] = {
     "elo": 1500.0,
@@ -205,7 +206,7 @@ class LiveDataManager:
         return result
 
     def resolve_team(self, team_name: str) -> tuple[str, dict[str, float]]:
-        name = team_name.strip()
+        name = registry_english_for_alias(team_name.strip())
         if not name:
             return team_name, dict(DEFAULT_TEAM)
 
