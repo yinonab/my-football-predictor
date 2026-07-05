@@ -343,7 +343,7 @@ class GlobalRatingDiagnosticsResponse(BaseModel):
 
 
 class ActiveModelWeakUnderdogCapResponse(BaseModel):
-    """Served (NR3-FCC) attack-aware weak-underdog xG cap diagnostics."""
+    """Served (NR3-FCC) hybrid tier + continuous weak-underdog xG cap diagnostics."""
 
     active_model_weak_underdog_cap_applied: bool = False
     active_model_weak_underdog_cap_reason: str | None = None
@@ -351,9 +351,22 @@ class ActiveModelWeakUnderdogCapResponse(BaseModel):
     active_model_weak_underdog_cap_original_xg: float | None = None
     active_model_weak_underdog_cap_xg: float | None = None
     active_model_weak_underdog_cap_value: float | None = None
+    active_model_weak_underdog_cap_delta: float | None = None
     active_model_weak_underdog_attack: float | None = None
     active_model_favorite_defense: float | None = None
     active_model_power_gap: float | None = None
+    active_model_weak_underdog_tier: str | None = None
+    active_model_weak_underdog_tier_gap_floor: float | None = None
+    active_model_weak_underdog_cap_band_min: float | None = None
+    active_model_weak_underdog_cap_band_max: float | None = None
+    active_model_weak_underdog_attack_used: float | None = None
+    active_model_weak_underdog_attack_source: str | None = None
+    active_model_weak_underdog_raw_attack: float | None = None
+    active_model_weak_underdog_history_attack: float | None = None
+    active_model_favorite_defense_used: float | None = None
+    active_model_weak_underdog_gf_ga_fallback_used: bool | None = None
+    active_model_weak_underdog_ultra_attack_threshold: float | None = None
+    active_model_weak_underdog_weak_attack_threshold: float | None = None
 
 
 class ModelDiagnosticsResponse(BaseModel):

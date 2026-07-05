@@ -859,9 +859,13 @@ def predict(request: PredictRequest) -> PredictResponse:
             home_defense=home_data.get("defense"),
             away_attack=away_data.get("attack"),
             away_defense=away_data.get("defense"),
+            home_attack_raw=_data_manager.resolve_team(home_resolved)[1].get("attack"),
+            away_attack_raw=_data_manager.resolve_team(away_resolved)[1].get("attack"),
             home_form=home_raw_form,
             away_form=away_raw_form,
             match_context={"stage": ctx_info.stage},
+            home_gf_ga_fallback=home_gf_ga_source != "real",
+            away_gf_ga_fallback=away_gf_ga_source != "real",
         )
 
     if config.nr3_fcc_served_enabled():

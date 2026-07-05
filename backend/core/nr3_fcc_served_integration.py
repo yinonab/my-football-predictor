@@ -137,10 +137,14 @@ def run_nr3_fcc_integrated_prediction(
     home_defense: float | None = None,
     away_attack: float | None = None,
     away_defense: float | None = None,
+    home_attack_raw: float | None = None,
+    away_attack_raw: float | None = None,
     home_form: float | None = None,
     away_form: float | None = None,
     population_powers: list[float] | None = None,
     match_context: dict[str, Any] | None = None,
+    home_gf_ga_fallback: bool = False,
+    away_gf_ga_fallback: bool = False,
 ) -> dict[str, Any]:
     """NR3+FCC stack with request settings (matrix, fusion, odds, context)."""
     ctx = match_context or {}
@@ -549,7 +553,11 @@ def run_nr3_fcc_integrated_prediction(
         home_defense=home_defense,
         away_attack=away_attack,
         away_defense=away_defense,
+        home_attack_raw=home_attack_raw,
+        away_attack_raw=away_attack_raw,
         power_gap=settings.power_gap,
+        home_gf_ga_fallback=home_gf_ga_fallback,
+        away_gf_ga_fallback=away_gf_ga_fallback,
     )
     weak_underdog_cap = cap_result.to_dict()
     if cap_result.applied:
@@ -563,10 +571,10 @@ def run_nr3_fcc_integrated_prediction(
             after_away_xg=away_xg,
             status="applied",
             explanation=(
-                f"תקרת xG לאנדרדוג חלש ({cap_result.underdog_side}): "
+                f"תקרת xG לאנדרדוג חלש ({cap_result.underdog_side}, {cap_result.tier}): "
                 f"{cap_result.original_underdog_xg}→{cap_result.capped_underdog_xg} "
-                f"(attack={cap_result.underdog_attack}, "
-                f"fav_def={cap_result.favorite_defense}, gap={cap_result.power_gap})"
+                f"(attack={cap_result.attack_used}, src={cap_result.attack_source}, "
+                f"fav_def={cap_result.favorite_defense_used}, gap={cap_result.power_gap})"
             ),
         )
     else:
