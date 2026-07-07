@@ -46,6 +46,11 @@ SCORE_MATRIX_LIMITED = "SCORE_MATRIX_LIMITED"
 # Stage 3B — clean-sheet guard
 CLEAN_SHEET_GUARD_SWITCHED_TO_BTTS = "CLEAN_SHEET_GUARD_SWITCHED_TO_BTTS"
 CLEAN_SHEET_GUARD_LOW_CONFIDENCE = "CLEAN_SHEET_GUARD_LOW_CONFIDENCE"
+# Elite-vs-elite: allow guard to override underdog-goal gate BLOCK for strong opponents.
+ELITE_CLEAN_SHEET_RISK_GUARD_OVERRIDE = "ELITE_CLEAN_SHEET_RISK_GUARD_OVERRIDE"
+ELITE_CS_GUARD_MIN_UNDERDOG_POWER = 820.0
+ELITE_CS_GUARD_MAX_UTILITY_GAP = 5.0
+ELITE_CS_GUARD_GLOBAL_TOP_N = 5
 
 # Phase 4Q — representative primary score realism warnings
 PRIMARY_CLEAN_SHEET_WITH_UNDERDOG_XG_HIGH = "PRIMARY_CLEAN_SHEET_WITH_UNDERDOG_XG_HIGH"
@@ -1140,6 +1145,30 @@ def build_primary_score_reason(
     )
 
 
+def _elite_clean_sheet_guard_overrides_gate(
+    *,
+    favorite_class: str | None,
+    gate_level: str | None,
+    underdog_power: float | None,
+) -> bool:
+    """Let clean-sheet guard run under gate BLOCK for elite favorite vs strong underdog."""
+    if favorite_class != "elite_favorite":
+        return False
+    if gate_level not in ("BLOCK", "WEAK_ALLOW"):
+        return False
+    if underdog_power is None or underdog_power < ELITE_CS_GUARD_MIN_UNDERDOG_POWER:
+        return False
+    return True
+
+
+def _global_top_n_score_labels(
+    candidates: list[ScorelineCandidate],
+    *,
+    n: int = ELITE_CS_GUARD_GLOBAL_TOP_N,
+) -> frozenset[str]:
+    return frozenset(c.score_label for c in candidates[:n])
+
+
 def _apply_clean_sheet_guard(
     primary: ScorelineCandidate | None,
     favorite: OutcomeKey,
@@ -1148,6 +1177,9 @@ def _apply_clean_sheet_guard(
     underdog_scores_probability: float | None,
     both_teams_score_probability: float | None,
     gate_level: str | None = None,
+    favorite_class: str | None = None,
+    underdog_power: float | None = None,
+    global_top5_scorelines: frozenset[str] | None = None,
 ) -> dict[str, Any]:
     """Stage 3B — keep the primary scoreline coherent with underdog scoring odds.
 
@@ -1175,8 +1207,14 @@ def _apply_clean_sheet_guard(
         return result
     if primary is None or favorite not in ("home_win", "away_win"):
         return result
-    # Respect a deliberate underdog-goal-gate decision to keep a clean sheet.
-    if gate_level is not None and gate_level not in ("ALLOW", "STRONG_ALLOW"):
+    # Respect a deliberate underdog-goal-gate decision to keep a clean sheet,
+    # except elite favorite vs strong underdog where scoring risk is material.
+    gate_blocks_guard = gate_level is not None and gate_level not in ("ALLOW", "STRONG_ALLOW")
+    if gate_blocks_guard and not _elite_clean_sheet_guard_overrides_gate(
+        favorite_class=favorite_class,
+        gate_level=gate_level,
+        underdog_power=underdog_power,
+    ):
         return result
 
     if favorite == "home_win":
@@ -1205,12 +1243,24 @@ def _apply_clean_sheet_guard(
             return cand.home_goals, cand.away_goals
         return cand.away_goals, cand.home_goals
 
+    elite_override = gate_blocks_guard and _elite_clean_sheet_guard_overrides_gate(
+        favorite_class=favorite_class,
+        gate_level=gate_level,
+        underdog_power=underdog_power,
+    )
+
     btts_candidates = [
         c
         for c in favorite_pool
         if _fav_dog(c)[0] >= 1 and _fav_dog(c)[1] >= 1
     ]
+    if elite_override and global_top5_scorelines is not None:
+        btts_candidates = [
+            c for c in btts_candidates if c.score_label in global_top5_scorelines
+        ]
     if not btts_candidates:
+        if elite_override:
+            return result
         result.update(
             applied=True,
             reason="clean_sheet_kept_no_btts_candidate",
@@ -1224,13 +1274,17 @@ def _apply_clean_sheet_guard(
     utility_gap = primary.probability - best_btts.probability
     result["utility_gap"] = utility_gap
 
-    if utility_gap <= config.SCORELINE_CS_GUARD_MAX_UTILITY_GAP:
+    max_gap = config.SCORELINE_CS_GUARD_MAX_UTILITY_GAP
+    if elite_override:
+        max_gap = ELITE_CS_GUARD_MAX_UTILITY_GAP
+
+    if utility_gap <= max_gap:
         chosen = best_btts
         # Prefer keeping the favorite goal count (e.g. 3-0 -> 3-1) when close enough.
         same_fav = [c for c in btts_candidates if _fav_dog(c)[0] == fav_goals]
         if same_fav:
             same_best = max(same_fav, key=lambda c: c.probability)
-            if primary.probability - same_best.probability <= config.SCORELINE_CS_GUARD_MAX_UTILITY_GAP:
+            if primary.probability - same_best.probability <= max_gap:
                 chosen = same_best
         result.update(
             applied=True,
@@ -1240,6 +1294,10 @@ def _apply_clean_sheet_guard(
             primary=chosen,
             warning=CLEAN_SHEET_GUARD_SWITCHED_TO_BTTS,
         )
+        if elite_override:
+            result["reason"] = "elite_switched_to_btts_close_utility"
+    elif elite_override:
+        return result
     else:
         result.update(
             applied=True,
@@ -1381,13 +1439,18 @@ def build_scoreline_decision(
         rep_diagnostics["primary_score_warnings"] = merged
 
     # Stage 3B — clean-sheet guard (display-only; runs only for a decided favorite).
+    underdog_power = away_power if favorite == "home_win" else home_power
+    gate_payload = rep_diagnostics.get("underdog_goal_gate") or {}
     guard = _apply_clean_sheet_guard(
         primary,
         favorite,
         favorite_pool,
         underdog_scores_probability=rep_diagnostics.get("underdog_scores_probability"),
         both_teams_score_probability=rep_diagnostics.get("both_teams_score_probability"),
-        gate_level=(rep_diagnostics.get("underdog_goal_gate") or {}).get("level"),
+        gate_level=gate_payload.get("level"),
+        favorite_class=gate_payload.get("favorite_class"),
+        underdog_power=underdog_power,
+        global_top5_scorelines=_global_top_n_score_labels(candidates),
     )
     if guard["applied"]:
         primary = guard["primary"]
