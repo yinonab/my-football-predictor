@@ -52,7 +52,12 @@ ELITE_CS_GUARD_MIN_UNDERDOG_POWER = 820.0
 ELITE_CS_GUARD_MAX_UTILITY_GAP = 5.0
 ELITE_CS_GUARD_GLOBAL_TOP_N = 5
 
-# Phase 4Q — representative primary score realism warnings
+# Near-balanced draw/modal overlay (post-representative, post clean-sheet guard).
+NEAR_BALANCED_DRAW_MODAL_MAX_MARGIN_PP = 12.0
+NEAR_BALANCED_DRAW_MODAL_MIN_DRAW_PCT = 32.0
+NEAR_BALANCED_DRAW_MODAL_CLOSE_PP = 2.0
+NEAR_BALANCED_DRAW_MODAL_MAX_RANK = 3
+NEAR_BALANCED_DRAW_MODAL_APPLIED = "NEAR_BALANCED_DRAW_MODAL_APPLIED"
 PRIMARY_CLEAN_SHEET_WITH_UNDERDOG_XG_HIGH = "PRIMARY_CLEAN_SHEET_WITH_UNDERDOG_XG_HIGH"
 PRIMARY_TOO_LOW_FOR_FAVORITE_XG = "PRIMARY_TOO_LOW_FOR_FAVORITE_XG"
 PRIMARY_CAPPED_BELOW_EXPECTED_GOALS = "PRIMARY_CAPPED_BELOW_EXPECTED_GOALS"
@@ -1308,6 +1313,64 @@ def _apply_clean_sheet_guard(
     return result
 
 
+def _is_narrow_favorite_primary(
+    primary: ScorelineCandidate,
+    favorite: OutcomeKey,
+) -> bool:
+    """Single-goal favorite clean-sheet wins only (1-0 / 0-1)."""
+    fav_goals, underdog_goals = _favorite_side_goals(primary, favorite)
+    return underdog_goals == 0 and fav_goals == 1
+
+
+def _apply_near_balanced_draw_modal(
+    primary: ScorelineCandidate | None,
+    *,
+    favorite: OutcomeKey,
+    margin_pp: float,
+    draw_probability: float,
+    candidates: list[ScorelineCandidate],
+    top_exact: ScorelineCandidate | None,
+    used_balanced_modal_path: bool,
+    guard_switched_to_btts: bool,
+) -> dict[str, Any]:
+    """Swap a narrow favorite primary for a close global draw modal in near-balanced games."""
+    result: dict[str, Any] = {
+        "applied": False,
+        "reason": None,
+        "original": None,
+        "primary": primary,
+    }
+    if used_balanced_modal_path or guard_switched_to_btts:
+        return result
+    if primary is None or top_exact is None or favorite == "draw":
+        return result
+    if not (BALANCED_MARGIN_PP < margin_pp <= NEAR_BALANCED_DRAW_MODAL_MAX_MARGIN_PP):
+        return result
+    if draw_probability < NEAR_BALANCED_DRAW_MODAL_MIN_DRAW_PCT:
+        return result
+    if top_exact.outcome != "draw":
+        return result
+    if not _is_narrow_favorite_primary(primary, favorite):
+        return result
+
+    modal_rank = next(
+        (i + 1 for i, c in enumerate(candidates) if c.score_label == top_exact.score_label),
+        None,
+    )
+    if modal_rank is None or modal_rank > NEAR_BALANCED_DRAW_MODAL_MAX_RANK:
+        return result
+    if top_exact.probability < primary.probability - NEAR_BALANCED_DRAW_MODAL_CLOSE_PP:
+        return result
+
+    result.update(
+        applied=True,
+        reason="near_balanced_draw_modal",
+        original=primary.score_label,
+        primary=top_exact,
+    )
+    return result
+
+
 def build_scoreline_decision(
     *,
     final_probabilities_1x2: dict[str, float],
@@ -1456,6 +1519,21 @@ def build_scoreline_decision(
         primary = guard["primary"]
         if guard["warning"] and guard["warning"] not in warnings:
             warnings.append(guard["warning"])
+
+    draw_overlay = _apply_near_balanced_draw_modal(
+        primary,
+        favorite=favorite,
+        margin_pp=margin,
+        draw_probability=float(final_probabilities_1x2.get("draw", 0)),
+        candidates=candidates,
+        top_exact=top_exact,
+        used_balanced_modal_path=balanced,
+        guard_switched_to_btts=guard.get("warning") == CLEAN_SHEET_GUARD_SWITCHED_TO_BTTS,
+    )
+    if draw_overlay["applied"]:
+        primary = draw_overlay["primary"]
+        if NEAR_BALANCED_DRAW_MODAL_APPLIED not in warnings:
+            warnings.append(NEAR_BALANCED_DRAW_MODAL_APPLIED)
 
     differs = bool(
         primary
