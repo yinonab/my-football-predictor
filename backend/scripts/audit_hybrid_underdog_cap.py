@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import os
+
+# Production-parity baseline: ignore local elo_overrides.json (must precede api import).
+os.environ.setdefault("AUDIT_ELO_BASELINE", "production")
+
 import argparse
 import json
 import math
-import os
 import subprocess
 import sys
 from datetime import datetime, timezone
