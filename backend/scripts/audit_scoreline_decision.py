@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import os
+
+os.environ.setdefault("AUDIT_ELO_BASELINE", "production")
+
 import argparse
 import csv
 import sys
