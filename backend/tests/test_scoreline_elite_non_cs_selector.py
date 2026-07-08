@@ -231,8 +231,8 @@ def test_high_total_rejected_without_scoring_tails() -> None:
     candidates = [
         primary,
         _cand(2, 0, 12.0),
-        _cand(3, 2, 13.5),  # high total without tails
-        _cand(1, 1, 12.5),
+        _cand(1, 1, 12.5),  # rank 3 — eligible in band A
+        _cand(3, 2, 13.5),  # high total without tails (rank 4; disabled in band A)
         _cand(2, 1, 8.0),
     ]
     result = _apply_elite_mismatch_non_cs_selector(
@@ -262,8 +262,8 @@ def test_high_total_4_3_rejected_when_underdog_3_plus_tail_weak() -> None:
     candidates = [
         primary,
         _cand(2, 0, 12.0),
-        _cand(4, 3, 13.5),  # gap 2.5pp, rank 3, high_total but ud3 tail weak
-        _cand(1, 1, 12.5),
+        _cand(1, 1, 12.5),  # rank 3
+        _cand(4, 3, 13.5),  # gap 2.5pp, rank 4, high_total but ud3 tail weak
         _cand(3, 2, 8.0),
     ]
     stats = _matrix_stats(btts=42.0, ud_2_plus=20.0, ud_3_plus=5.0)  # < 8%
@@ -297,8 +297,8 @@ def test_high_total_3_2_rejected_when_underdog_2_plus_tail_weak() -> None:
     candidates = [
         primary,
         _cand(2, 0, 12.0),
+        _cand(1, 1, 12.5),  # rank 3
         _cand(3, 2, 13.5),
-        _cand(1, 1, 12.5),
     ]
     stats = _matrix_stats(btts=30.0, ud_2_plus=12.0, ud_3_plus=2.0)  # below 18% / 35% BTTS
     result = _apply_elite_mismatch_non_cs_selector(
@@ -460,6 +460,168 @@ def test_away_favorite_selects_scored_draw() -> None:
     )
     assert result["applied"] is True
     assert result["primary"].score_label == "1-1"
+
+
+# --- evidence-band refinement ---------------------------------------------------
+
+
+def test_band_a_rank3_within_4pp_passes() -> None:
+    """45–50% band: rank #3 and gap <=4pp passes (France–Colombia shape)."""
+    primary = _cand(1, 0, 16.18)
+    candidates = [
+        primary,
+        _cand(2, 0, 12.56),
+        _cand(1, 1, 12.50),  # rank 3, gap 3.68pp
+        _cand(0, 0, 12.26),
+        _cand(2, 1, 8.67),
+    ]
+    result = _apply_elite_mismatch_non_cs_selector(
+        primary,
+        favorite="home_win",
+        margin_pp=27.1,
+        candidates=candidates,
+        underdog_scores_probability=49.8,
+        both_teams_score_probability=39.2,
+        favorite_goal_bands={"favorite_2_plus": 43.3},
+        underdog_power=890.0,
+        guard_switched_to_btts=False,
+        favorite_class="elite_favorite",
+        gate_level="BLOCK",
+    )
+    assert result["evidence_band"] == "A"
+    assert result["applied"] is True
+    assert result["primary"].score_label == "1-1"
+    assert result["rank"] == 3
+
+
+def test_band_a_rank4_rejected_even_when_ud_above_45() -> None:
+    """45–50% band: rank #4/#5 rejected despite ud >=45%."""
+    primary = _cand(1, 0, 16.0)
+    candidates = [
+        primary,
+        _cand(2, 0, 14.0),
+        _cand(0, 0, 13.0),
+        _cand(1, 1, 12.5),  # rank 4, gap 3.5pp — would pass gap but not rank
+        _cand(2, 1, 11.0),  # rank 5
+    ]
+    result = _apply_elite_mismatch_non_cs_selector(
+        primary,
+        favorite="home_win",
+        margin_pp=27.0,
+        candidates=candidates,
+        underdog_scores_probability=47.0,
+        both_teams_score_probability=38.0,
+        favorite_goal_bands={"favorite_2_plus": 42.0},
+        underdog_power=900.0,
+        guard_switched_to_btts=False,
+        favorite_class="elite_favorite",
+        gate_level="BLOCK",
+    )
+    assert result["evidence_band"] == "A"
+    assert result["applied"] is False
+    assert result["reason"] == "no_eligible_non_cs_candidate"
+
+
+def test_band_b_rank5_may_pass_within_gap() -> None:
+    """50–55% band: rank #5 may pass when gap is within threshold."""
+    primary = _cand(1, 0, 16.0)
+    candidates = [
+        primary,
+        _cand(2, 0, 14.0),
+        _cand(0, 0, 13.0),
+        _cand(2, 1, 12.0),
+        _cand(1, 1, 12.2),  # rank 5, gap 3.8pp
+        _cand(3, 0, 11.5),
+    ]
+    result = _apply_elite_mismatch_non_cs_selector(
+        primary,
+        favorite="home_win",
+        margin_pp=27.0,
+        candidates=candidates,
+        underdog_scores_probability=52.0,
+        both_teams_score_probability=40.0,
+        favorite_goal_bands={"favorite_2_plus": 44.0},
+        underdog_power=900.0,
+        guard_switched_to_btts=False,
+        favorite_class="elite_favorite",
+        gate_level="BLOCK",
+    )
+    assert result["evidence_band"] == "B"
+    assert result["applied"] is True
+    assert result["primary"].score_label == "1-1"
+    assert result["rank"] == 5
+
+
+def test_band_c_normal_candidate_passes_with_existing_rules() -> None:
+    """55%+ band: normal candidate passes with existing rank/gap rules."""
+    primary = _cand(1, 0, 16.0)
+    candidates = [
+        primary,
+        _cand(2, 0, 14.0),
+        _cand(0, 0, 13.0),
+        _cand(3, 0, 11.5),
+        _cand(1, 1, 12.2),  # rank 5, gap 3.8pp
+        _cand(2, 1, 10.0),  # rank 6, gap 6pp — too far
+    ]
+    result = _apply_elite_mismatch_non_cs_selector(
+        primary,
+        favorite="home_win",
+        margin_pp=27.0,
+        candidates=candidates,
+        underdog_scores_probability=56.0,
+        both_teams_score_probability=42.0,
+        favorite_goal_bands={"favorite_2_plus": 44.0},
+        underdog_power=900.0,
+        guard_switched_to_btts=False,
+        favorite_class="elite_favorite",
+        gate_level="BLOCK",
+    )
+    assert result["evidence_band"] == "C"
+    assert result["applied"] is True
+    assert result["primary"].score_label == "1-1"
+    assert result["rank"] == 5
+
+
+def test_band_a_high_total_rejected_even_with_strong_tails() -> None:
+    """45–50% band: high-total disabled; eligible draw at rank #3 still wins."""
+    primary = _cand(1, 0, 16.0)
+    candidates = [
+        primary,
+        _cand(3, 2, 14.0),  # rank 2, strong tails — disabled in band A
+        _cand(1, 1, 12.5),  # rank 3, gap 3.5pp — eligible draw
+        _cand(2, 0, 12.0),
+        _cand(2, 1, 8.0),
+    ]
+    stats = _matrix_stats(
+        btts=45.0,
+        fav_2_plus=58.0,
+        fav_3_plus=35.0,
+        ud_2_plus=24.0,
+        ud_3_plus=11.0,
+    )
+    result = _apply_elite_mismatch_non_cs_selector(
+        primary,
+        favorite="home_win",
+        margin_pp=28.0,
+        candidates=candidates,
+        underdog_scores_probability=48.0,
+        both_teams_score_probability=stats.btts_probability,
+        favorite_goal_bands={
+            "favorite_2_plus": stats.favorite_scores_2_plus,
+            "favorite_3_plus": stats.favorite_scores_3_plus,
+        },
+        underdog_power=900.0,
+        guard_switched_to_btts=False,
+        favorite_class="elite_favorite",
+        gate_level="BLOCK",
+        matrix_stats=stats,
+    )
+    assert result["evidence_band"] == "A"
+    evaluated_scores = [e["score"] for e in result.get("evaluated", [])]
+    assert "3-2" not in evaluated_scores
+    assert result["applied"] is True
+    assert result["primary"].score_label == "1-1"
+    assert result["rank"] == 3
 
 
 # --- synthetic pipeline regression ---------------------------------------------

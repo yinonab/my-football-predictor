@@ -80,6 +80,11 @@ ELITE_NON_CS_FAV_3_PLUS_STRONG = 25.0
 ELITE_NON_CS_UD_2_PLUS_MEANINGFUL = 18.0
 ELITE_NON_CS_UD_3_PLUS_MEANINGFUL = 8.0
 ELITE_NON_CS_BTTS_FLOOR_FOR_HIGH_TOTAL = 35.0
+# Opponent-scoring evidence bands (45% trigger; eligibility tightens as ud score rises).
+ELITE_NON_CS_EVIDENCE_BAND_A_MAX = 50.0  # 45% <= ud < 50% — mild suspicion
+ELITE_NON_CS_EVIDENCE_BAND_B_MAX = 55.0  # 50% <= ud < 55% — stronger suspicion
+ELITE_NON_CS_BAND_A_MAX_RANK = 3  # draw/BTTS in band A only when very strong in matrix
+EliteNonCsEvidenceBand = Literal["A", "B", "C"]
 PRIMARY_CLEAN_SHEET_WITH_UNDERDOG_XG_HIGH = "PRIMARY_CLEAN_SHEET_WITH_UNDERDOG_XG_HIGH"
 PRIMARY_TOO_LOW_FOR_FAVORITE_XG = "PRIMARY_TOO_LOW_FOR_FAVORITE_XG"
 PRIMARY_CAPPED_BELOW_EXPECTED_GOALS = "PRIMARY_CAPPED_BELOW_EXPECTED_GOALS"
@@ -1478,6 +1483,41 @@ def _non_cs_rank_limit(ctype: str) -> int:
     return ELITE_NON_CS_BTTS_MAX_RANK
 
 
+def _elite_non_cs_evidence_band(ud_score: float) -> EliteNonCsEvidenceBand:
+    """Classify opponent-scoring suspicion from matrix ud-score probability."""
+    if ud_score < ELITE_NON_CS_EVIDENCE_BAND_A_MAX:
+        return "A"
+    if ud_score < ELITE_NON_CS_EVIDENCE_BAND_B_MAX:
+        return "B"
+    return "C"
+
+
+def _candidate_rank_limit_for_ud_score_prob(
+    band: EliteNonCsEvidenceBand,
+    ctype: str,
+) -> int:
+    """Max matrix rank for candidate type given opponent-scoring evidence band."""
+    if ctype == "high_total_btts":
+        if band == "A":
+            return 0  # high-total disabled in mild-suspicion band
+        return ELITE_NON_CS_HIGH_TOTAL_MAX_RANK
+    if band == "A":
+        return ELITE_NON_CS_BAND_A_MAX_RANK
+    return _non_cs_rank_limit(ctype)
+
+
+def _candidate_gap_limit_for_band(
+    band: EliteNonCsEvidenceBand,
+    ctype: str,
+    fav_2_plus: float,
+) -> float:
+    """Gap limit for candidate type; band A tightens normal draw/BTTS to 4pp."""
+    base = _non_cs_gap_limit(ctype, fav_2_plus)
+    if band == "A" and ctype in ("draw", "favorite_btts_win", "underdog_multi_goal"):
+        return min(base, ELITE_NON_CS_DRAW_MAX_GAP_PP)
+    return base
+
+
 def _apply_elite_mismatch_non_cs_selector(
     primary: ScorelineCandidate | None,
     *,
@@ -1549,6 +1589,9 @@ def _apply_elite_mismatch_non_cs_selector(
         result["reason"] = "not_elite_mismatch_profile"
         return result
 
+    evidence_band = _elite_non_cs_evidence_band(ud_score)
+    result["evidence_band"] = evidence_band
+
     bands = favorite_goal_bands or {}
     fav_2_plus = float(
         bands.get("favorite_2_plus")
@@ -1616,9 +1659,12 @@ def _apply_elite_mismatch_non_cs_selector(
         gap = primary_prob - c.probability
         if gap < 0:
             gap = 0.0
-        if rank > _non_cs_rank_limit(ctype):
+        rank_limit = _candidate_rank_limit_for_ud_score_prob(evidence_band, ctype)
+        if rank_limit <= 0:
             continue
-        if gap > _non_cs_gap_limit(ctype, fav_2_plus):
+        if rank > rank_limit:
+            continue
+        if gap > _candidate_gap_limit_for_band(evidence_band, ctype, fav_2_plus):
             continue
 
         strength = _non_cs_candidate_strength(
