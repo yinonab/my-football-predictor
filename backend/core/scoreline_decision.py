@@ -1120,6 +1120,66 @@ def _outcome_hebrew(outcome: OutcomeKey, home_team: str, away_team: str) -> str:
     return "תיקו"
 
 
+def _favorite_team_short(
+    favorite_outcome: OutcomeKey,
+    home_team: str,
+    away_team: str,
+) -> str:
+    if favorite_outcome == "home_win":
+        return _short_team_name(home_team)
+    if favorite_outcome == "away_win":
+        return _short_team_name(away_team)
+    return _short_team_name(home_team)
+
+
+def _overlay_primary_score_reason(
+    *,
+    primary: ScorelineCandidate | None,
+    favorite_outcome: OutcomeKey,
+    home_team: str,
+    away_team: str,
+    warnings: list[str],
+) -> str | None:
+    """Copy aligned with final primary score and display-only overlay warnings."""
+    if primary is None:
+        return None
+    warning_set = set(warnings)
+    fav = _favorite_team_short(favorite_outcome, home_team, away_team)
+
+    if primary.outcome == "draw":
+        if ELITE_NON_CS_SELECTOR_APPLIED in warning_set:
+            return (
+                f"למרות ש־{fav} עדיין מובילה בהסתברות 1X2, תחזית התוצאה המדויקת עודכנה לתיקו סביר "
+                "משום שלשני הצדדים יש סיכוי משמעותי להבקיע ומטריצת התוצאות אינה תומכת מספיק בשער נקי."
+            )
+        if NEAR_BALANCED_DRAW_MODAL_APPLIED in warning_set:
+            return (
+                "המשחק נראה מאוזן יחסית, ולכן תחזית התוצאה המדויקת נבחרה מתוך תרחישי תיקו סבירים "
+                "במטריצת התוצאות."
+            )
+        if favorite_outcome in ("home_win", "away_win"):
+            return (
+                "למרות שאחת הקבוצות מובילה בהסתברות 1X2, תחזית התוצאה המדויקת נבחרה כתיקו "
+                "משום שמטריצת התוצאות תומכת בכך."
+            )
+        return None
+
+    both_score = primary.home_goals >= 1 and primary.away_goals >= 1
+    if both_score and primary.outcome == favorite_outcome:
+        label = primary.score_label
+        if CLEAN_SHEET_GUARD_SWITCHED_TO_BTTS in warning_set:
+            return (
+                f"למרות ש־{fav} עדיין מובילה בהסתברות 1X2, תחזית התוצאה המדויקת עודכנה ל־{label} "
+                "משום שליריבה יש סיכוי משמעותי להבקיע, ולכן נבחר תרחיש שבו שתי הקבוצות מבקיעות."
+            )
+        if ELITE_NON_CS_SELECTOR_APPLIED in warning_set:
+            return (
+                f"למרות ש־{fav} עדיין מובילה בהסתברות 1X2, תחזית התוצאה המדויקת עודכנה ל־{label} "
+                "משום שמטריצת התוצאות תומכת בתרחיש שבו הפייבוריט מנצחת עם שער להגנה."
+            )
+    return None
+
+
 def build_primary_score_reason(
     *,
     primary: ScorelineCandidate | None,
@@ -1132,6 +1192,7 @@ def build_primary_score_reason(
     context_limited: bool,
     prediction_invalid: bool,
     completed: bool,
+    warnings: list[str] | None = None,
 ) -> str:
     if prediction_invalid and completed:
         return (
@@ -1140,6 +1201,16 @@ def build_primary_score_reason(
         )
     if prediction_invalid:
         return "תחזית זו אינה תקפה למשחק עתידי — נתוני מצב המשחק מגבילים את הביטחון."
+
+    overlay = _overlay_primary_score_reason(
+        primary=primary,
+        favorite_outcome=favorite_outcome,
+        home_team=home_team,
+        away_team=away_team,
+        warnings=list(warnings or []),
+    )
+    if overlay:
+        return overlay
 
     if balanced:
         base = "המשחק מאוזן יחסית, ולכן תחזית התוצאה המדויקת היא בביטחון נמוך."
@@ -2040,6 +2111,7 @@ def build_scoreline_decision(
         context_limited=context_limited,
         prediction_invalid=prediction_invalid,
         completed=completed,
+        warnings=warnings,
     )
     if context_limited and not prediction_invalid:
         reason += " חלק מנתוני ההקשר של המשחק אינם זמינים, לכן התחזית מוגבלת הקשר."
