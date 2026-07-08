@@ -58,6 +58,28 @@ NEAR_BALANCED_DRAW_MODAL_MIN_DRAW_PCT = 32.0
 NEAR_BALANCED_DRAW_MODAL_CLOSE_PP = 2.0
 NEAR_BALANCED_DRAW_MODAL_MAX_RANK = 3
 NEAR_BALANCED_DRAW_MODAL_APPLIED = "NEAR_BALANCED_DRAW_MODAL_APPLIED"
+
+# Elite mismatch non-clean-sheet candidate selector (post CS guard, pre Option C).
+# Parameterized over matrix rank/gap + scoring tails — never fixtures or fixed scores.
+ELITE_NON_CS_SELECTOR_APPLIED = "ELITE_MISMATCH_NON_CS_SELECTOR_APPLIED"
+ELITE_NON_CS_MIN_UD_SCORE_PCT = 45.0
+ELITE_NON_CS_MIN_MARGIN_PP = NEAR_BALANCED_DRAW_MODAL_MAX_MARGIN_PP  # > Option C band
+ELITE_NON_CS_MAX_MARGIN_PP = 45.0
+ELITE_NON_CS_DRAW_MAX_GAP_PP = 4.0
+ELITE_NON_CS_BTTS_MAX_GAP_PP = 5.0
+ELITE_NON_CS_BTTS_STRONG_FAV_MAX_GAP_PP = 5.5
+ELITE_NON_CS_HIGH_TOTAL_MAX_GAP_PP = 3.0
+ELITE_NON_CS_DRAW_MAX_RANK = 5
+ELITE_NON_CS_BTTS_MAX_RANK = 5
+ELITE_NON_CS_HIGH_TOTAL_MAX_RANK = 8
+ELITE_NON_CS_ULTRA_WEAK_POWER = 750.0
+ELITE_NON_CS_ULTRA_WEAK_UD_OVERRIDE = 55.0
+ELITE_NON_CS_FAV_2_PLUS_STRONG = 45.0
+ELITE_NON_CS_FAV_2_PLUS_VERY_STRONG = 50.0
+ELITE_NON_CS_FAV_3_PLUS_STRONG = 25.0
+ELITE_NON_CS_UD_2_PLUS_MEANINGFUL = 18.0
+ELITE_NON_CS_UD_3_PLUS_MEANINGFUL = 8.0
+ELITE_NON_CS_BTTS_FLOOR_FOR_HIGH_TOTAL = 35.0
 PRIMARY_CLEAN_SHEET_WITH_UNDERDOG_XG_HIGH = "PRIMARY_CLEAN_SHEET_WITH_UNDERDOG_XG_HIGH"
 PRIMARY_TOO_LOW_FOR_FAVORITE_XG = "PRIMARY_TOO_LOW_FOR_FAVORITE_XG"
 PRIMARY_CAPPED_BELOW_EXPECTED_GOALS = "PRIMARY_CAPPED_BELOW_EXPECTED_GOALS"
@@ -580,6 +602,8 @@ class MatrixStats:
     expected_away_goals: float
     expected_goal_difference: float
     upset_probability: float
+    underdog_scores_2_plus: float = 0.0
+    underdog_scores_3_plus: float = 0.0
 
 
 def _compute_matrix_stats(
@@ -626,14 +650,17 @@ def _compute_matrix_stats(
     if favorite_outcome == "home_win":
         underdog_scores = away_scores
         fav_2, fav_3, fav_4 = home_2_plus, home_3_plus, home_4_plus
+        ud_2, ud_3 = away_2_plus, away_3_plus
         upset = probabilities_1x2.get("away_win", 0.0) / 100.0
     elif favorite_outcome == "away_win":
         underdog_scores = home_scores
         fav_2, fav_3, fav_4 = away_2_plus, away_3_plus, away_4_plus
+        ud_2, ud_3 = home_2_plus, home_3_plus
         upset = probabilities_1x2.get("home_win", 0.0) / 100.0
     else:
         underdog_scores = min(home_scores, away_scores)
         fav_2 = fav_3 = fav_4 = 0.0
+        ud_2 = ud_3 = 0.0
         upset = min(
             probabilities_1x2.get("home_win", 0.0),
             probabilities_1x2.get("away_win", 0.0),
@@ -649,6 +676,8 @@ def _compute_matrix_stats(
         expected_away_goals=round(exp_away, 3),
         expected_goal_difference=round(exp_home - exp_away, 3),
         upset_probability=round(upset * 100, 2),
+        underdog_scores_2_plus=round(ud_2 * 100, 2),
+        underdog_scores_3_plus=round(ud_3 * 100, 2),
     )
 
 
@@ -1322,6 +1351,380 @@ def _is_narrow_favorite_primary(
     return underdog_goals == 0 and fav_goals == 1
 
 
+def _is_favorite_clean_sheet_primary(
+    primary: ScorelineCandidate,
+    favorite: OutcomeKey,
+) -> bool:
+    """Favorite clean-sheet wins in the 1–3 goal band (1-0…3-0 / 0-1…0-3)."""
+    fav_goals, underdog_goals = _favorite_side_goals(primary, favorite)
+    return underdog_goals == 0 and 1 <= fav_goals <= 3
+
+
+def _classify_non_cs_candidate(
+    candidate: ScorelineCandidate,
+    favorite: OutcomeKey,
+) -> Literal["draw", "favorite_btts_win", "high_total_btts", "underdog_multi_goal", "other"]:
+    fg, dg = _favorite_side_goals(candidate, favorite)
+    if candidate.outcome == "draw":
+        return "draw"
+    if fg >= 1 and dg >= 1:
+        if (fg >= 3 and dg >= 2) or (fg >= 2 and dg >= 2):
+            return "high_total_btts"
+        if dg >= 2:
+            return "underdog_multi_goal"
+        return "favorite_btts_win"
+    return "other"
+
+
+def _underdog_tail_probs_from_candidates(
+    candidates: list[ScorelineCandidate],
+    favorite: OutcomeKey,
+) -> tuple[float, float]:
+    """Approximate P(ud 2+) / P(ud 3+) from the visible candidate list."""
+    ud2 = ud3 = 0.0
+    for c in candidates:
+        _, dg = _favorite_side_goals(c, favorite)
+        if dg >= 2:
+            ud2 += c.probability
+        if dg >= 3:
+            ud3 += c.probability
+    return ud2, ud3
+
+
+def _non_cs_candidate_strength(
+    *,
+    ctype: str,
+    gap: float,
+    rank: int,
+    fg: int,
+    dg: int,
+    fav_2_plus: float,
+    fav_3_plus: float,
+    ud_2_plus: float,
+    ud_3_plus: float,
+    btts: float,
+    primary_fav_goals: int,
+) -> float:
+    """Higher is better. Parameterized — never fixture- or score-hardcoded."""
+    prob_score = max(0.0, 1.0 - gap / 8.0)
+    rank_score = max(0.0, 1.0 - (rank - 1) / 7.0)
+    profile_bonus = 0.0
+
+    if ctype == "draw":
+        # Prefer scored draws over 0-0 when underdog is expected to score.
+        if fg >= 1 and dg >= 1:
+            profile_bonus += 0.18
+        else:
+            profile_bonus -= 0.25
+        if fg == 2 and dg == 2 and ud_2_plus >= ELITE_NON_CS_UD_2_PLUS_MEANINGFUL:
+            profile_bonus += 0.08
+
+    if ctype == "favorite_btts_win":
+        profile_bonus += 0.05
+        if fg >= 2 and fav_2_plus >= ELITE_NON_CS_FAV_2_PLUS_STRONG:
+            profile_bonus += 0.14
+        if fg >= 3 and fav_3_plus >= ELITE_NON_CS_FAV_3_PLUS_STRONG:
+            profile_bonus += 0.10
+        # Same favorite-goal BTTS is strongly preferred vs multi-goal clean sheets.
+        if fg == primary_fav_goals and primary_fav_goals >= 2:
+            profile_bonus += 0.22
+        if fav_2_plus >= ELITE_NON_CS_FAV_2_PLUS_VERY_STRONG and fg >= 2:
+            profile_bonus += 0.08
+
+    if ctype == "high_total_btts":
+        if ud_2_plus >= ELITE_NON_CS_UD_2_PLUS_MEANINGFUL:
+            profile_bonus += 0.10
+        if ud_3_plus >= ELITE_NON_CS_UD_3_PLUS_MEANINGFUL:
+            profile_bonus += 0.08
+        if fav_3_plus >= ELITE_NON_CS_FAV_3_PLUS_STRONG:
+            profile_bonus += 0.08
+        if btts < ELITE_NON_CS_BTTS_FLOOR_FOR_HIGH_TOTAL:
+            profile_bonus -= 0.20
+
+    if ctype == "underdog_multi_goal":
+        if ud_2_plus >= ELITE_NON_CS_UD_2_PLUS_MEANINGFUL:
+            profile_bonus += 0.10
+        else:
+            profile_bonus -= 0.15
+
+    type_weight = {
+        "draw": 1.0,
+        "favorite_btts_win": 0.98,
+        "underdog_multi_goal": 0.90,
+        "high_total_btts": 0.85,
+        "other": 0.70,
+    }.get(ctype, 0.7)
+
+    return round(type_weight * (0.55 * prob_score + 0.30 * rank_score + profile_bonus), 4)
+
+
+def _non_cs_gap_limit(ctype: str, fav_2_plus: float) -> float:
+    if ctype == "draw":
+        return ELITE_NON_CS_DRAW_MAX_GAP_PP
+    if ctype in ("favorite_btts_win", "underdog_multi_goal"):
+        if fav_2_plus >= ELITE_NON_CS_FAV_2_PLUS_VERY_STRONG:
+            return ELITE_NON_CS_BTTS_STRONG_FAV_MAX_GAP_PP
+        return ELITE_NON_CS_BTTS_MAX_GAP_PP
+    if ctype == "high_total_btts":
+        return ELITE_NON_CS_HIGH_TOTAL_MAX_GAP_PP
+    return ELITE_NON_CS_BTTS_MAX_GAP_PP
+
+
+def _non_cs_rank_limit(ctype: str) -> int:
+    if ctype == "high_total_btts":
+        return ELITE_NON_CS_HIGH_TOTAL_MAX_RANK
+    if ctype == "draw":
+        return ELITE_NON_CS_DRAW_MAX_RANK
+    return ELITE_NON_CS_BTTS_MAX_RANK
+
+
+def _apply_elite_mismatch_non_cs_selector(
+    primary: ScorelineCandidate | None,
+    *,
+    favorite: OutcomeKey,
+    margin_pp: float,
+    candidates: list[ScorelineCandidate],
+    underdog_scores_probability: float | None,
+    both_teams_score_probability: float | None,
+    favorite_goal_bands: dict[str, float] | None,
+    underdog_power: float | None,
+    guard_switched_to_btts: bool,
+    matrix_stats: MatrixStats | None = None,
+    favorite_class: str | None = None,
+    gate_level: str | None = None,
+) -> dict[str, Any]:
+    """Select the strongest non-clean-sheet matrix candidate for elite mismatches.
+
+    Runs only when primary is still a favorite clean sheet after the CS guard, the
+    1X2 margin sits above the near-balanced Option C band, and underdog scoring
+    risk is material. Display-only: never touches xG, probabilities, or top_scores.
+    """
+    result: dict[str, Any] = {
+        "applied": False,
+        "reason": None,
+        "original": None,
+        "selected": None,
+        "primary": primary,
+        "candidate_type": None,
+        "prob_gap_pp": None,
+        "rank": None,
+        "warning": None,
+        "evaluated": [],
+    }
+    if guard_switched_to_btts:
+        result["reason"] = "btts_guard_already_applied"
+        return result
+    if primary is None or favorite not in ("home_win", "away_win"):
+        result["reason"] = "invalid_primary_or_favorite"
+        return result
+    if not _is_favorite_clean_sheet_primary(primary, favorite):
+        result["reason"] = "primary_not_clean_sheet"
+        return result
+    if not (ELITE_NON_CS_MIN_MARGIN_PP < margin_pp <= ELITE_NON_CS_MAX_MARGIN_PP):
+        result["reason"] = "margin_outside_selector_band"
+        return result
+    # Leave true near-parity / Option-C territory alone even if margin drifts.
+    if gate_level == "BALANCED":
+        result["reason"] = "balanced_gate_deferred_to_option_c"
+        return result
+
+    ud_score = float(underdog_scores_probability or 0.0)
+    if ud_score < ELITE_NON_CS_MIN_UD_SCORE_PCT:
+        result["reason"] = "underdog_score_below_threshold"
+        return result
+
+    if (
+        underdog_power is not None
+        and underdog_power < ELITE_NON_CS_ULTRA_WEAK_POWER
+        and ud_score < ELITE_NON_CS_ULTRA_WEAK_UD_OVERRIDE
+    ):
+        result["reason"] = "ultra_weak_underdog_skipped"
+        return result
+
+    # Prefer elite mismatches; allow strong-underdog cases (e.g. FRA-POR) when
+    # underdog power is material. Ultra-weak and pure near-parity stay out.
+    is_elite = favorite_class == "elite_favorite"
+    strong_ud = underdog_power is not None and underdog_power >= ELITE_CS_GUARD_MIN_UNDERDOG_POWER
+    if not (is_elite or strong_ud):
+        result["reason"] = "not_elite_mismatch_profile"
+        return result
+
+    bands = favorite_goal_bands or {}
+    fav_2_plus = float(
+        bands.get("favorite_2_plus")
+        or (matrix_stats.favorite_scores_2_plus if matrix_stats else 0.0)
+    )
+    fav_3_plus = float(
+        bands.get("favorite_3_plus")
+        or (matrix_stats.favorite_scores_3_plus if matrix_stats else 0.0)
+    )
+    btts = float(
+        both_teams_score_probability
+        if both_teams_score_probability is not None
+        else (matrix_stats.btts_probability if matrix_stats else 0.0)
+    )
+    if matrix_stats is not None:
+        ud_2_plus = float(matrix_stats.underdog_scores_2_plus)
+        ud_3_plus = float(matrix_stats.underdog_scores_3_plus)
+    else:
+        ud_2_plus, ud_3_plus = _underdog_tail_probs_from_candidates(candidates, favorite)
+
+    primary_fav_goals, _ = _favorite_side_goals(primary, favorite)
+    primary_prob = primary.probability
+    result["original"] = primary.score_label
+
+    # Among draws, keep only the best-probability scored draw when available;
+    # never prefer 0-0 over a scored draw for multi-goal clean-sheet primaries.
+    scored_draws = [
+        c for c in candidates if c.outcome == "draw" and c.home_goals >= 1 and c.away_goals >= 1
+    ]
+    best_scored_draw = max(scored_draws, key=lambda c: c.probability) if scored_draws else None
+    all_draws = [c for c in candidates if c.outcome == "draw"]
+    best_any_draw = max(all_draws, key=lambda c: c.probability) if all_draws else None
+    preferred_draw = best_scored_draw
+    if preferred_draw is None and best_any_draw is not None and primary_fav_goals == 1:
+        # Only allow 0-0 when no scored draw exists and primary is a single-goal CS.
+        preferred_draw = best_any_draw
+
+    evaluated: list[dict[str, Any]] = []
+    for rank, c in enumerate(candidates, start=1):
+        if c.score_label == primary.score_label:
+            continue
+        fg, dg = _favorite_side_goals(c, favorite)
+        if dg == 0:
+            continue  # still clean sheet from favorite perspective, or 0-0 handled via draw
+        ctype = _classify_non_cs_candidate(c, favorite)
+        if ctype == "other":
+            continue
+        if ctype == "draw":
+            if preferred_draw is None or c.score_label != preferred_draw.score_label:
+                continue
+            # Multi-goal CS: never select 0-0.
+            if primary_fav_goals >= 2 and fg == 0 and dg == 0:
+                continue
+        if ctype == "high_total_btts":
+            tails_ok = (
+                (ud_2_plus >= ELITE_NON_CS_UD_2_PLUS_MEANINGFUL and btts >= ELITE_NON_CS_BTTS_FLOOR_FOR_HIGH_TOTAL)
+                or (ud_3_plus >= ELITE_NON_CS_UD_3_PLUS_MEANINGFUL)
+                or (fav_3_plus >= ELITE_NON_CS_FAV_3_PLUS_STRONG and ud_2_plus >= ELITE_NON_CS_UD_2_PLUS_MEANINGFUL)
+            )
+            if not tails_ok:
+                continue
+            if (fg + dg) >= 7 and ud_3_plus < ELITE_NON_CS_UD_3_PLUS_MEANINGFUL:
+                continue
+
+        gap = primary_prob - c.probability
+        if gap < 0:
+            gap = 0.0
+        if rank > _non_cs_rank_limit(ctype):
+            continue
+        if gap > _non_cs_gap_limit(ctype, fav_2_plus):
+            continue
+
+        strength = _non_cs_candidate_strength(
+            ctype=ctype,
+            gap=gap,
+            rank=rank,
+            fg=fg,
+            dg=dg,
+            fav_2_plus=fav_2_plus,
+            fav_3_plus=fav_3_plus,
+            ud_2_plus=ud_2_plus,
+            ud_3_plus=ud_3_plus,
+            btts=btts,
+            primary_fav_goals=primary_fav_goals,
+        )
+        evaluated.append(
+            {
+                "score": c.score_label,
+                "candidate": c,
+                "type": ctype,
+                "rank": rank,
+                "probability": round(c.probability, 2),
+                "prob_gap_pp": round(gap, 2),
+                "favorite_goals": fg,
+                "opponent_goals": dg,
+                "shadow_strength": strength,
+            }
+        )
+
+    # Explicit same-fav-goal BTTS path for multi-goal CS primaries (avoids 0-0).
+    if primary_fav_goals >= 2 and fav_2_plus >= ELITE_NON_CS_FAV_2_PLUS_VERY_STRONG:
+        for rank, c in enumerate(candidates, start=1):
+            fg, dg = _favorite_side_goals(c, favorite)
+            if fg != primary_fav_goals or dg != 1:
+                continue
+            gap = max(0.0, primary_prob - c.probability)
+            if rank > ELITE_NON_CS_HIGH_TOTAL_MAX_RANK:
+                continue
+            if gap > ELITE_NON_CS_BTTS_STRONG_FAV_MAX_GAP_PP:
+                continue
+            existing = next((e for e in evaluated if e["score"] == c.score_label), None)
+            if existing is not None:
+                existing["shadow_strength"] = round(existing["shadow_strength"] + 0.15, 4)
+                continue
+            ctype = "favorite_btts_win"
+            strength = _non_cs_candidate_strength(
+                ctype=ctype,
+                gap=gap,
+                rank=rank,
+                fg=fg,
+                dg=dg,
+                fav_2_plus=fav_2_plus,
+                fav_3_plus=fav_3_plus,
+                ud_2_plus=ud_2_plus,
+                ud_3_plus=ud_3_plus,
+                btts=btts,
+                primary_fav_goals=primary_fav_goals,
+            ) + 0.15
+            evaluated.append(
+                {
+                    "score": c.score_label,
+                    "candidate": c,
+                    "type": ctype,
+                    "rank": rank,
+                    "probability": round(c.probability, 2),
+                    "prob_gap_pp": round(gap, 2),
+                    "favorite_goals": fg,
+                    "opponent_goals": dg,
+                    "shadow_strength": round(strength, 4),
+                }
+            )
+
+    if not evaluated:
+        result["reason"] = "no_eligible_non_cs_candidate"
+        return result
+
+    evaluated.sort(
+        key=lambda x: (-x["shadow_strength"], -x["probability"], x["prob_gap_pp"], x["rank"])
+    )
+    best = evaluated[0]
+    chosen: ScorelineCandidate = best["candidate"]
+
+    # Extra safety: never pick 0-0 when primary has 2+ favorite goals.
+    if primary_fav_goals >= 2 and chosen.home_goals == 0 and chosen.away_goals == 0:
+        result["reason"] = "rejected_scoreless_draw_vs_multi_goal_cs"
+        result["evaluated"] = [
+            {k: v for k, v in e.items() if k != "candidate"} for e in evaluated[:8]
+        ]
+        return result
+
+    result.update(
+        applied=True,
+        reason="elite_mismatch_non_cs_selector",
+        selected=chosen.score_label,
+        primary=chosen,
+        candidate_type=best["type"],
+        prob_gap_pp=best["prob_gap_pp"],
+        rank=best["rank"],
+        warning=ELITE_NON_CS_SELECTOR_APPLIED,
+        evaluated=[
+            {k: v for k, v in e.items() if k != "candidate"} for e in evaluated[:8]
+        ],
+    )
+    return result
+
+
 def _apply_near_balanced_draw_modal(
     primary: ScorelineCandidate | None,
     *,
@@ -1520,6 +1923,31 @@ def build_scoreline_decision(
         if guard["warning"] and guard["warning"] not in warnings:
             warnings.append(guard["warning"])
 
+    guard_switched_to_btts = guard.get("warning") == CLEAN_SHEET_GUARD_SWITCHED_TO_BTTS
+    matrix_stats_for_selector = (
+        _compute_matrix_stats(all_scores, favorite, final_probabilities_1x2)
+        if all_scores
+        else None
+    )
+    non_cs = _apply_elite_mismatch_non_cs_selector(
+        primary,
+        favorite=favorite,
+        margin_pp=margin,
+        candidates=candidates,
+        underdog_scores_probability=rep_diagnostics.get("underdog_scores_probability"),
+        both_teams_score_probability=rep_diagnostics.get("both_teams_score_probability"),
+        favorite_goal_bands=rep_diagnostics.get("favorite_goal_band_probabilities"),
+        underdog_power=underdog_power,
+        guard_switched_to_btts=guard_switched_to_btts,
+        matrix_stats=matrix_stats_for_selector,
+        favorite_class=gate_payload.get("favorite_class"),
+        gate_level=gate_payload.get("level"),
+    )
+    if non_cs["applied"]:
+        primary = non_cs["primary"]
+        if non_cs["warning"] and non_cs["warning"] not in warnings:
+            warnings.append(non_cs["warning"])
+
     draw_overlay = _apply_near_balanced_draw_modal(
         primary,
         favorite=favorite,
@@ -1528,7 +1956,7 @@ def build_scoreline_decision(
         candidates=candidates,
         top_exact=top_exact,
         used_balanced_modal_path=balanced,
-        guard_switched_to_btts=guard.get("warning") == CLEAN_SHEET_GUARD_SWITCHED_TO_BTTS,
+        guard_switched_to_btts=guard_switched_to_btts,
     )
     if draw_overlay["applied"]:
         primary = draw_overlay["primary"]
