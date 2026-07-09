@@ -562,6 +562,16 @@ def nr3_fcc_served_enabled() -> bool:
     return NR3_FCC_SERVED_ENABLED
 
 
+# Phase 4A — shadow-only market diagnostics debug endpoint (default OFF)
+MARKET_SHADOW_DIAGNOSTICS_ENABLED: bool = _env_bool(
+    "ENABLE_MARKET_SHADOW_DIAGNOSTICS", False
+)
+
+
+def market_shadow_diagnostics_enabled() -> bool:
+    return MARKET_SHADOW_DIAGNOSTICS_ENABLED
+
+
 # API
 API_HOST: str = "0.0.0.0"
 API_PORT: int = 8000

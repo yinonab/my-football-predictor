@@ -24,6 +24,7 @@ class HealthResponse(BaseModel):
     power_candidate_affects_prediction: bool = False
     odds_affect_prediction: bool = config.ODDS_AFFECT_PREDICTION
     probability_calibration_enabled: bool = config.PROBABILITY_CALIBRATION_ENABLED
+    market_shadow_diagnostics_enabled: bool = config.market_shadow_diagnostics_enabled()
 
 
 class PredictRequest(BaseModel):
@@ -181,6 +182,81 @@ class MarketDiagnosticsResponse(BaseModel):
     odds_key_configured: bool = False
     requests_remaining: int | None = None
     notes: list[str] = Field(default_factory=list)
+
+
+class MarketPressureDiagnosticResponse(BaseModel):
+    label: str = ""
+    value_pct: float = 0.0
+    direction: str = ""
+    strength: str = ""
+    detail: str = ""
+
+
+class EffectiveMovementMetricResponse(BaseModel):
+    raw_pct: float | None = None
+    display: str = ""
+    status: str = ""
+
+
+class EffectiveMovementDiagnosticsResponse(BaseModel):
+    h2h: dict[str, EffectiveMovementMetricResponse] = Field(default_factory=dict)
+    over_2_5: EffectiveMovementMetricResponse | None = None
+    btts: EffectiveMovementMetricResponse | None = None
+    favorite_side: EffectiveMovementMetricResponse | None = None
+
+
+class ShadowScoreProbabilityResponse(BaseModel):
+    score: str
+    probability: float
+
+
+class MarketShadowDiagnosticsBlock(BaseModel):
+    home_team: str
+    away_team: str
+    quality_band: str
+    quality_score: float
+    market_favorite: str
+    market_favorite_side: str = ""
+    market_favorite_pct: float = 0.0
+    market_h2h: dict[str, float] = Field(default_factory=dict)
+    totals_pressure: MarketPressureDiagnosticResponse | None = None
+    spread_pressure: MarketPressureDiagnosticResponse | None = None
+    btts_pressure: MarketPressureDiagnosticResponse | None = None
+    shadow_tendency: str = ""
+    requested_shadow_weight_pct: int = 0
+    effective_movement: EffectiveMovementDiagnosticsResponse
+    shadow_top_scores: list[ShadowScoreProbabilityResponse] = Field(default_factory=list)
+    implied_1x2_before: dict[str, float] = Field(default_factory=dict)
+    implied_1x2_after: dict[str, float] = Field(default_factory=dict)
+    warnings: list[str] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+    source_fixture: str | None = None
+    model_primary_score_unchanged: str | None = None
+    model_top_scores_unchanged: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class MarketShadowDiagnosticsRequest(BaseModel):
+    include_market_shadow_diagnostics: bool = Field(
+        default=False,
+        description="Must be true to return shadow diagnostics when server flag is enabled.",
+    )
+    home_team: str
+    away_team: str
+    model_score_matrix: dict[str, float]
+    model_primary_score: str | None = None
+    model_top_scores: list[dict[str, Any]] = Field(default_factory=list)
+    market_fixture: str | None = Field(
+        default=None,
+        description="Allowlisted static fixture filename under backend/tests/fixtures/.",
+    )
+    inline_market: dict[str, Any] | None = Field(
+        default=None,
+        description="RapidAPI audit-shaped inline market snapshot (no live fetch).",
+    )
+
+
+class MarketShadowDiagnosticsResponse(BaseModel):
+    market_shadow_diagnostics: MarketShadowDiagnosticsBlock
 
 
 class EnvironmentDiagnosticsResponse(BaseModel):

@@ -38,6 +38,9 @@ from api.schemas import (
     MatchContextResponse,
     MatchContextDiagnosticsResponse,
     MarketDiagnosticsResponse,
+    MarketShadowDiagnosticsBlock,
+    MarketShadowDiagnosticsRequest,
+    MarketShadowDiagnosticsResponse,
     ActualScoreResponse,
     VenueDiagnosticsResponse,
     FusionBlowoutDiagnosticsResponse,
@@ -102,6 +105,7 @@ from core.team_ratings import build_all_matches, build_and_save_ratings
 from core.math_engine import AdvancedDixonColesEngine
 from core.fusion_blowout import apply_fusion_blowout, compute_fusion_blowout_signal
 from core.market_diagnostics import build_market_diagnostics
+from core.market_shadow_api import MarketShadowApiError, build_market_shadow_diagnostics
 from core.odds_provider import create_odds_client
 from core.odds_ensemble import OddsClient
 from core.probability_coherence import favorite_from_1x2
@@ -335,6 +339,7 @@ def health() -> HealthResponse:
         power_candidate_affects_prediction=config.POWER_CANDIDATE_AFFECTS_PREDICTION,
         odds_affect_prediction=config.ODDS_AFFECT_PREDICTION,
         probability_calibration_enabled=config.PROBABILITY_CALIBRATION_ENABLED,
+        market_shadow_diagnostics_enabled=config.market_shadow_diagnostics_enabled(),
     )
 
 
@@ -1324,6 +1329,40 @@ def debug_global_ratings(home_team: str, away_team: str) -> GlobalRatingDebugRes
         home_team=home_resolved,
         away_team=away_resolved,
         global_rating_diagnostics=_global_rating_response(diag),
+    )
+
+
+@app.post(
+    "/api/debug/market-shadow-diagnostics",
+    response_model=MarketShadowDiagnosticsResponse,
+)
+def debug_market_shadow_diagnostics(
+    request: MarketShadowDiagnosticsRequest,
+) -> MarketShadowDiagnosticsResponse:
+    """Shadow-only market diagnostics — static fixture input; no predict mutation."""
+    if not config.market_shadow_diagnostics_enabled():
+        raise HTTPException(
+            status_code=403,
+            detail="market_shadow_diagnostics_disabled",
+        )
+    if not request.include_market_shadow_diagnostics:
+        raise HTTPException(status_code=400, detail="diagnostics_not_requested")
+
+    try:
+        block = build_market_shadow_diagnostics(
+            home_team=request.home_team,
+            away_team=request.away_team,
+            model_score_matrix=request.model_score_matrix,
+            model_primary_score=request.model_primary_score,
+            model_top_scores=request.model_top_scores,
+            market_fixture=request.market_fixture,
+            inline_market=request.inline_market,
+        )
+    except MarketShadowApiError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return MarketShadowDiagnosticsResponse(
+        market_shadow_diagnostics=MarketShadowDiagnosticsBlock.model_validate(block),
     )
 
 
