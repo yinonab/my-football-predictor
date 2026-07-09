@@ -126,6 +126,7 @@ def parse_market_coverage_table(
             lp = row.get("line_point")
             if isinstance(lp, (int, float)):
                 spread_lines.add(float(lp))
+            # line_point = home handicap; outcome_0=home cover, outcome_1=away cover.
             all_lines.extend(
                 _parse_two_way_row(row, MarketFamily.SPREADS, "home", "away")
             )
