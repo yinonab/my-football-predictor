@@ -145,3 +145,36 @@ def build_market_shadow_diagnostics(
         "model_primary_score_unchanged": model_primary_score,
         "model_top_scores_unchanged": shadow_dict["model_top_scores_unchanged"],
     }
+
+
+def try_build_predict_market_shadow_diagnostics(
+    *,
+    server_enabled: bool,
+    include_requested: bool,
+    home_team: str,
+    away_team: str,
+    model_score_matrix: Mapping[str, float] | None,
+    model_primary_score: str | None,
+    model_top_scores: list[Mapping[str, Any]],
+    market_fixture: str | None = None,
+    inline_market: Mapping[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    """Append-only shadow diagnostics for /api/predict; never raises to caller."""
+    if not server_enabled or not include_requested:
+        return None
+    if not model_score_matrix:
+        return None
+    if not market_fixture and inline_market is None:
+        return None
+    try:
+        return build_market_shadow_diagnostics(
+            home_team=home_team,
+            away_team=away_team,
+            model_score_matrix=model_score_matrix,
+            model_primary_score=model_primary_score,
+            model_top_scores=model_top_scores,
+            market_fixture=market_fixture,
+            inline_market=inline_market,
+        )
+    except MarketShadowApiError:
+        return None

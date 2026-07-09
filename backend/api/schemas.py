@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_serializer
 
 import config
 
@@ -62,6 +62,21 @@ class PredictRequest(BaseModel):
     include_diagnostics: bool = Field(
         default=False,
         description="Include extended model diagnostics (NR3 xG decomposition, etc.)",
+    )
+    include_market_shadow_diagnostics: bool = Field(
+        default=False,
+        description=(
+            "Append shadow-only market diagnostics when server flag is enabled "
+            "and a static market snapshot is provided."
+        ),
+    )
+    market_shadow_fixture: str | None = Field(
+        default=None,
+        description="Allowlisted static market fixture filename (no live fetch).",
+    )
+    inline_market: dict[str, Any] | None = Field(
+        default=None,
+        description="Inline RapidAPI audit-shaped market snapshot (no live fetch).",
     )
 
 
@@ -640,6 +655,14 @@ class PredictResponse(BaseModel):
     underdog_foundation_diagnostics: UnderdogFoundationDiagnosticsResponse | None = None
     recent_form_provider_diagnostics: RecentFormProviderDiagnosticsResponse | None = None
     scoreline_decision: ScorelineDecisionResponse | None = None
+    market_shadow_diagnostics: MarketShadowDiagnosticsBlock | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_null_market_shadow_diagnostics(self, handler):
+        data = handler(self)
+        if data.get("market_shadow_diagnostics") is None:
+            data.pop("market_shadow_diagnostics", None)
+        return data
 
 
 class GlobalRatingDebugResponse(BaseModel):
