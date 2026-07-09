@@ -159,7 +159,9 @@ def _direction_reasonable(
 
     eff_fav = matrix_result.effective_favorite_side_movement_pct
     if eff_fav is not None and eff_fav < WEAK_EFFECTIVE_MOVEMENT_THRESHOLD_PCT:
-        warnings.append("effective_movement_weak")
+        fav_metric = matrix_result.effective_favorite_side_movement
+        if fav_metric is not None and fav_metric.weak_check_value() is not None:
+            warnings.append("effective_movement_weak")
 
     return direction_ok, notes, warnings
 
@@ -172,6 +174,8 @@ def compute_shadow_verdict(
     quality_band: str,
     warnings: list[str],
     effective_favorite: float | None,
+    effective_btts: float | None = None,
+    effective_over: float | None = None,
     opposite_movement: bool = False,
     handicap_incoherent: bool = False,
 ) -> tuple[str, list[str]]:
@@ -193,8 +197,15 @@ def compute_shadow_verdict(
         reasons.append("limited_market_quality")
         return VERDICT_REVIEW, reasons
 
+    weak_metrics: list[str] = []
     if effective_favorite is not None and effective_favorite < WEAK_EFFECTIVE_MOVEMENT_THRESHOLD_PCT:
-        reasons.append("effective_movement_below_threshold")
+        weak_metrics.append("favorite_side")
+    if effective_btts is not None and effective_btts < WEAK_EFFECTIVE_MOVEMENT_THRESHOLD_PCT:
+        weak_metrics.append("btts")
+    if effective_over is not None and effective_over < WEAK_EFFECTIVE_MOVEMENT_THRESHOLD_PCT:
+        weak_metrics.append("over_2_5")
+    if weak_metrics:
+        reasons.append(f"effective_movement_below_threshold:{','.join(weak_metrics)}")
         return VERDICT_REVIEW, reasons
 
     if any("effective_movement_weak" in w for w in warnings):
@@ -234,6 +245,11 @@ def evaluate_shadow_case(case: Mapping[str, Any]) -> ShadowEvaluationReport:
     }
 
     direction_ok, direction_notes, warnings = _direction_reasonable(shadow_dict, matrix_result, quality)
+
+    if case.get("synthetic_fail_opposite_direction"):
+        direction_ok = False
+        direction_notes.append("synthetic_incoherent_opposite_direction_injected")
+
     matrix_sum = sum(matrix_result.shadow_calibrated_matrix.values())
 
     verdict, verdict_reasons = compute_shadow_verdict(
@@ -242,7 +258,13 @@ def evaluate_shadow_case(case: Mapping[str, Any]) -> ShadowEvaluationReport:
         direction_reasonable=direction_ok,
         quality_band=quality.band,
         warnings=warnings,
-        effective_favorite=matrix_result.effective_favorite_side_movement_pct,
+        effective_favorite=(
+            matrix_result.effective_favorite_side_movement.weak_check_value()
+            if matrix_result.effective_favorite_side_movement is not None
+            else None
+        ),
+        effective_btts=matrix_result.effective_btts_movement.weak_check_value(),
+        effective_over=matrix_result.effective_over_2_5_movement.weak_check_value(),
     )
 
     return ShadowEvaluationReport(
@@ -259,10 +281,16 @@ def evaluate_shadow_case(case: Mapping[str, Any]) -> ShadowEvaluationReport:
         quality_band=quality.band,
         requested_shadow_weight_pct=matrix_result.requested_shadow_weight_pct,
         effective_movement={
-            "h2h": matrix_result.effective_h2h_movement_pct,
-            "over_2_5": matrix_result.effective_over_2_5_movement_pct,
-            "btts": matrix_result.effective_btts_movement_pct,
-            "favorite_side": matrix_result.effective_favorite_side_movement_pct,
+            "h2h": {
+                k: v.to_dict() for k, v in matrix_result.effective_h2h_movement.items()
+            },
+            "over_2_5": matrix_result.effective_over_2_5_movement.to_dict(),
+            "btts": matrix_result.effective_btts_movement.to_dict(),
+            "favorite_side": (
+                matrix_result.effective_favorite_side_movement.to_dict()
+                if matrix_result.effective_favorite_side_movement is not None
+                else None
+            ),
         },
         shadow_top_scores_after=matrix_result.top_scores_after,
         shadow_direction_reasonable=direction_ok,

@@ -14,7 +14,39 @@ ScoreMatrix = dict[str, float]
 # Second-pass marginal nudge uses a fraction of requested blend toward market marginals.
 MARGINAL_NUDGE_BLEND_FRACTION = 0.55
 MIN_MOVEMENT_GAP_PCT = 0.5
+SMALL_GAP_PCT = 5.0
 WEAK_EFFECTIVE_MOVEMENT_THRESHOLD_PCT = 35.0
+
+
+@dataclass(frozen=True)
+class EffectiveMovementMetric:
+    """Effective movement toward a market target (diagnostic only)."""
+
+    raw_pct: float | None
+    display: str
+    status: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"raw_pct": self.raw_pct, "display": self.display, "status": self.status}
+
+    def weak_check_value(self) -> float | None:
+        """Use for weak-movement REVIEW only; skip inflated/unreliable metrics."""
+        if self.status in ("small_gap", "overshoot", "reverse"):
+            return None
+        return self.raw_pct
+
+    @classmethod
+    def compute(cls, before: float, after: float, target: float) -> EffectiveMovementMetric:
+        gap = target - before
+        if abs(gap) < SMALL_GAP_PCT:
+            return cls(None, "n/a-small-gap", "small_gap")
+        raw = (after - before) / gap * 100.0
+        rounded = round(raw, 2)
+        if raw > 100.0:
+            return cls(rounded, f"overshoot {rounded:g}%", "overshoot")
+        if raw < 0.0:
+            return cls(rounded, f"reverse {rounded:g}%", "reverse")
+        return cls(rounded, f"{rounded:g}%", "ok")
 
 
 @dataclass
@@ -35,10 +67,10 @@ class MarketMatrixShadowResult:
     top_scores_before: list[dict[str, float | str]]
     top_scores_after: list[dict[str, float | str]]
     requested_shadow_weight_pct: int
-    effective_h2h_movement_pct: dict[str, float | None]
-    effective_over_2_5_movement_pct: float | None
-    effective_btts_movement_pct: float | None
-    effective_favorite_side_movement_pct: float | None
+    effective_h2h_movement: dict[str, EffectiveMovementMetric]
+    effective_over_2_5_movement: EffectiveMovementMetric
+    effective_btts_movement: EffectiveMovementMetric
+    effective_favorite_side_movement: EffectiveMovementMetric | None
     calibration_notes: list[str]
     warnings: list[str]
 
@@ -46,6 +78,26 @@ class MarketMatrixShadowResult:
     def market_weight_used_for_shadow(self) -> int:
         """Backward-compatible alias for requested_shadow_weight_pct."""
         return self.requested_shadow_weight_pct
+
+    @property
+    def effective_h2h_movement_pct(self) -> dict[str, float | None]:
+        return {k: v.raw_pct for k, v in self.effective_h2h_movement.items()}
+
+    @property
+    def effective_over_2_5_movement_pct(self) -> float | None:
+        return self.effective_over_2_5_movement.raw_pct
+
+    @property
+    def effective_btts_movement_pct(self) -> float | None:
+        return self.effective_btts_movement.raw_pct
+
+    @property
+    def effective_favorite_side_movement_pct(self) -> float | None:
+        return (
+            self.effective_favorite_side_movement.raw_pct
+            if self.effective_favorite_side_movement is not None
+            else None
+        )
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -64,6 +116,16 @@ class MarketMatrixShadowResult:
             "top_scores_after": self.top_scores_after,
             "requested_shadow_weight_pct": self.requested_shadow_weight_pct,
             "market_weight_used_for_shadow": self.requested_shadow_weight_pct,
+            "effective_h2h_movement": {
+                k: v.to_dict() for k, v in self.effective_h2h_movement.items()
+            },
+            "effective_over_2_5_movement": self.effective_over_2_5_movement.to_dict(),
+            "effective_btts_movement": self.effective_btts_movement.to_dict(),
+            "effective_favorite_side_movement": (
+                self.effective_favorite_side_movement.to_dict()
+                if self.effective_favorite_side_movement is not None
+                else None
+            ),
             "effective_h2h_movement_pct": self.effective_h2h_movement_pct,
             "effective_over_2_5_movement_pct": self.effective_over_2_5_movement_pct,
             "effective_btts_movement_pct": self.effective_btts_movement_pct,
@@ -165,11 +227,8 @@ def _top_scores(matrix: ScoreMatrix, n: int = 5) -> list[dict[str, float | str]]
     return [{"score": s, "probability": round(p, 4)} for s, p in ranked[:n]]
 
 
-def _effective_movement(before: float, after: float, target: float) -> float | None:
-    gap = target - before
-    if abs(gap) < MIN_MOVEMENT_GAP_PCT:
-        return None
-    return round((after - before) / gap * 100.0, 2)
+def _effective_movement(before: float, after: float, target: float) -> EffectiveMovementMetric:
+    return EffectiveMovementMetric.compute(before, after, target)
 
 
 def _market_targets(
@@ -304,40 +363,35 @@ def _favorite_side_from_h2h(h2h: dict[str, float] | None) -> str | None:
 
 def _movement_notes(
     requested_weight: int,
-    effective_h2h: dict[str, float | None],
-    effective_over: float | None,
-    effective_btts: float | None,
-    effective_favorite: float | None,
+    effective_h2h: dict[str, EffectiveMovementMetric],
+    effective_over: EffectiveMovementMetric,
+    effective_btts: EffectiveMovementMetric,
+    effective_favorite: EffectiveMovementMetric | None,
 ) -> list[str]:
     notes = [
         f"shadow_weight_requested_{requested_weight}",
         "requested_weight_is_diagnostic_target_not_linear_blend",
         "calibration_v1_cell_reweight_plus_soft_marginal_pass",
     ]
-    for side, eff in effective_h2h.items():
-        if eff is None:
-            notes.append(f"effective_h2h_{side}_movement_unavailable")
-        else:
-            notes.append(f"effective_h2h_{side}_movement_{eff:g}pct")
-    if effective_over is None:
-        notes.append("effective_over_2_5_movement_unavailable")
-    else:
-        notes.append(f"effective_over_2_5_movement_{effective_over:g}pct")
-    if effective_btts is None:
-        notes.append("effective_btts_movement_unavailable")
-    else:
-        notes.append(f"effective_btts_movement_{effective_btts:g}pct")
+    for side, metric in effective_h2h.items():
+        notes.append(f"effective_h2h_{side}_movement_{metric.display}")
+    notes.append(f"effective_over_2_5_movement_{effective_over.display}")
+    notes.append(f"effective_btts_movement_{effective_btts.display}")
     if effective_favorite is None:
         notes.append("effective_favorite_side_movement_unavailable")
     else:
-        notes.append(f"effective_favorite_side_movement_{effective_favorite:g}pct")
+        notes.append(f"effective_favorite_side_movement_{effective_favorite.display}")
 
     weak_axes: list[str] = []
-    if effective_favorite is not None and effective_favorite < WEAK_EFFECTIVE_MOVEMENT_THRESHOLD_PCT:
-        weak_axes.append("favorite_side")
-    if effective_btts is not None and effective_btts < WEAK_EFFECTIVE_MOVEMENT_THRESHOLD_PCT:
+    if effective_favorite is not None:
+        weak_val = effective_favorite.weak_check_value()
+        if weak_val is not None and weak_val < WEAK_EFFECTIVE_MOVEMENT_THRESHOLD_PCT:
+            weak_axes.append("favorite_side")
+    weak_btts = effective_btts.weak_check_value()
+    if weak_btts is not None and weak_btts < WEAK_EFFECTIVE_MOVEMENT_THRESHOLD_PCT:
         weak_axes.append("btts")
-    if effective_over is not None and effective_over < WEAK_EFFECTIVE_MOVEMENT_THRESHOLD_PCT:
+    weak_over = effective_over.weak_check_value()
+    if weak_over is not None and weak_over < WEAK_EFFECTIVE_MOVEMENT_THRESHOLD_PCT:
         weak_axes.append("over_2_5")
     if weak_axes:
         notes.append(
@@ -400,7 +454,7 @@ def calibrate_market_matrix_shadow(
     }
     effective_over = _effective_movement(over_before, over_after, targets["over_2_5"])
     effective_btts = _effective_movement(btts_before, btts_after, targets["btts_yes"])
-    effective_favorite = None
+    effective_favorite: EffectiveMovementMetric | None = None
     if favorite_side in ("home", "away"):
         effective_favorite = effective_h2h[favorite_side]
 
@@ -411,7 +465,8 @@ def calibrate_market_matrix_shadow(
         effective_btts,
         effective_favorite,
     )
-    if effective_btts is not None and effective_btts < WEAK_EFFECTIVE_MOVEMENT_THRESHOLD_PCT:
+    weak_btts = effective_btts.weak_check_value()
+    if weak_btts is not None and weak_btts < WEAK_EFFECTIVE_MOVEMENT_THRESHOLD_PCT:
         warnings.append(
             "btts_effective_movement_weak_v1_conservative_calibration_and_conflicting_marginals"
         )
@@ -431,10 +486,10 @@ def calibrate_market_matrix_shadow(
         top_scores_before=_top_scores(original),
         top_scores_after=_top_scores(calibrated),
         requested_shadow_weight_pct=requested_weight,
-        effective_h2h_movement_pct=effective_h2h,
-        effective_over_2_5_movement_pct=effective_over,
-        effective_btts_movement_pct=effective_btts,
-        effective_favorite_side_movement_pct=effective_favorite,
+        effective_h2h_movement=effective_h2h,
+        effective_over_2_5_movement=effective_over,
+        effective_btts_movement=effective_btts,
+        effective_favorite_side_movement=effective_favorite,
         calibration_notes=base_notes + movement_notes,
         warnings=warnings,
     )

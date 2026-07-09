@@ -17,6 +17,14 @@ from core.market_shadow_evaluation import (  # noqa: E402
 )
 
 
+def _format_effective_display(effective: dict | float | None) -> str:
+    if isinstance(effective, dict):
+        return str(effective.get("display", "n/a"))
+    if effective is None:
+        return "n/a"
+    return f"{effective:g}"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Market shadow evaluation harness (static only)")
     parser.add_argument(
@@ -36,15 +44,23 @@ def main() -> int:
         return 0
 
     print(f"cases: {len(reports)}")
-    print(f"{'fixture':<24} {'band':<7} {'verdict':<7} favorite  weight  eff_fav")
-    print("-" * 72)
+    print(
+        f"{'fixture':<28} {'band':<7} {'verdict':<7} {'primary':<6} "
+        f"{'fav':<9} {'O/U':<6} {'BTTS':<6} {'wt':>3} {'eff':>5}"
+    )
+    print("-" * 88)
     for r in reports:
         eff = r.effective_movement.get("favorite_side")
-        eff_s = f"{eff:g}" if eff is not None else "n/a"
+        eff_s = _format_effective_display(eff)
+        ou = (r.totals_pressure or {}).get("direction", "n/a")[:6]
+        btts = (r.btts_pressure or {}).get("direction", "n/a")[:6]
+        primary = (r.model_primary_score or "n/a")[:6]
+        top1 = r.shadow_top_scores_after[0]["score"] if r.shadow_top_scores_after else "n/a"
         print(
-            f"{r.fixture:<24} {r.quality_band:<7} {r.verdict:<7} "
-            f"{r.market_favorite:<9} {r.requested_shadow_weight_pct:>3}%   {eff_s:>5}%"
+            f"{r.fixture:<28} {r.quality_band:<7} {r.verdict:<7} {primary:<6} "
+            f"{r.market_favorite[:9]:<9} {ou:<6} {btts:<6} {r.requested_shadow_weight_pct:>3} {eff_s:>5}"
         )
+        print(f"  shadow top1: {top1}")
         if r.verdict_reasons:
             print(f"  reasons: {', '.join(r.verdict_reasons)}")
         if r.warnings:

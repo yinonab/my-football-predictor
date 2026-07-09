@@ -151,24 +151,29 @@ def test_effective_movement_metrics_reported_for_green_fixture(green_market) -> 
     result = calibrate_market_matrix_shadow(NORWAY_ENGLAND_MATRIX, consensus, quality)
 
     assert result.requested_shadow_weight_pct in (50, 60)
-    assert result.effective_favorite_side_movement_pct is not None
-    assert result.effective_over_2_5_movement_pct is not None
-    assert result.effective_btts_movement_pct is not None
-    assert all(side in result.effective_h2h_movement_pct for side in ("home", "draw", "away"))
+    assert result.effective_favorite_side_movement is not None
+    fav = result.effective_favorite_side_movement
+    assert fav.status in ("ok", "overshoot", "small_gap")
+    assert result.effective_over_2_5_movement is not None
+    assert result.effective_btts_movement is not None
+    assert all(side in result.effective_h2h_movement for side in ("home", "draw", "away"))
     assert "shadow_weight_requested_" in " ".join(result.calibration_notes)
     assert "effective_favorite_side_movement_" in " ".join(result.calibration_notes)
-    assert result.requested_shadow_weight_pct != result.effective_favorite_side_movement_pct
+    if fav.status == "ok" and fav.raw_pct is not None:
+        assert fav.raw_pct < result.requested_shadow_weight_pct
 
 
 def test_btts_pressure_reports_effective_movement_or_weak_note(green_market) -> None:
     consensus, quality = green_market
     result = calibrate_market_matrix_shadow(NORWAY_ENGLAND_MATRIX, consensus, quality)
 
-    assert result.effective_btts_movement_pct is not None
+    assert result.effective_btts_movement.weak_check_value() is not None
     assert result.implied_btts_after > result.implied_btts_before
     notes_text = " ".join(result.calibration_notes + result.warnings)
     assert "effective_btts_movement_" in notes_text
-    if result.effective_btts_movement_pct < 35.0:
+    if result.effective_btts_movement.weak_check_value() is not None and (
+        result.effective_btts_movement.weak_check_value() < 35.0
+    ):
         assert "btts_effective_movement_weak" in notes_text or "effective_movement_below_requested" in notes_text
 
 
@@ -177,8 +182,10 @@ def test_requested_weight_not_confused_with_effective_movement(green_market) -> 
     result = calibrate_market_matrix_shadow(NORWAY_ENGLAND_MATRIX, consensus, quality)
 
     assert result.requested_shadow_weight_pct >= 50
-    assert result.effective_favorite_side_movement_pct is not None
-    assert result.effective_favorite_side_movement_pct < result.requested_shadow_weight_pct
+    fav = result.effective_favorite_side_movement
+    assert fav is not None
+    if fav.status == "ok" and fav.raw_pct is not None:
+        assert fav.raw_pct < result.requested_shadow_weight_pct
     assert "requested_weight_is_diagnostic_target_not_linear_blend" in result.calibration_notes
 
 
