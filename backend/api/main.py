@@ -105,7 +105,11 @@ from core.team_ratings import build_all_matches, build_and_save_ratings
 from core.math_engine import AdvancedDixonColesEngine
 from core.fusion_blowout import apply_fusion_blowout, compute_fusion_blowout_signal
 from core.market_diagnostics import build_market_diagnostics
-from core.market_shadow_api import MarketShadowApiError, build_market_shadow_diagnostics
+from core.market_shadow_api import (
+    MarketShadowApiError,
+    build_market_shadow_diagnostics,
+    try_build_predict_market_shadow_diagnostics,
+)
 from core.odds_provider import create_odds_client
 from core.odds_ensemble import OddsClient
 from core.probability_coherence import favorite_from_1x2
@@ -233,6 +237,15 @@ def _team_breakdown(
         breakdown=breakdown_text,
         group=group,
     )
+
+
+def _primary_score_label_from_decision(decision) -> str | None:
+    if decision is None:
+        return None
+    primary = getattr(decision, "primary_predicted_score", None)
+    if primary is not None:
+        return f"{primary.home_goals}-{primary.away_goals}"
+    return getattr(decision, "guarded_primary_score", None)
 
 
 def _scoreline_decision_response(decision) -> ScorelineDecisionResponse:
@@ -1073,6 +1086,24 @@ def predict(request: PredictRequest) -> PredictResponse:
         if cap_diag:
             model_diag_dict["active_model_weak_underdog_cap"] = cap_diag
 
+    market_shadow_block: MarketShadowDiagnosticsBlock | None = None
+    shadow_dict = try_build_predict_market_shadow_diagnostics(
+        server_enabled=config.market_shadow_diagnostics_enabled(),
+        include_requested=request.include_market_shadow_diagnostics,
+        home_team=home_name,
+        away_team=away_name,
+        model_score_matrix=result.get("all_scores"),
+        model_primary_score=_primary_score_label_from_decision(scoreline_decision),
+        model_top_scores=[
+            {"score": row["score"], "probability": row["probability"]}
+            for row in result.get("top_scores", [])
+        ],
+        market_fixture=request.market_shadow_fixture,
+        inline_market=request.inline_market,
+    )
+    if shadow_dict is not None:
+        market_shadow_block = MarketShadowDiagnosticsBlock.model_validate(shadow_dict)
+
     return PredictResponse(
         home_team=home_name,
         away_team=away_name,
@@ -1198,6 +1229,7 @@ def predict(request: PredictRequest) -> PredictResponse:
         standard_blowout_diagnostics=standard_blowout_response,
         underdog_foundation_diagnostics=underdog_foundation_diag,
         scoreline_decision=_scoreline_decision_response(scoreline_decision),
+        market_shadow_diagnostics=market_shadow_block,
     )
 
 
