@@ -1,0 +1,2274 @@
+{
+  "generated_at_utc": "2026-07-09T15:18:44+00:00",
+  "selected_event": {
+    "event_id": 619963,
+    "label": "Norway vs England (World Championship)",
+    "status": "SCHEDULED",
+    "start_at": "2026-07-11 21:00:00",
+    "tournament": "World Championship",
+    "selection_note": "world_cup_or_fifa"
+  },
+  "market_coverage_table": [
+    {
+      "provider_market_id": 50679030,
+      "provider_market_name": "1X2",
+      "mapped_family": "h2h",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": null,
+      "value_type": null,
+      "bookmaker_count": 10,
+      "bookmaker_names": [
+        "1XBET",
+        "888_SPORT",
+        "BET365",
+        "BETFAIR_EXCH",
+        "BET_IN_ASIA",
+        "BWIN",
+        "PINNACLE",
+        "STAKE_COM",
+        "UNIBET",
+        "WILLIAM_HILL"
+      ],
+      "outcome_labels": [
+        "home",
+        "draw",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET365",
+          "outcome_0": 4.09,
+          "outcome_1": 3.7,
+          "outcome_2": 1.85,
+          "is_open": true
+        },
+        {
+          "book": "STAKE_COM",
+          "outcome_0": 4.09,
+          "outcome_1": 3.65,
+          "outcome_2": 1.84,
+          "is_open": true
+        },
+        {
+          "book": "BET_IN_ASIA",
+          "outcome_0": 4.3,
+          "outcome_1": 3.75,
+          "outcome_2": 1.89,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679031,
+      "provider_market_name": "OVER_UNDER",
+      "mapped_family": "totals",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 0.5,
+      "value_type": null,
+      "bookmaker_count": 7,
+      "bookmaker_names": [
+        "1XBET",
+        "888_SPORT",
+        "BET365",
+        "BETFAIR_EXCH",
+        "BWIN",
+        "UNIBET",
+        "WILLIAM_HILL"
+      ],
+      "outcome_labels": [
+        "over",
+        "under"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET365",
+          "outcome_0": 1.04,
+          "outcome_1": 13.0,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BWIN",
+          "outcome_0": 1.03,
+          "outcome_1": 12.5,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "UNIBET",
+          "outcome_0": 1.02,
+          "outcome_1": 12.0,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679032,
+      "provider_market_name": "OVER_UNDER",
+      "mapped_family": "totals",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 1.0,
+      "value_type": null,
+      "bookmaker_count": 2,
+      "bookmaker_names": [
+        "1XBET",
+        "STAKE_COM"
+      ],
+      "outcome_labels": [
+        "over",
+        "under"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "STAKE_COM",
+          "outcome_0": 1.08,
+          "outcome_1": 7.0,
+          "outcome_2": null,
+          "is_open": false
+        },
+        {
+          "book": "1XBET",
+          "outcome_0": 1.01,
+          "outcome_1": 8.6,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679033,
+      "provider_market_name": "OVER_UNDER",
+      "mapped_family": "totals",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 1.25,
+      "value_type": null,
+      "bookmaker_count": 3,
+      "bookmaker_names": [
+        "1XBET",
+        "BET365",
+        "STAKE_COM"
+      ],
+      "outcome_labels": [
+        "over",
+        "under"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET365",
+          "outcome_0": 1.13,
+          "outcome_1": 5.75,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "STAKE_COM",
+          "outcome_0": 1.14,
+          "outcome_1": 5.0,
+          "outcome_2": null,
+          "is_open": false
+        },
+        {
+          "book": "1XBET",
+          "outcome_0": 1.11,
+          "outcome_1": 5.12,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679034,
+      "provider_market_name": "OVER_UNDER",
+      "mapped_family": "totals",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 1.5,
+      "value_type": null,
+      "bookmaker_count": 10,
+      "bookmaker_names": [
+        "1XBET",
+        "888_SPORT",
+        "BET365",
+        "BETFAIR_EXCH",
+        "BET_IN_ASIA",
+        "BWIN",
+        "PINNACLE",
+        "STAKE_COM",
+        "UNIBET",
+        "WILLIAM_HILL"
+      ],
+      "outcome_labels": [
+        "over",
+        "under"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET365",
+          "outcome_0": 1.22,
+          "outcome_1": 4.33,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BWIN",
+          "outcome_0": 1.22,
+          "outcome_1": 3.9,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "STAKE_COM",
+          "outcome_0": 1.22,
+          "outcome_1": 4.09,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679035,
+      "provider_market_name": "OVER_UNDER",
+      "mapped_family": "totals",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 1.75,
+      "value_type": null,
+      "bookmaker_count": 5,
+      "bookmaker_names": [
+        "1XBET",
+        "BET365",
+        "BET_IN_ASIA",
+        "PINNACLE",
+        "STAKE_COM"
+      ],
+      "outcome_labels": [
+        "over",
+        "under"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET365",
+          "outcome_0": 1.27,
+          "outcome_1": 3.55,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "STAKE_COM",
+          "outcome_0": 1.27,
+          "outcome_1": 3.55,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "PINNACLE",
+          "outcome_0": 1.27,
+          "outcome_1": 3.79,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679036,
+      "provider_market_name": "OVER_UNDER",
+      "mapped_family": "totals",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 2.0,
+      "value_type": null,
+      "bookmaker_count": 5,
+      "bookmaker_names": [
+        "1XBET",
+        "BET365",
+        "BET_IN_ASIA",
+        "PINNACLE",
+        "STAKE_COM"
+      ],
+      "outcome_labels": [
+        "over",
+        "under"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET365",
+          "outcome_0": 1.33,
+          "outcome_1": 3.3,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "STAKE_COM",
+          "outcome_0": 1.33,
+          "outcome_1": 3.15,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "PINNACLE",
+          "outcome_0": 1.33,
+          "outcome_1": 3.32,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679037,
+      "provider_market_name": "OVER_UNDER",
+      "mapped_family": "totals",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 2.25,
+      "value_type": null,
+      "bookmaker_count": 5,
+      "bookmaker_names": [
+        "1XBET",
+        "BET365",
+        "BET_IN_ASIA",
+        "PINNACLE",
+        "STAKE_COM"
+      ],
+      "outcome_labels": [
+        "over",
+        "under"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET365",
+          "outcome_0": 1.55,
+          "outcome_1": 2.38,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "STAKE_COM",
+          "outcome_0": 1.52,
+          "outcome_1": 2.41,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "PINNACLE",
+          "outcome_0": 1.54,
+          "outcome_1": 2.52,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679038,
+      "provider_market_name": "OVER_UNDER",
+      "mapped_family": "totals",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 2.5,
+      "value_type": null,
+      "bookmaker_count": 10,
+      "bookmaker_names": [
+        "1XBET",
+        "888_SPORT",
+        "BET365",
+        "BETFAIR_EXCH",
+        "BET_IN_ASIA",
+        "BWIN",
+        "PINNACLE",
+        "STAKE_COM",
+        "UNIBET",
+        "WILLIAM_HILL"
+      ],
+      "outcome_labels": [
+        "over",
+        "under"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET365",
+          "outcome_0": 1.73,
+          "outcome_1": 2.1,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BWIN",
+          "outcome_0": 1.73,
+          "outcome_1": 1.98,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "STAKE_COM",
+          "outcome_0": 1.72,
+          "outcome_1": 2.04,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679039,
+      "provider_market_name": "OVER_UNDER",
+      "mapped_family": "totals",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 2.75,
+      "value_type": null,
+      "bookmaker_count": 5,
+      "bookmaker_names": [
+        "1XBET",
+        "BET365",
+        "BET_IN_ASIA",
+        "PINNACLE",
+        "STAKE_COM"
+      ],
+      "outcome_labels": [
+        "over",
+        "under"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET365",
+          "outcome_0": 1.98,
+          "outcome_1": 1.88,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "PINNACLE",
+          "outcome_0": 1.96,
+          "outcome_1": 1.92,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BET_IN_ASIA",
+          "outcome_0": 1.99,
+          "outcome_1": 1.94,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679040,
+      "provider_market_name": "OVER_UNDER",
+      "mapped_family": "totals",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 3.0,
+      "value_type": null,
+      "bookmaker_count": 5,
+      "bookmaker_names": [
+        "1XBET",
+        "BET365",
+        "BET_IN_ASIA",
+        "PINNACLE",
+        "STAKE_COM"
+      ],
+      "outcome_labels": [
+        "over",
+        "under"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "PINNACLE",
+          "outcome_0": 2.25,
+          "outcome_1": 1.68,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BET_IN_ASIA",
+          "outcome_0": 2.27,
+          "outcome_1": 1.69,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BET365",
+          "outcome_0": 2.25,
+          "outcome_1": 1.63,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679041,
+      "provider_market_name": "OVER_UNDER",
+      "mapped_family": "totals",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 3.25,
+      "value_type": null,
+      "bookmaker_count": 5,
+      "bookmaker_names": [
+        "1XBET",
+        "BET365",
+        "BET_IN_ASIA",
+        "PINNACLE",
+        "STAKE_COM"
+      ],
+      "outcome_labels": [
+        "over",
+        "under"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "PINNACLE",
+          "outcome_0": 2.54,
+          "outcome_1": 1.54,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BET_IN_ASIA",
+          "outcome_0": 2.54,
+          "outcome_1": 1.54,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BET365",
+          "outcome_0": 2.5,
+          "outcome_1": 1.5,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679042,
+      "provider_market_name": "OVER_UNDER",
+      "mapped_family": "totals",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 3.5,
+      "value_type": null,
+      "bookmaker_count": 10,
+      "bookmaker_names": [
+        "1XBET",
+        "888_SPORT",
+        "BET365",
+        "BETFAIR_EXCH",
+        "BET_IN_ASIA",
+        "BWIN",
+        "PINNACLE",
+        "STAKE_COM",
+        "UNIBET",
+        "WILLIAM_HILL"
+      ],
+      "outcome_labels": [
+        "over",
+        "under"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "PINNACLE",
+          "outcome_0": 2.82,
+          "outcome_1": 1.44,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BET_IN_ASIA",
+          "outcome_0": 2.82,
+          "outcome_1": 1.44,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BET365",
+          "outcome_0": 2.75,
+          "outcome_1": 1.44,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679043,
+      "provider_market_name": "OVER_UNDER",
+      "mapped_family": "totals",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 3.75,
+      "value_type": null,
+      "bookmaker_count": 5,
+      "bookmaker_names": [
+        "1XBET",
+        "BET365",
+        "BET_IN_ASIA",
+        "PINNACLE",
+        "STAKE_COM"
+      ],
+      "outcome_labels": [
+        "over",
+        "under"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET365",
+          "outcome_0": 3.45,
+          "outcome_1": 1.3,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "1XBET",
+          "outcome_0": 3.09,
+          "outcome_1": 1.28,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "STAKE_COM",
+          "outcome_0": 3.25,
+          "outcome_1": 1.31,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679044,
+      "provider_market_name": "OVER_UNDER",
+      "mapped_family": "totals",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 4.0,
+      "value_type": null,
+      "bookmaker_count": 3,
+      "bookmaker_names": [
+        "1XBET",
+        "BET365",
+        "STAKE_COM"
+      ],
+      "outcome_labels": [
+        "over",
+        "under"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET365",
+          "outcome_0": 4.4,
+          "outcome_1": 1.2,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "1XBET",
+          "outcome_0": 4.0,
+          "outcome_1": 1.17,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "STAKE_COM",
+          "outcome_0": 4.2,
+          "outcome_1": 1.2,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679045,
+      "provider_market_name": "OVER_UNDER",
+      "mapped_family": "totals",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 4.25,
+      "value_type": null,
+      "bookmaker_count": 2,
+      "bookmaker_names": [
+        "1XBET",
+        "BET365"
+      ],
+      "outcome_labels": [
+        "over",
+        "under"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET365",
+          "outcome_0": 4.8,
+          "outcome_1": 1.18,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "1XBET",
+          "outcome_0": 4.34,
+          "outcome_1": 1.13,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679046,
+      "provider_market_name": "OVER_UNDER",
+      "mapped_family": "totals",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 4.5,
+      "value_type": null,
+      "bookmaker_count": 7,
+      "bookmaker_names": [
+        "1XBET",
+        "888_SPORT",
+        "BET365",
+        "BETFAIR_EXCH",
+        "BWIN",
+        "UNIBET",
+        "WILLIAM_HILL"
+      ],
+      "outcome_labels": [
+        "over",
+        "under"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET365",
+          "outcome_0": 5.0,
+          "outcome_1": 1.17,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BETFAIR_EXCH",
+          "outcome_0": 5.47,
+          "outcome_1": 1.19,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BWIN",
+          "outcome_0": 5.25,
+          "outcome_1": 1.13,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679047,
+      "provider_market_name": "OVER_UNDER",
+      "mapped_family": "totals",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 5.5,
+      "value_type": null,
+      "bookmaker_count": 7,
+      "bookmaker_names": [
+        "1XBET",
+        "888_SPORT",
+        "BET365",
+        "BETFAIR_EXCH",
+        "BWIN",
+        "UNIBET",
+        "WILLIAM_HILL"
+      ],
+      "outcome_labels": [
+        "over",
+        "under"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET365",
+          "outcome_0": 11.0,
+          "outcome_1": 1.05,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BETFAIR_EXCH",
+          "outcome_0": 11.93,
+          "outcome_1": 1.07,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BWIN",
+          "outcome_0": 10.5,
+          "outcome_1": 1.05,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679048,
+      "provider_market_name": "OVER_UNDER",
+      "mapped_family": "totals",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 6.5,
+      "value_type": null,
+      "bookmaker_count": 4,
+      "bookmaker_names": [
+        "1XBET",
+        "BET365",
+        "BETFAIR_EXCH",
+        "BWIN"
+      ],
+      "outcome_labels": [
+        "over",
+        "under"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BETFAIR_EXCH",
+          "outcome_0": 32.35,
+          "outcome_1": 1.02,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "1XBET",
+          "outcome_0": 21.0,
+          "outcome_1": 1.02,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BET365",
+          "outcome_0": 21.0,
+          "outcome_1": 1.01,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679161,
+      "provider_market_name": "OVER_UNDER",
+      "mapped_family": "totals",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 0.75,
+      "value_type": null,
+      "bookmaker_count": 1,
+      "bookmaker_names": [
+        "1XBET"
+      ],
+      "outcome_labels": [
+        "over",
+        "under"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "1XBET",
+          "outcome_0": 1.01,
+          "outcome_1": 8.65,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "MEDIUM",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679162,
+      "provider_market_name": "OVER_UNDER",
+      "mapped_family": "totals",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 5.0,
+      "value_type": null,
+      "bookmaker_count": 1,
+      "bookmaker_names": [
+        "1XBET"
+      ],
+      "outcome_labels": [
+        "over",
+        "under"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "1XBET",
+          "outcome_0": 7.9,
+          "outcome_1": 1.02,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "MEDIUM",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50700667,
+      "provider_market_name": "OVER_UNDER",
+      "mapped_family": "totals",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 4.75,
+      "value_type": null,
+      "bookmaker_count": 2,
+      "bookmaker_names": [
+        "1XBET",
+        "BET365"
+      ],
+      "outcome_labels": [
+        "over",
+        "under"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET365",
+          "outcome_0": 6.6,
+          "outcome_1": 1.11,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "1XBET",
+          "outcome_0": 5.64,
+          "outcome_1": 1.08,
+          "outcome_2": null,
+          "is_open": false
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50745162,
+      "provider_market_name": "OVER_UNDER",
+      "mapped_family": "totals",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 7.5,
+      "value_type": null,
+      "bookmaker_count": 1,
+      "bookmaker_names": [
+        "BETFAIR_EXCH"
+      ],
+      "outcome_labels": [
+        "over",
+        "under"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BETFAIR_EXCH",
+          "outcome_0": 66.55,
+          "outcome_1": 1.01,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "MEDIUM",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679053,
+      "provider_market_name": "ASIAN_HANDICAP",
+      "mapped_family": "spreads",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": -1.25,
+      "value_type": null,
+      "bookmaker_count": 3,
+      "bookmaker_names": [
+        "1XBET",
+        "BET365",
+        "BETFAIR_EXCH"
+      ],
+      "outcome_labels": [
+        "home",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET365",
+          "outcome_0": 6.8,
+          "outcome_1": 1.11,
+          "outcome_2": null,
+          "is_open": false
+        },
+        {
+          "book": "1XBET",
+          "outcome_0": 7.95,
+          "outcome_1": 1.04,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BETFAIR_EXCH",
+          "outcome_0": 10.24,
+          "outcome_1": 1.09,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679054,
+      "provider_market_name": "ASIAN_HANDICAP",
+      "mapped_family": "spreads",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": -1.0,
+      "value_type": null,
+      "bookmaker_count": 3,
+      "bookmaker_names": [
+        "1XBET",
+        "BET365",
+        "BETFAIR_EXCH"
+      ],
+      "outcome_labels": [
+        "home",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET365",
+          "outcome_0": 7.0,
+          "outcome_1": 1.1,
+          "outcome_2": null,
+          "is_open": false
+        },
+        {
+          "book": "1XBET",
+          "outcome_0": 7.5,
+          "outcome_1": 1.04,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BETFAIR_EXCH",
+          "outcome_0": 9.5,
+          "outcome_1": 1.09,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679055,
+      "provider_market_name": "ASIAN_HANDICAP",
+      "mapped_family": "spreads",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": -0.75,
+      "value_type": null,
+      "bookmaker_count": 3,
+      "bookmaker_names": [
+        "1XBET",
+        "BET365",
+        "BETFAIR_EXCH"
+      ],
+      "outcome_labels": [
+        "home",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET365",
+          "outcome_0": 5.25,
+          "outcome_1": 1.15,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "1XBET",
+          "outcome_0": 5.0,
+          "outcome_1": 1.12,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BETFAIR_EXCH",
+          "outcome_0": 5.84,
+          "outcome_1": 1.17,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679056,
+      "provider_market_name": "ASIAN_HANDICAP",
+      "mapped_family": "spreads",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": -0.5,
+      "value_type": null,
+      "bookmaker_count": 6,
+      "bookmaker_names": [
+        "BET365",
+        "BETFAIR_EXCH",
+        "BET_IN_ASIA",
+        "PINNACLE",
+        "STAKE_COM",
+        "UNIBET"
+      ],
+      "outcome_labels": [
+        "home",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET365",
+          "outcome_0": 3.9,
+          "outcome_1": 1.24,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BET_IN_ASIA",
+          "outcome_0": 4.22,
+          "outcome_1": 1.24,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "STAKE_COM",
+          "outcome_0": 3.45,
+          "outcome_1": 1.32,
+          "outcome_2": null,
+          "is_open": false
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679057,
+      "provider_market_name": "ASIAN_HANDICAP",
+      "mapped_family": "spreads",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": -0.25,
+      "value_type": null,
+      "bookmaker_count": 7,
+      "bookmaker_names": [
+        "1XBET",
+        "BET365",
+        "BETFAIR_EXCH",
+        "BET_IN_ASIA",
+        "PINNACLE",
+        "STAKE_COM",
+        "UNIBET"
+      ],
+      "outcome_labels": [
+        "home",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET365",
+          "outcome_0": 3.45,
+          "outcome_1": 1.3,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BET_IN_ASIA",
+          "outcome_0": 3.7,
+          "outcome_1": 1.29,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "STAKE_COM",
+          "outcome_0": 3.4,
+          "outcome_1": 1.29,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679058,
+      "provider_market_name": "ASIAN_HANDICAP",
+      "mapped_family": "spreads",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 0.0,
+      "value_type": null,
+      "bookmaker_count": 6,
+      "bookmaker_names": [
+        "1XBET",
+        "BET365",
+        "BETFAIR_EXCH",
+        "BET_IN_ASIA",
+        "PINNACLE",
+        "STAKE_COM"
+      ],
+      "outcome_labels": [
+        "home",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET365",
+          "outcome_0": 3.0,
+          "outcome_1": 1.38,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BET_IN_ASIA",
+          "outcome_0": 3.19,
+          "outcome_1": 1.38,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "STAKE_COM",
+          "outcome_0": 3.0,
+          "outcome_1": 1.38,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679059,
+      "provider_market_name": "ASIAN_HANDICAP",
+      "mapped_family": "spreads",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 0.25,
+      "value_type": null,
+      "bookmaker_count": 7,
+      "bookmaker_names": [
+        "1XBET",
+        "BET365",
+        "BETFAIR_EXCH",
+        "BET_IN_ASIA",
+        "PINNACLE",
+        "STAKE_COM",
+        "UNIBET"
+      ],
+      "outcome_labels": [
+        "home",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET365",
+          "outcome_0": 2.29,
+          "outcome_1": 1.6,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BET_IN_ASIA",
+          "outcome_0": 2.41,
+          "outcome_1": 1.66,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "STAKE_COM",
+          "outcome_0": 2.27,
+          "outcome_1": 1.59,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679060,
+      "provider_market_name": "ASIAN_HANDICAP",
+      "mapped_family": "spreads",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 0.5,
+      "value_type": null,
+      "bookmaker_count": 9,
+      "bookmaker_names": [
+        "888_SPORT",
+        "BET365",
+        "BETFAIR_EXCH",
+        "BET_IN_ASIA",
+        "BWIN",
+        "PINNACLE",
+        "STAKE_COM",
+        "UNIBET",
+        "WILLIAM_HILL"
+      ],
+      "outcome_labels": [
+        "home",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET365",
+          "outcome_0": 2.0,
+          "outcome_1": 1.85,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BET_IN_ASIA",
+          "outcome_0": 2.02,
+          "outcome_1": 1.9,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BWIN",
+          "outcome_0": 1.93,
+          "outcome_1": 1.77,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679061,
+      "provider_market_name": "ASIAN_HANDICAP",
+      "mapped_family": "spreads",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 0.75,
+      "value_type": null,
+      "bookmaker_count": 7,
+      "bookmaker_names": [
+        "1XBET",
+        "BET365",
+        "BETFAIR_EXCH",
+        "BET_IN_ASIA",
+        "PINNACLE",
+        "STAKE_COM",
+        "UNIBET"
+      ],
+      "outcome_labels": [
+        "home",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET365",
+          "outcome_0": 1.73,
+          "outcome_1": 2.08,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BET_IN_ASIA",
+          "outcome_0": 1.78,
+          "outcome_1": 2.19,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "STAKE_COM",
+          "outcome_0": 1.73,
+          "outcome_1": 2.02,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679062,
+      "provider_market_name": "ASIAN_HANDICAP",
+      "mapped_family": "spreads",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 1.0,
+      "value_type": null,
+      "bookmaker_count": 7,
+      "bookmaker_names": [
+        "1XBET",
+        "BET365",
+        "BETFAIR_EXCH",
+        "BET_IN_ASIA",
+        "PINNACLE",
+        "STAKE_COM",
+        "UNIBET"
+      ],
+      "outcome_labels": [
+        "home",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET_IN_ASIA",
+          "outcome_0": 1.54,
+          "outcome_1": 2.61,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "STAKE_COM",
+          "outcome_0": 1.52,
+          "outcome_1": 2.42,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BET365",
+          "outcome_0": 1.53,
+          "outcome_1": 2.42,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679063,
+      "provider_market_name": "ASIAN_HANDICAP",
+      "mapped_family": "spreads",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 1.25,
+      "value_type": null,
+      "bookmaker_count": 7,
+      "bookmaker_names": [
+        "1XBET",
+        "BET365",
+        "BETFAIR_EXCH",
+        "BET_IN_ASIA",
+        "PINNACLE",
+        "STAKE_COM",
+        "UNIBET"
+      ],
+      "outcome_labels": [
+        "home",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET365",
+          "outcome_0": 1.43,
+          "outcome_1": 2.75,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BET_IN_ASIA",
+          "outcome_0": 1.42,
+          "outcome_1": 2.93,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "STAKE_COM",
+          "outcome_0": 1.42,
+          "outcome_1": 2.75,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679064,
+      "provider_market_name": "ASIAN_HANDICAP",
+      "mapped_family": "spreads",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 1.5,
+      "value_type": null,
+      "bookmaker_count": 6,
+      "bookmaker_names": [
+        "1XBET",
+        "BET365",
+        "BETFAIR_EXCH",
+        "BET_IN_ASIA",
+        "PINNACLE",
+        "UNIBET"
+      ],
+      "outcome_labels": [
+        "home",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET365",
+          "outcome_0": 1.35,
+          "outcome_1": 3.1,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "UNIBET",
+          "outcome_0": 1.35,
+          "outcome_1": 3.15,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "PINNACLE",
+          "outcome_0": 1.35,
+          "outcome_1": 3.3,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679065,
+      "provider_market_name": "ASIAN_HANDICAP",
+      "mapped_family": "spreads",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 1.75,
+      "value_type": null,
+      "bookmaker_count": 5,
+      "bookmaker_names": [
+        "1XBET",
+        "BET365",
+        "BETFAIR_EXCH",
+        "PINNACLE",
+        "UNIBET"
+      ],
+      "outcome_labels": [
+        "home",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "UNIBET",
+          "outcome_0": 1.24,
+          "outcome_1": 3.95,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "1XBET",
+          "outcome_0": 1.21,
+          "outcome_1": 3.58,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BETFAIR_EXCH",
+          "outcome_0": 1.26,
+          "outcome_1": 4.33,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679066,
+      "provider_market_name": "ASIAN_HANDICAP",
+      "mapped_family": "spreads",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 2.0,
+      "value_type": null,
+      "bookmaker_count": 4,
+      "bookmaker_names": [
+        "1XBET",
+        "BET365",
+        "BETFAIR_EXCH",
+        "UNIBET"
+      ],
+      "outcome_labels": [
+        "home",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "UNIBET",
+          "outcome_0": 1.13,
+          "outcome_1": 5.6,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "1XBET",
+          "outcome_0": 1.11,
+          "outcome_1": 4.95,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BETFAIR_EXCH",
+          "outcome_0": 1.14,
+          "outcome_1": 6.31,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679067,
+      "provider_market_name": "ASIAN_HANDICAP",
+      "mapped_family": "spreads",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 2.25,
+      "value_type": null,
+      "bookmaker_count": 4,
+      "bookmaker_names": [
+        "1XBET",
+        "BET365",
+        "BETFAIR_EXCH",
+        "UNIBET"
+      ],
+      "outcome_labels": [
+        "home",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET365",
+          "outcome_0": 1.12,
+          "outcome_1": 6.0,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "UNIBET",
+          "outcome_0": 1.12,
+          "outcome_1": 6.1,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "1XBET",
+          "outcome_0": 1.09,
+          "outcome_1": 5.3,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679115,
+      "provider_market_name": "ASIAN_HANDICAP",
+      "mapped_family": "spreads",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 2.5,
+      "value_type": null,
+      "bookmaker_count": 4,
+      "bookmaker_names": [
+        "1XBET",
+        "BET365",
+        "BETFAIR_EXCH",
+        "UNIBET"
+      ],
+      "outcome_labels": [
+        "home",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "UNIBET",
+          "outcome_0": 1.11,
+          "outcome_1": 6.5,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "1XBET",
+          "outcome_0": 1.08,
+          "outcome_1": 5.7,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BET365",
+          "outcome_0": 1.12,
+          "outcome_1": 6.4,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679127,
+      "provider_market_name": "ASIAN_HANDICAP",
+      "mapped_family": "spreads",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": -2.75,
+      "value_type": null,
+      "bookmaker_count": 1,
+      "bookmaker_names": [
+        "BETFAIR_EXCH"
+      ],
+      "outcome_labels": [
+        "home",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BETFAIR_EXCH",
+          "outcome_0": 57.09,
+          "outcome_1": 1.01,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "MEDIUM",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679128,
+      "provider_market_name": "ASIAN_HANDICAP",
+      "mapped_family": "spreads",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": -2.5,
+      "value_type": null,
+      "bookmaker_count": 1,
+      "bookmaker_names": [
+        "BETFAIR_EXCH"
+      ],
+      "outcome_labels": [
+        "home",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BETFAIR_EXCH",
+          "outcome_0": 36.15,
+          "outcome_1": 1.02,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "MEDIUM",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679129,
+      "provider_market_name": "ASIAN_HANDICAP",
+      "mapped_family": "spreads",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": -2.25,
+      "value_type": null,
+      "bookmaker_count": 1,
+      "bookmaker_names": [
+        "BETFAIR_EXCH"
+      ],
+      "outcome_labels": [
+        "home",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BETFAIR_EXCH",
+          "outcome_0": 35.11,
+          "outcome_1": 1.02,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "MEDIUM",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679130,
+      "provider_market_name": "ASIAN_HANDICAP",
+      "mapped_family": "spreads",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": -2.0,
+      "value_type": null,
+      "bookmaker_count": 1,
+      "bookmaker_names": [
+        "BETFAIR_EXCH"
+      ],
+      "outcome_labels": [
+        "home",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BETFAIR_EXCH",
+          "outcome_0": 34.09,
+          "outcome_1": 1.02,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "MEDIUM",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679131,
+      "provider_market_name": "ASIAN_HANDICAP",
+      "mapped_family": "spreads",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": -1.75,
+      "value_type": null,
+      "bookmaker_count": 2,
+      "bookmaker_names": [
+        "1XBET",
+        "BETFAIR_EXCH"
+      ],
+      "outcome_labels": [
+        "home",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BETFAIR_EXCH",
+          "outcome_0": 16.32,
+          "outcome_1": 1.05,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "1XBET",
+          "outcome_0": 9.1,
+          "outcome_1": 1.01,
+          "outcome_2": null,
+          "is_open": false
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679132,
+      "provider_market_name": "ASIAN_HANDICAP",
+      "mapped_family": "spreads",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": -1.5,
+      "value_type": null,
+      "bookmaker_count": 2,
+      "bookmaker_names": [
+        "1XBET",
+        "BETFAIR_EXCH"
+      ],
+      "outcome_labels": [
+        "home",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "1XBET",
+          "outcome_0": 8.1,
+          "outcome_1": 1.02,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BETFAIR_EXCH",
+          "outcome_0": 10.98,
+          "outcome_1": 1.08,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679133,
+      "provider_market_name": "ASIAN_HANDICAP",
+      "mapped_family": "spreads",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 2.75,
+      "value_type": null,
+      "bookmaker_count": 1,
+      "bookmaker_names": [
+        "BETFAIR_EXCH"
+      ],
+      "outcome_labels": [
+        "home",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BETFAIR_EXCH",
+          "outcome_0": 1.09,
+          "outcome_1": 10.22,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "MEDIUM",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679134,
+      "provider_market_name": "ASIAN_HANDICAP",
+      "mapped_family": "spreads",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 3.0,
+      "value_type": null,
+      "bookmaker_count": 2,
+      "bookmaker_names": [
+        "1XBET",
+        "BETFAIR_EXCH"
+      ],
+      "outcome_labels": [
+        "home",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "1XBET",
+          "outcome_0": 1.02,
+          "outcome_1": 13.0,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BETFAIR_EXCH",
+          "outcome_0": 1.04,
+          "outcome_1": 17.18,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679135,
+      "provider_market_name": "ASIAN_HANDICAP",
+      "mapped_family": "spreads",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 3.25,
+      "value_type": null,
+      "bookmaker_count": 1,
+      "bookmaker_names": [
+        "BETFAIR_EXCH"
+      ],
+      "outcome_labels": [
+        "home",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BETFAIR_EXCH",
+          "outcome_0": 1.04,
+          "outcome_1": 17.87,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "MEDIUM",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679136,
+      "provider_market_name": "ASIAN_HANDICAP",
+      "mapped_family": "spreads",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 3.5,
+      "value_type": null,
+      "bookmaker_count": 2,
+      "bookmaker_names": [
+        "1XBET",
+        "BETFAIR_EXCH"
+      ],
+      "outcome_labels": [
+        "home",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BETFAIR_EXCH",
+          "outcome_0": 1.04,
+          "outcome_1": 18.57,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "1XBET",
+          "outcome_0": 1.01,
+          "outcome_1": 14.0,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679137,
+      "provider_market_name": "ASIAN_HANDICAP",
+      "mapped_family": "spreads",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 3.75,
+      "value_type": null,
+      "bookmaker_count": 1,
+      "bookmaker_names": [
+        "BETFAIR_EXCH"
+      ],
+      "outcome_labels": [
+        "home",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BETFAIR_EXCH",
+          "outcome_0": 1.02,
+          "outcome_1": 18.57,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "MEDIUM",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50721504,
+      "provider_market_name": "ASIAN_HANDICAP",
+      "mapped_family": "spreads",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 4.0,
+      "value_type": null,
+      "bookmaker_count": 1,
+      "bookmaker_names": [
+        "BETFAIR_EXCH"
+      ],
+      "outcome_labels": [
+        "home",
+        "away"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BETFAIR_EXCH",
+          "outcome_0": 1.01,
+          "outcome_1": 18.57,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "MEDIUM",
+      "matrix_priority": "required"
+    },
+    {
+      "provider_market_id": 50679068,
+      "provider_market_name": "BOTH_TEAMS_TO_SCORE",
+      "mapped_family": "btts",
+      "period": "FULL_TIME",
+      "placing": "PREMATCH",
+      "bet_type": "BACK",
+      "line_point": 0.0,
+      "value_type": null,
+      "bookmaker_count": 8,
+      "bookmaker_names": [
+        "1XBET",
+        "888_SPORT",
+        "BET365",
+        "BET_IN_ASIA",
+        "BWIN",
+        "STAKE_COM",
+        "UNIBET",
+        "WILLIAM_HILL"
+      ],
+      "outcome_labels": [
+        "yes",
+        "no"
+      ],
+      "decimal_odds_available": true,
+      "sample_odds": [
+        {
+          "book": "BET365",
+          "outcome_0": 1.67,
+          "outcome_1": 2.1,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BET_IN_ASIA",
+          "outcome_0": 1.64,
+          "outcome_1": 2.29,
+          "outcome_2": null,
+          "is_open": true
+        },
+        {
+          "book": "BWIN",
+          "outcome_0": 1.65,
+          "outcome_1": 2.1,
+          "outcome_2": null,
+          "is_open": true
+        }
+      ],
+      "parsing_confidence": "HIGH",
+      "matrix_priority": "strong"
+    }
+  ]
+}
