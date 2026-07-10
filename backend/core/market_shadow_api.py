@@ -61,6 +61,7 @@ def _resolve_market_snapshot(
     provider: str | None,
     provider_event_id: str | None,
     live_fetch_enabled: bool,
+    market_region: str | None = None,
 ) -> tuple[NormalizedMarketSnapshot, MarketSourceMeta]:
     live_requested = (market_source or "").strip().lower() == "live"
     source_count = int(bool(market_fixture)) + int(inline_market is not None) + int(live_requested)
@@ -82,6 +83,7 @@ def _resolve_market_snapshot(
                 home_team=home_team,
                 away_team=away_team,
                 live_fetch_enabled=True,
+                region=market_region,
             )
         except MarketLiveFetchError as exc:
             raise MarketShadowApiError(str(exc)) from exc
@@ -131,6 +133,7 @@ def build_market_shadow_diagnostics(
     provider: str | None = None,
     provider_event_id: str | None = None,
     live_fetch_enabled: bool = False,
+    market_region: str | None = None,
 ) -> dict[str, Any]:
     """Build diagnostic-only shadow report; never mutates inputs."""
     if not home_team.strip() or not away_team.strip():
@@ -151,6 +154,7 @@ def build_market_shadow_diagnostics(
         provider=provider,
         provider_event_id=provider_event_id,
         live_fetch_enabled=live_fetch_enabled,
+        market_region=market_region,
     )
     consensus, quality = build_snapshot_pipeline(snapshot)
 
@@ -221,6 +225,26 @@ def build_market_shadow_diagnostics(
     }
 
 
+def _predict_live_gates_satisfied(
+    *,
+    server_enabled: bool,
+    include_requested: bool,
+    live_fetch_enabled: bool,
+    market_source: str | None,
+    provider: str | None,
+    provider_event_id: str | None,
+) -> bool:
+    if not server_enabled or not include_requested or not live_fetch_enabled:
+        return False
+    if (market_source or "").strip().lower() != "live":
+        return False
+    if (provider or "").strip().lower() != "rapidapi_odds_feed":
+        return False
+    if not str(provider_event_id or "").strip():
+        return False
+    return True
+
+
 def try_build_predict_market_shadow_diagnostics(
     *,
     server_enabled: bool,
@@ -236,13 +260,39 @@ def try_build_predict_market_shadow_diagnostics(
     provider: str | None = None,
     provider_event_id: str | None = None,
     live_fetch_enabled: bool = False,
+    market_region: str | None = None,
 ) -> dict[str, Any] | None:
     """Append-only shadow diagnostics for /api/predict; never raises to caller."""
     if not server_enabled or not include_requested:
         return None
-    if (market_source or "").strip().lower() == "live":
-        return None
     if not model_score_matrix:
+        return None
+
+    if _predict_live_gates_satisfied(
+        server_enabled=server_enabled,
+        include_requested=include_requested,
+        live_fetch_enabled=live_fetch_enabled,
+        market_source=market_source,
+        provider=provider,
+        provider_event_id=provider_event_id,
+    ):
+        try:
+            return build_market_shadow_diagnostics(
+                home_team=home_team,
+                away_team=away_team,
+                model_score_matrix=model_score_matrix,
+                model_primary_score=model_primary_score,
+                model_top_scores=model_top_scores,
+                market_source="live",
+                provider=provider,
+                provider_event_id=provider_event_id,
+                live_fetch_enabled=True,
+                market_region=market_region,
+            )
+        except MarketShadowApiError:
+            return None
+
+    if (market_source or "").strip().lower() == "live":
         return None
     if not market_fixture and inline_market is None:
         return None
@@ -259,6 +309,7 @@ def try_build_predict_market_shadow_diagnostics(
             provider=provider,
             provider_event_id=provider_event_id,
             live_fetch_enabled=live_fetch_enabled,
+            market_region=market_region,
         )
     except MarketShadowApiError:
         return None

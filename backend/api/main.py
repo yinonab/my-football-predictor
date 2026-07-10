@@ -1101,6 +1101,11 @@ def predict(request: PredictRequest) -> PredictResponse:
         ],
         market_fixture=request.market_shadow_fixture,
         inline_market=request.inline_market,
+        market_source=request.market_source,
+        provider=request.provider,
+        provider_event_id=request.provider_event_id,
+        live_fetch_enabled=config.market_live_provider_fetch_enabled(),
+        market_region=request.market_region,
     )
     if shadow_dict is not None:
         market_shadow_block = MarketShadowDiagnosticsBlock.model_validate(shadow_dict)
