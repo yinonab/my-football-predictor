@@ -599,6 +599,37 @@ def market_live_fetch_max_calls_per_request() -> int:
     return MARKET_LIVE_FETCH_MAX_CALLS_PER_REQUEST
 
 
+# Phase 6A — optional market influence on exact-score prediction (default OFF)
+MARKET_INFLUENCE_ENABLED: bool = _env_bool("ENABLE_MARKET_INFLUENCE", False)
+MARKET_INFLUENCE_MAX_WEIGHT: float = float(os.getenv("MARKET_INFLUENCE_MAX_WEIGHT", "0.50"))
+MARKET_INFLUENCE_MIN_QUALITY: str = os.getenv("MARKET_INFLUENCE_MIN_QUALITY", "YELLOW").strip().upper()
+MARKET_PROVIDER_EVENT_MAP_JSON: str = os.getenv("MARKET_PROVIDER_EVENT_MAP_JSON", "{}")
+
+
+def market_influence_enabled() -> bool:
+    return MARKET_INFLUENCE_ENABLED
+
+
+def market_influence_max_weight() -> float:
+    return MARKET_INFLUENCE_MAX_WEIGHT
+
+
+def market_influence_min_quality() -> str:
+    return MARKET_INFLUENCE_MIN_QUALITY
+
+
+def load_market_provider_event_map() -> dict[str, str]:
+    import json
+
+    try:
+        raw = json.loads(MARKET_PROVIDER_EVENT_MAP_JSON or "{}")
+    except json.JSONDecodeError:
+        return {}
+    if not isinstance(raw, dict):
+        return {}
+    return {str(k).strip(): str(v).strip() for k, v in raw.items() if str(k).strip() and str(v).strip()}
+
+
 # API
 API_HOST: str = "0.0.0.0"
 API_PORT: int = 8000

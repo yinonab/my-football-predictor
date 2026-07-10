@@ -39,6 +39,7 @@ from api.schemas import (
     MatchContextDiagnosticsResponse,
     MarketDiagnosticsResponse,
     MarketShadowDiagnosticsBlock,
+    MarketInfluenceAppliedResponse,
     MarketShadowDiagnosticsRequest,
     MarketShadowDiagnosticsResponse,
     ActualScoreResponse,
@@ -105,6 +106,7 @@ from core.team_ratings import build_all_matches, build_and_save_ratings
 from core.math_engine import AdvancedDixonColesEngine
 from core.fusion_blowout import apply_fusion_blowout, compute_fusion_blowout_signal
 from core.market_diagnostics import build_market_diagnostics
+from core.market_influence import try_apply_market_influence_to_predict
 from core.market_shadow_api import (
     MarketShadowApiError,
     build_market_shadow_diagnostics,
@@ -354,6 +356,7 @@ def health() -> HealthResponse:
         probability_calibration_enabled=config.PROBABILITY_CALIBRATION_ENABLED,
         market_shadow_diagnostics_enabled=config.market_shadow_diagnostics_enabled(),
         market_live_provider_fetch_enabled=config.market_live_provider_fetch_enabled(),
+        market_influence_enabled=config.market_influence_enabled(),
     )
 
 
@@ -981,24 +984,6 @@ def predict(request: PredictRequest) -> PredictResponse:
 
     coverage = result["score_coverage"]
 
-    top_with_expl = []
-    for rank, item in enumerate(result["top_scores"], start=1):
-        top_with_expl.append(
-            ScoreProbability(
-                score=item["score"],
-                probability=item["probability"],
-                explanation=explain_exact_score(
-                    item["score"],
-                    item["probability"],
-                    home_xg=result["home_xg"],
-                    away_xg=result["away_xg"],
-                    home_team=home_name,
-                    away_team=away_name,
-                    rank=rank,
-                ),
-            )
-        )
-
     coverage_model = ScoreCoverage(
         **coverage,
         explanation=explain_score_coverage(
@@ -1109,6 +1094,52 @@ def predict(request: PredictRequest) -> PredictResponse:
     )
     if shadow_dict is not None:
         market_shadow_block = MarketShadowDiagnosticsBlock.model_validate(shadow_dict)
+
+    market_influence_block: MarketInfluenceAppliedResponse | None = None
+    influence_result = try_apply_market_influence_to_predict(
+        home_team=home_name,
+        away_team=away_name,
+        model_score_matrix=result.get("all_scores"),
+        provider_event_id=request.provider_event_id,
+        market_region=request.market_region,
+    )
+    if influence_result.applied and influence_result.top_scores is not None:
+        result["top_scores"] = influence_result.top_scores
+        if influence_result.calibrated_matrix is not None:
+            result["all_scores"] = influence_result.calibrated_matrix
+        scoreline_decision = build_scoreline_decision(
+            final_probabilities_1x2=probs,
+            top_scores=result["top_scores"],
+            all_scores=result.get("all_scores"),
+            home_xg=result["home_xg"],
+            away_xg=result["away_xg"],
+            home_team=home_name,
+            away_team=away_name,
+            strength=strength,
+            match_context_diagnostics=match_context_diagnostics,
+        )
+        if influence_result.metadata is not None:
+            market_influence_block = MarketInfluenceAppliedResponse.model_validate(
+                influence_result.metadata
+            )
+
+    top_with_expl = []
+    for rank, item in enumerate(result["top_scores"], start=1):
+        top_with_expl.append(
+            ScoreProbability(
+                score=item["score"],
+                probability=item["probability"],
+                explanation=explain_exact_score(
+                    item["score"],
+                    item["probability"],
+                    home_xg=result["home_xg"],
+                    away_xg=result["away_xg"],
+                    home_team=home_name,
+                    away_team=away_name,
+                    rank=rank,
+                ),
+            )
+        )
 
     return PredictResponse(
         home_team=home_name,
@@ -1236,6 +1267,7 @@ def predict(request: PredictRequest) -> PredictResponse:
         underdog_foundation_diagnostics=underdog_foundation_diag,
         scoreline_decision=_scoreline_decision_response(scoreline_decision),
         market_shadow_diagnostics=market_shadow_block,
+        market_influence=market_influence_block,
     )
 
 
