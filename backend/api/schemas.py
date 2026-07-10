@@ -26,6 +26,7 @@ class HealthResponse(BaseModel):
     probability_calibration_enabled: bool = config.PROBABILITY_CALIBRATION_ENABLED
     market_shadow_diagnostics_enabled: bool = config.market_shadow_diagnostics_enabled()
     market_live_provider_fetch_enabled: bool = config.market_live_provider_fetch_enabled()
+    market_influence_enabled: bool = config.market_influence_enabled()
 
 
 class PredictRequest(BaseModel):
@@ -656,6 +657,20 @@ class UnderdogFoundationDiagnosticsResponse(BaseModel):
     note: str = ""
 
 
+class MarketInfluenceAppliedResponse(BaseModel):
+    market_influence_applied: bool = True
+    quality_band: str | None = None
+    quality_score: float | None = None
+    influence_weight_pct: int | None = None
+    provider: str | None = None
+    provider_event_id: str | None = None
+    cache_status: str | None = None
+    provider_call_count: int | None = None
+    primary_score_reason: str | None = None
+    market_source: str | None = None
+    fallback_reason: str | None = None
+
+
 class PredictResponse(BaseModel):
     home_team: str
     away_team: str
@@ -690,12 +705,15 @@ class PredictResponse(BaseModel):
     recent_form_provider_diagnostics: RecentFormProviderDiagnosticsResponse | None = None
     scoreline_decision: ScorelineDecisionResponse | None = None
     market_shadow_diagnostics: MarketShadowDiagnosticsBlock | None = None
+    market_influence: MarketInfluenceAppliedResponse | None = None
 
     @model_serializer(mode="wrap")
-    def _omit_null_market_shadow_diagnostics(self, handler):
+    def _omit_null_optional_blocks(self, handler):
         data = handler(self)
         if data.get("market_shadow_diagnostics") is None:
             data.pop("market_shadow_diagnostics", None)
+        if data.get("market_influence") is None:
+            data.pop("market_influence", None)
         return data
 
 

@@ -405,6 +405,8 @@ def calibrate_market_matrix_shadow(
     model_score_matrix: Mapping[str, float],
     consensus: MarketConsensus,
     quality: MarketQualityResult,
+    *,
+    requested_weight_pct: int | None = None,
 ) -> MarketMatrixShadowResult:
     """Shadow-calibrate a score matrix toward market consensus (diagnostic only)."""
     warnings: list[str] = []
@@ -414,7 +416,11 @@ def calibrate_market_matrix_shadow(
     if abs(sum(original.values()) - 100.0) > 0.5:
         warnings.append("input_matrix_renormalized_to_100")
 
-    requested_weight = shadow_market_weight(quality)
+    requested_weight = (
+        requested_weight_pct
+        if requested_weight_pct is not None
+        else shadow_market_weight(quality)
+    )
     blend = requested_weight / 100.0
     base_notes.append(f"quality_band_{quality.band.lower()}")
 
