@@ -25,6 +25,7 @@ class HealthResponse(BaseModel):
     odds_affect_prediction: bool = config.ODDS_AFFECT_PREDICTION
     probability_calibration_enabled: bool = config.PROBABILITY_CALIBRATION_ENABLED
     market_shadow_diagnostics_enabled: bool = config.market_shadow_diagnostics_enabled()
+    market_live_provider_fetch_enabled: bool = config.market_live_provider_fetch_enabled()
 
 
 class PredictRequest(BaseModel):
@@ -246,6 +247,9 @@ class MarketShadowDiagnosticsBlock(BaseModel):
     warnings: list[str] = Field(default_factory=list)
     notes: list[str] = Field(default_factory=list)
     source_fixture: str | None = None
+    market_source: str | None = None
+    provider: str | None = None
+    provider_event_id: str | None = None
     model_primary_score_unchanged: str | None = None
     model_top_scores_unchanged: list[dict[str, Any]] = Field(default_factory=list)
 
@@ -267,6 +271,18 @@ class MarketShadowDiagnosticsRequest(BaseModel):
     inline_market: dict[str, Any] | None = Field(
         default=None,
         description="RapidAPI audit-shaped inline market snapshot (no live fetch).",
+    )
+    market_source: str | None = Field(
+        default=None,
+        description='Explicit source mode: "live" for provider fetch; omit for fixture/inline.',
+    )
+    provider: str | None = Field(
+        default=None,
+        description='Live provider name, e.g. "rapidapi_odds_feed".',
+    )
+    provider_event_id: str | None = Field(
+        default=None,
+        description="Provider event id for live diagnostics fetch.",
     )
 
 

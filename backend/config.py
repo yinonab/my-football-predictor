@@ -572,6 +572,16 @@ def market_shadow_diagnostics_enabled() -> bool:
     return MARKET_SHADOW_DIAGNOSTICS_ENABLED
 
 
+# Phase 5A — live provider fetch for diagnostics debug endpoint only (default OFF)
+MARKET_LIVE_PROVIDER_FETCH_ENABLED: bool = _env_bool(
+    "ENABLE_MARKET_LIVE_PROVIDER_FETCH", False
+)
+
+
+def market_live_provider_fetch_enabled() -> bool:
+    return MARKET_LIVE_PROVIDER_FETCH_ENABLED
+
+
 # API
 API_HOST: str = "0.0.0.0"
 API_PORT: int = 8000
