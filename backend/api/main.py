@@ -353,6 +353,7 @@ def health() -> HealthResponse:
         odds_affect_prediction=config.ODDS_AFFECT_PREDICTION,
         probability_calibration_enabled=config.PROBABILITY_CALIBRATION_ENABLED,
         market_shadow_diagnostics_enabled=config.market_shadow_diagnostics_enabled(),
+        market_live_provider_fetch_enabled=config.market_live_provider_fetch_enabled(),
     )
 
 
@@ -1371,7 +1372,7 @@ def debug_global_ratings(home_team: str, away_team: str) -> GlobalRatingDebugRes
 def debug_market_shadow_diagnostics(
     request: MarketShadowDiagnosticsRequest,
 ) -> MarketShadowDiagnosticsResponse:
-    """Shadow-only market diagnostics — static fixture input; no predict mutation."""
+    """Shadow-only market diagnostics — static fixture or live provider (diagnostics only)."""
     if not config.market_shadow_diagnostics_enabled():
         raise HTTPException(
             status_code=403,
@@ -1389,9 +1390,18 @@ def debug_market_shadow_diagnostics(
             model_top_scores=request.model_top_scores,
             market_fixture=request.market_fixture,
             inline_market=request.inline_market,
+            market_source=request.market_source,
+            provider=request.provider,
+            provider_event_id=request.provider_event_id,
+            live_fetch_enabled=config.market_live_provider_fetch_enabled(),
         )
     except MarketShadowApiError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
+        detail = str(exc)
+        if detail == "market_live_provider_fetch_disabled":
+            raise HTTPException(status_code=403, detail=detail) from exc
+        if detail == "rapidapi_key_not_configured":
+            raise HTTPException(status_code=503, detail=detail) from exc
+        raise HTTPException(status_code=400, detail=detail) from exc
 
     return MarketShadowDiagnosticsResponse(
         market_shadow_diagnostics=MarketShadowDiagnosticsBlock.model_validate(block),
