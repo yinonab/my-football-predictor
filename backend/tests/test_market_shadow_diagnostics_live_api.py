@@ -9,6 +9,7 @@ from unittest.mock import patch
 import pytest
 from fastapi.testclient import TestClient
 
+from core.market_live_cache import reset_default_cache
 from api.main import app
 
 client = TestClient(app)
@@ -62,6 +63,13 @@ def _live_payload(**overrides) -> dict:
     )
     payload.update(overrides)
     return payload
+
+
+@pytest.fixture(autouse=True)
+def _clear_live_cache() -> None:
+    reset_default_cache()
+    yield
+    reset_default_cache()
 
 
 @pytest.fixture
@@ -147,6 +155,8 @@ def test_debug_live_mocked_response_returns_diagnostics_block(
     assert block["provider"] == "rapidapi_odds_feed"
     assert block["provider_event_id"] == "619963"
     assert block["source_fixture"] is None
+    assert block["cache_status"] == "miss"
+    assert block["provider_call_count"] == 1
     assert "diagnostic_only_not_used_for_prediction" in block["notes"]
     assert "live_provider_fetch_used_for_diagnostics_only" in block["notes"]
     assert block["quality_band"] in ("GREEN", "YELLOW", "RED")
@@ -200,3 +210,47 @@ def test_predict_default_unchanged_no_live_fetch(
     assert resp.status_code == 200
     assert "market_shadow_diagnostics" not in resp.json()
     fetch_mock.assert_not_called()
+
+
+def test_debug_live_cache_hit_avoids_second_provider_call(
+    shadow_enabled, live_fetch_enabled
+) -> None:
+    mock_payload = {
+        "provider": "rapidapi_odds_feed",
+        "event_id": "619963",
+        "placing": "PREMATCH",
+        "http_status": 200,
+        "markets": [RAW_H2H_MARKET],
+    }
+    with patch(
+        "core.market_live_fetch.fetch_event_markets",
+        return_value=mock_payload,
+    ) as fetch_mock:
+        first = client.post("/api/debug/market-shadow-diagnostics", json=_live_payload())
+        second = client.post("/api/debug/market-shadow-diagnostics", json=_live_payload())
+    assert first.status_code == 200
+    assert second.status_code == 200
+    fetch_mock.assert_called_once_with("619963")
+    second_block = second.json()["market_shadow_diagnostics"]
+    assert second_block["cache_status"] == "hit"
+    assert second_block["provider_call_count"] == 0
+
+
+def test_debug_live_cache_metadata_on_miss(shadow_enabled, live_fetch_enabled) -> None:
+    mock_payload = {
+        "provider": "rapidapi_odds_feed",
+        "event_id": "619963",
+        "placing": "PREMATCH",
+        "http_status": 200,
+        "markets": [RAW_H2H_MARKET],
+    }
+    with patch(
+        "core.market_live_fetch.fetch_event_markets",
+        return_value=mock_payload,
+    ):
+        resp = client.post("/api/debug/market-shadow-diagnostics", json=_live_payload())
+    block = resp.json()["market_shadow_diagnostics"]
+    assert block["cache_status"] == "miss"
+    assert block["provider_call_count"] == 1
+    assert block["provider"] == "rapidapi_odds_feed"
+    assert "diagnostic_only_not_used_for_prediction" in block["notes"]

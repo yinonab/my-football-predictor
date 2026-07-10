@@ -1,11 +1,14 @@
-"""Live provider snapshot fetch for diagnostics only (Phase 5A — not wired to predict)."""
+"""Live provider snapshot fetch for diagnostics only (Phase 5A/5B — not wired to predict)."""
 
 from __future__ import annotations
 
 import re
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
+import config
+from core.market_live_cache import LiveCallBudget, MarketLiveCache, get_default_cache
 from core.providers.rapidapi_odds_feed_client import (
     RapidApiOddsFeedClientError,
     fetch_event_markets,
@@ -62,6 +65,13 @@ _MATRIX_PRIORITY = {
 
 class MarketLiveFetchError(ValueError):
     """Safe live-fetch error for diagnostics endpoints."""
+
+
+@dataclass(frozen=True)
+class LiveFetchResult:
+    audit_report: dict[str, Any]
+    cache_status: str  # hit | miss | disabled
+    provider_call_count: int
 
 
 def _norm_name(value: Any) -> str:
@@ -191,37 +201,101 @@ def build_rapidapi_audit_report(
     }
 
 
+def _fetch_rapidapi_audit_report(
+    *,
+    provider_event_id: str,
+    home_team: str,
+    away_team: str,
+) -> dict[str, Any]:
+    try:
+        payload = fetch_event_markets(provider_event_id)
+    except RapidApiOddsFeedClientError as exc:
+        detail = str(exc)
+        if detail == "rapidapi_key_not_configured":
+            raise MarketLiveFetchError("rapidapi_key_not_configured") from exc
+        raise MarketLiveFetchError(detail) from exc
+
+    markets = payload.get("markets") or []
+    if not markets:
+        raise MarketLiveFetchError("provider_markets_empty")
+    return build_rapidapi_audit_report(
+        provider_event_id=str(provider_event_id),
+        home_team=home_team,
+        away_team=away_team,
+        raw_markets=markets,
+    )
+
+
 def fetch_live_market_audit_report(
     *,
     provider: str,
     provider_event_id: str,
     home_team: str,
     away_team: str,
-) -> dict[str, Any]:
-    """Fetch and normalize a live provider snapshot into RapidAPI audit JSON shape."""
+    live_fetch_enabled: bool = True,
+    cache_ttl_seconds: int | None = None,
+    max_calls_per_request: int | None = None,
+    cache: MarketLiveCache | None = None,
+    call_budget: LiveCallBudget | None = None,
+    region: str | None = None,
+    now: float | None = None,
+) -> LiveFetchResult:
+    """Fetch and normalize a live provider snapshot with cache + call budget."""
+    if not live_fetch_enabled:
+        raise MarketLiveFetchError("market_live_provider_fetch_disabled")
+
     provider_name = _norm_name(provider).lower()
     if provider_name not in SUPPORTED_PROVIDERS:
         raise MarketLiveFetchError("unsupported_provider")
-    if not str(provider_event_id or "").strip():
+    event_id = str(provider_event_id or "").strip()
+    if not event_id:
         raise MarketLiveFetchError("provider_event_id_required")
 
-    if provider_name == "rapidapi_odds_feed":
-        try:
-            payload = fetch_event_markets(provider_event_id)
-        except RapidApiOddsFeedClientError as exc:
-            detail = str(exc)
-            if detail == "rapidapi_key_not_configured":
-                raise MarketLiveFetchError("rapidapi_key_not_configured") from exc
-            raise MarketLiveFetchError(detail) from exc
+    ttl = (
+        config.market_live_fetch_cache_ttl_seconds()
+        if cache_ttl_seconds is None
+        else cache_ttl_seconds
+    )
+    max_calls = (
+        config.market_live_fetch_max_calls_per_request()
+        if max_calls_per_request is None
+        else max_calls_per_request
+    )
+    cache_store = cache if cache is not None else get_default_cache()
+    budget = call_budget if call_budget is not None else LiveCallBudget(max_calls=max_calls)
+    cache_key = MarketLiveCache.make_key(
+        provider=provider_name,
+        provider_event_id=event_id,
+        region=region,
+    )
 
-        markets = payload.get("markets") or []
-        if not markets:
-            raise MarketLiveFetchError("provider_markets_empty")
-        return build_rapidapi_audit_report(
-            provider_event_id=str(provider_event_id),
+    if ttl > 0:
+        cached = cache_store.get(cache_key, now=now)
+        if cached is not None:
+            return LiveFetchResult(
+                audit_report=cached,
+                cache_status="hit",
+                provider_call_count=0,
+            )
+        cache_status = "miss"
+    else:
+        cache_status = "disabled"
+
+    if not budget.try_acquire():
+        raise MarketLiveFetchError("live_provider_call_budget_exceeded")
+
+    if provider_name == "rapidapi_odds_feed":
+        audit = _fetch_rapidapi_audit_report(
+            provider_event_id=event_id,
             home_team=home_team,
             away_team=away_team,
-            raw_markets=markets,
+        )
+        if ttl > 0:
+            cache_store.set(cache_key, audit, ttl_seconds=ttl, now=now)
+        return LiveFetchResult(
+            audit_report=audit,
+            cache_status=cache_status,
+            provider_call_count=1,
         )
 
     raise MarketLiveFetchError("unsupported_provider")

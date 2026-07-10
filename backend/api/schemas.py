@@ -250,6 +250,8 @@ class MarketShadowDiagnosticsBlock(BaseModel):
     market_source: str | None = None
     provider: str | None = None
     provider_event_id: str | None = None
+    cache_status: str | None = None
+    provider_call_count: int | None = None
     model_primary_score_unchanged: str | None = None
     model_top_scores_unchanged: list[dict[str, Any]] = Field(default_factory=list)
 

@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 import pytest
 
+from core.market_live_cache import reset_default_cache
 from core.market_live_fetch import (
     MarketLiveFetchError,
     build_rapidapi_audit_report,
@@ -31,6 +32,13 @@ RAW_H2H_MARKET = {
         }
     ],
 }
+
+
+@pytest.fixture(autouse=True)
+def _clear_live_cache() -> None:
+    reset_default_cache()
+    yield
+    reset_default_cache()
 
 
 def test_summarize_markets_maps_h2h_family() -> None:
@@ -91,10 +99,11 @@ def test_fetch_live_uses_mocked_rapidapi_client() -> None:
             provider_event_id="619963",
             home_team="Norway",
             away_team="England",
+            cache_ttl_seconds=0,
         )
     fetch_mock.assert_called_once_with("619963")
-    assert report["selected_event"]["event_id"] == "619963"
-    assert report["market_coverage_table"][0]["mapped_family"] == "h2h"
+    assert report.audit_report["selected_event"]["event_id"] == "619963"
+    assert report.audit_report["market_coverage_table"][0]["mapped_family"] == "h2h"
 
 
 def test_fetch_live_missing_key_maps_safe_error() -> None:
