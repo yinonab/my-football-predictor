@@ -1401,6 +1401,8 @@ def debug_market_shadow_diagnostics(
             raise HTTPException(status_code=403, detail=detail) from exc
         if detail == "rapidapi_key_not_configured":
             raise HTTPException(status_code=503, detail=detail) from exc
+        if detail == "live_provider_call_budget_exceeded":
+            raise HTTPException(status_code=429, detail=detail) from exc
         raise HTTPException(status_code=400, detail=detail) from exc
 
     return MarketShadowDiagnosticsResponse(

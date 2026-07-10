@@ -37,6 +37,8 @@ class MarketSourceMeta:
     market_source: str
     provider: str | None = None
     provider_event_id: str | None = None
+    cache_status: str | None = None
+    provider_call_count: int | None = None
 
 
 def _validate_fixture_filename(name: str) -> str:
@@ -74,20 +76,23 @@ def _resolve_market_snapshot(
         if not str(provider_event_id or "").strip():
             raise MarketShadowApiError("provider_event_id_required")
         try:
-            audit = fetch_live_market_audit_report(
+            fetch_result = fetch_live_market_audit_report(
                 provider=provider_name,
                 provider_event_id=str(provider_event_id).strip(),
                 home_team=home_team,
                 away_team=away_team,
+                live_fetch_enabled=True,
             )
         except MarketLiveFetchError as exc:
             raise MarketShadowApiError(str(exc)) from exc
-        snapshot = parse_rapidapi_odds_feed_audit(audit)
+        snapshot = parse_rapidapi_odds_feed_audit(fetch_result.audit_report)
         return snapshot, MarketSourceMeta(
             source_fixture=None,
             market_source="live",
             provider=provider_name,
             provider_event_id=str(provider_event_id).strip(),
+            cache_status=fetch_result.cache_status,
+            provider_call_count=fetch_result.provider_call_count,
         )
 
     if market_fixture:
@@ -209,6 +214,8 @@ def build_market_shadow_diagnostics(
         "market_source": source_meta.market_source,
         "provider": source_meta.provider,
         "provider_event_id": source_meta.provider_event_id,
+        "cache_status": source_meta.cache_status,
+        "provider_call_count": source_meta.provider_call_count,
         "model_primary_score_unchanged": model_primary_score,
         "model_top_scores_unchanged": shadow_dict["model_top_scores_unchanged"],
     }

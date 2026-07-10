@@ -582,6 +582,23 @@ def market_live_provider_fetch_enabled() -> bool:
     return MARKET_LIVE_PROVIDER_FETCH_ENABLED
 
 
+# Phase 5B — live provider cache + per-request call budget (diagnostics only)
+MARKET_LIVE_FETCH_CACHE_TTL_SECONDS: int = int(
+    os.getenv("MARKET_LIVE_FETCH_CACHE_TTL_SECONDS", "600")
+)
+MARKET_LIVE_FETCH_MAX_CALLS_PER_REQUEST: int = int(
+    os.getenv("MARKET_LIVE_FETCH_MAX_CALLS_PER_REQUEST", "1")
+)
+
+
+def market_live_fetch_cache_ttl_seconds() -> int:
+    return MARKET_LIVE_FETCH_CACHE_TTL_SECONDS
+
+
+def market_live_fetch_max_calls_per_request() -> int:
+    return MARKET_LIVE_FETCH_MAX_CALLS_PER_REQUEST
+
+
 # API
 API_HOST: str = "0.0.0.0"
 API_PORT: int = 8000
