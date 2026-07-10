@@ -189,9 +189,7 @@ def test_debug_exactly_one_source_rule(shadow_enabled, live_fetch_enabled) -> No
     assert resp.json()["detail"] == "exactly_one_market_source_required"
 
 
-def test_predict_default_unchanged_no_live_fetch(
-    shadow_enabled, live_fetch_enabled
-) -> None:
+def test_predict_live_fields_with_live_flag_off_no_fetch(shadow_enabled, live_fetch_disabled) -> None:
     with patch("core.market_live_fetch.fetch_event_markets") as fetch_mock:
         resp = client.post(
             "/api/predict",

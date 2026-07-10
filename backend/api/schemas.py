@@ -67,8 +67,8 @@ class PredictRequest(BaseModel):
     include_market_shadow_diagnostics: bool = Field(
         default=False,
         description=(
-            "Append shadow-only market diagnostics when server flag is enabled "
-            "and a static market snapshot is provided."
+            "Append shadow-only market diagnostics when server flags are enabled "
+            "and a market snapshot source is provided (fixture, inline, or live)."
         ),
     )
     market_shadow_fixture: str | None = Field(
@@ -78,6 +78,22 @@ class PredictRequest(BaseModel):
     inline_market: dict[str, Any] | None = Field(
         default=None,
         description="Inline RapidAPI audit-shaped market snapshot (no live fetch).",
+    )
+    market_source: str | None = Field(
+        default=None,
+        description='Market source mode: "live" requires live provider fetch flags.',
+    )
+    provider: str | None = Field(
+        default=None,
+        description="Live diagnostics provider (e.g. rapidapi_odds_feed).",
+    )
+    provider_event_id: str | None = Field(
+        default=None,
+        description="Provider event id for live diagnostics append.",
+    )
+    market_region: str | None = Field(
+        default=None,
+        description="Optional region for live cache key partitioning.",
     )
 
 
