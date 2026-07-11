@@ -109,6 +109,63 @@ def fetch_event_markets(event_id: str, *, timeout: float = DEFAULT_TIMEOUT_SEC) 
     }
 
 
+def fetch_events_in_match_window(
+    *,
+    sport_id: int = 1,
+    lookback_hours: int = 6,
+    lookahead_hours: int = 72,
+    pages: int = 1,
+    timeout: float = DEFAULT_TIMEOUT_SEC,
+    now: datetime | None = None,
+) -> list[dict[str, Any]]:
+    """Single event-list call covering scheduled/live/recent events in the time window.
+
+    Omits provider status filter so one request can return multiple statuses within
+    start_at_min/max (scheduled, live/in-progress, and recent post-kickoff events).
+    """
+    events: list[dict[str, Any]] = []
+    now_ts = now or datetime.now(timezone.utc)
+    params: dict[str, Any] = {
+        "sport_id": int(sport_id),
+        "start_at_min": (now_ts - timedelta(hours=lookback_hours)).strftime("%Y-%m-%d %H:%M:%S"),
+        "start_at_max": (now_ts + timedelta(hours=lookahead_hours)).strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    last_status = 0
+    last_error = ""
+    for page in range(max(1, pages)):
+        params["page"] = page
+        url = f"{BASE_URL}{API_PREFIX}/events"
+        try:
+            resp = requests.get(url, headers=_headers(), params=params, timeout=timeout)
+        except requests.RequestException as exc:
+            raise RapidApiOddsFeedClientError(
+                f"rapidapi_request_failed:{_sanitize_error_message(str(exc))}"
+            ) from exc
+
+        last_status = resp.status_code
+        if resp.status_code >= 400:
+            last_error = f"http_{resp.status_code}"
+            break
+
+        try:
+            body = resp.json()
+        except Exception:
+            body = {}
+
+        batch = _paginated_items(body)
+        if not batch:
+            break
+        events.extend(batch)
+
+    if last_status == 401 or last_status == 403:
+        raise RapidApiOddsFeedClientError("rapidapi_auth_failed")
+    if last_status == 429:
+        raise RapidApiOddsFeedClientError("rapidapi_rate_limited")
+    if last_error and not events:
+        raise RapidApiOddsFeedClientError(last_error)
+    return events
+
+
 def fetch_scheduled_events(
     *,
     sport_id: int = 1,

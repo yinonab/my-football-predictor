@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import logging
 from dataclasses import dataclass
 from typing import Any, Mapping
 
@@ -16,6 +17,7 @@ from core.market_quality import BAND_GREEN, BAND_RED, BAND_YELLOW
 
 _BAND_RANK = {BAND_RED: 0, BAND_YELLOW: 1, BAND_GREEN: 2}
 _DEFAULT_PROVIDER = "rapidapi_odds_feed"
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -128,12 +130,25 @@ def try_apply_market_influence_to_predict(
             mapped_event_id=mapped_event_id,
         )
         resolved_event_id = resolver_result.event_id
+        if not resolved_event_id and resolver_result.match_reason:
+            logger.info(
+                "influence_fallback_reason=resolver_%s home=%s away=%s",
+                resolver_result.match_reason,
+                normalize_team_for_event_map(home_team),
+                normalize_team_for_event_map(away_team),
+            )
     if not market_influence_gates_satisfied(
         influence_enabled=influence_on,
         shadow_diagnostics_enabled=shadow_on,
         live_fetch_enabled=live_on,
         provider_event_id=resolved_event_id,
     ):
+        if resolved_event_id is None and influence_on and shadow_on and live_on:
+            logger.info(
+                "influence_fallback_reason=no_provider_event_id home=%s away=%s",
+                normalize_team_for_event_map(home_team),
+                normalize_team_for_event_map(away_team),
+            )
         return MarketInfluenceResult(applied=False)
 
     if not model_score_matrix:
@@ -149,7 +164,13 @@ def try_apply_market_influence_to_predict(
             region=market_region,
         )
         snapshot = parse_rapidapi_odds_feed_audit(fetch_result.audit_report)
-    except MarketLiveFetchError:
+    except MarketLiveFetchError as exc:
+        logger.warning(
+            "influence_fallback_reason=live_fetch_error home=%s away=%s detail=%s",
+            normalize_team_for_event_map(home_team),
+            normalize_team_for_event_map(away_team),
+            str(exc),
+        )
         return MarketInfluenceResult(applied=False)
 
     consensus, quality = build_snapshot_pipeline(snapshot)
@@ -157,6 +178,12 @@ def try_apply_market_influence_to_predict(
         config.market_influence_min_quality() if min_quality_band is None else min_quality_band
     )
     if not quality_meets_minimum(quality.band, min_band):
+        logger.info(
+            "influence_fallback_reason=quality_below_minimum band=%s home=%s away=%s",
+            quality.band,
+            normalize_team_for_event_map(home_team),
+            normalize_team_for_event_map(away_team),
+        )
         return MarketInfluenceResult(
             applied=False,
             metadata={

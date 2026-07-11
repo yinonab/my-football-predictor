@@ -642,6 +642,12 @@ MARKET_EVENT_RESOLVER_PROVIDER: str = os.getenv(
     "MARKET_EVENT_RESOLVER_PROVIDER", "rapidapi_odds_feed"
 ).strip().lower()
 MARKET_EVENT_RESOLVER_SPORT_ID: int = int(os.getenv("MARKET_EVENT_RESOLVER_SPORT_ID", "1"))
+MARKET_EVENT_RESOLVER_LOOKBACK_HOURS: int = int(
+    os.getenv("MARKET_EVENT_RESOLVER_LOOKBACK_HOURS", "6")
+)
+MARKET_EVENT_RESOLVER_LOOKAHEAD_HOURS: int = int(
+    os.getenv("MARKET_EVENT_RESOLVER_LOOKAHEAD_HOURS", "72")
+)
 
 
 def market_auto_event_resolver_enabled() -> bool:
@@ -662,6 +668,14 @@ def market_event_resolver_provider() -> str:
 
 def market_event_resolver_sport_id() -> int:
     return MARKET_EVENT_RESOLVER_SPORT_ID
+
+
+def market_event_resolver_lookback_hours() -> int:
+    return MARKET_EVENT_RESOLVER_LOOKBACK_HOURS
+
+
+def market_event_resolver_lookahead_hours() -> int:
+    return MARKET_EVENT_RESOLVER_LOOKAHEAD_HOURS
 
 
 # API

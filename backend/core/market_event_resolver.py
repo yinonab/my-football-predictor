@@ -1,8 +1,10 @@
-"""Phase 6B — auto-resolve provider_event_id from home/away teams (gated, fail-safe)."""
+"""Phase 6D — auto-resolve provider_event_id from home/away teams (gated, fail-safe)."""
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 from typing import Any, Mapping
 
 import config
@@ -14,10 +16,15 @@ from core.market_event_resolver_cache import (
 from core.market_event_map import make_event_map_key, normalize_team_for_event_map
 from core.providers.rapidapi_odds_feed_client import (
     RapidApiOddsFeedClientError,
-    fetch_scheduled_events,
+    fetch_events_in_match_window,
 )
 
+logger = logging.getLogger(__name__)
+
 _SUPPORTED_PROVIDERS: frozenset[str] = frozenset({"rapidapi_odds_feed"})
+_RESOLVER_WINDOW_STATUSES: frozenset[str] = frozenset(
+    {"SCHEDULED", "LIVE", "IN_PROGRESS", "STARTED", "FINISHED"}
+)
 
 
 @dataclass(frozen=True)
@@ -30,6 +37,47 @@ class EventResolverResult:
 
 def _norm_fold(name: str) -> str:
     return normalize_team_for_event_map(name).casefold()
+
+
+def _parse_event_start_at(value: Any) -> datetime | None:
+    raw = str(value or "").strip()
+    if not raw:
+        return None
+    for fmt in ("%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S%z", "%Y-%m-%dT%H:%M:%S"):
+        try:
+            parsed = datetime.strptime(raw.replace("Z", "+0000"), fmt)
+            if parsed.tzinfo is None:
+                return parsed.replace(tzinfo=timezone.utc)
+            return parsed.astimezone(timezone.utc)
+        except ValueError:
+            continue
+    return None
+
+
+def filter_events_in_resolver_window(
+    events: list[dict[str, Any]],
+    *,
+    lookback_hours: int,
+    lookahead_hours: int,
+    now: datetime | None = None,
+) -> list[dict[str, Any]]:
+    """Keep resolver-relevant events inside the configured start-time window."""
+    now_ts = now or datetime.now(timezone.utc)
+    window_start = now_ts - timedelta(hours=lookback_hours)
+    window_end = now_ts + timedelta(hours=lookahead_hours)
+    kept: list[dict[str, Any]] = []
+    for event in events:
+        status = str(event.get("status") or "").strip().upper()
+        if status and status not in _RESOLVER_WINDOW_STATUSES:
+            continue
+        start_at = _parse_event_start_at(event.get("start_at"))
+        if start_at is None:
+            if status in _RESOLVER_WINDOW_STATUSES:
+                kept.append(event)
+            continue
+        if window_start <= start_at <= window_end:
+            kept.append(event)
+    return kept
 
 
 def _extract_event_id(event: Mapping[str, Any]) -> str | None:
@@ -110,6 +158,35 @@ def auto_resolver_gates_satisfied(
     return provider.strip().lower() in _SUPPORTED_PROVIDERS
 
 
+def _log_resolver_outcome(
+    *,
+    home_team: str,
+    away_team: str,
+    result: EventResolverResult,
+) -> None:
+    home = normalize_team_for_event_map(home_team)
+    away = normalize_team_for_event_map(away_team)
+    reason = result.match_reason or ""
+    if result.event_id:
+        logger.info(
+            "resolver_resolved home=%s away=%s event_id=%s reason=%s cache=%s",
+            home,
+            away,
+            result.event_id,
+            reason,
+            result.cache_status,
+        )
+        return
+    if reason in {"ambiguous_forward", "ambiguous_reversed"}:
+        logger.warning("resolver_ambiguous home=%s away=%s reason=%s", home, away, reason)
+    elif reason == "provider_error":
+        logger.warning("resolver_provider_error home=%s away=%s", home, away)
+    elif reason == "no_match":
+        logger.info("resolver_no_match home=%s away=%s", home, away)
+    elif reason == "call_budget_exceeded":
+        logger.warning("resolver_call_budget_exceeded home=%s away=%s", home, away)
+
+
 def try_auto_resolve_provider_event_id(
     *,
     home_team: str,
@@ -124,6 +201,8 @@ def try_auto_resolve_provider_event_id(
     cache_ttl_seconds: int | None = None,
     max_calls_per_request: int | None = None,
     sport_id: int | None = None,
+    lookback_hours: int | None = None,
+    lookahead_hours: int | None = None,
     cache: MarketEventResolverCache | None = None,
     call_budget: EventResolverCallBudget | None = None,
     now: float | None = None,
@@ -162,6 +241,10 @@ def try_auto_resolve_provider_event_id(
     ):
         return EventResolverResult()
 
+    home = normalize_team_for_event_map(home_team)
+    away = normalize_team_for_event_map(away_team)
+    logger.info("resolver_started home=%s away=%s", home, away)
+
     cache_key = make_event_map_key(home_team, away_team)
     ttl = (
         config.market_event_resolver_cache_ttl_seconds()
@@ -173,41 +256,69 @@ def try_auto_resolve_provider_event_id(
         if max_calls_per_request is None
         else max_calls_per_request
     )
+    lookback = (
+        config.market_event_resolver_lookback_hours()
+        if lookback_hours is None
+        else lookback_hours
+    )
+    lookahead = (
+        config.market_event_resolver_lookahead_hours()
+        if lookahead_hours is None
+        else lookahead_hours
+    )
     cache_store = cache if cache is not None else get_default_resolver_cache()
     budget = (
         call_budget if call_budget is not None else EventResolverCallBudget(max_calls=max_calls)
     )
+    now_dt = datetime.fromtimestamp(now, tz=timezone.utc) if now is not None else None
 
     if ttl > 0:
         cached = cache_store.get(cache_key, now=now)
         if cached is not None:
-            return EventResolverResult(
+            result = EventResolverResult(
                 event_id=cached,
                 cache_status="hit",
                 provider_call_count=0,
                 match_reason="cache_hit",
             )
+            _log_resolver_outcome(home_team=home_team, away_team=away_team, result=result)
+            return result
         cache_status = "miss"
     else:
         cache_status = "disabled"
 
     if not budget.try_acquire():
-        return EventResolverResult(cache_status=cache_status, match_reason="call_budget_exceeded")
+        result = EventResolverResult(cache_status=cache_status, match_reason="call_budget_exceeded")
+        _log_resolver_outcome(home_team=home_team, away_team=away_team, result=result)
+        return result
 
     try:
         if provider_name == "rapidapi_odds_feed":
-            events = fetch_scheduled_events(
+            raw_events = fetch_events_in_match_window(
                 sport_id=config.market_event_resolver_sport_id() if sport_id is None else sport_id,
+                lookback_hours=lookback,
+                lookahead_hours=lookahead,
                 pages=1,
+                now=now_dt,
+            )
+            events = filter_events_in_resolver_window(
+                raw_events,
+                lookback_hours=lookback,
+                lookahead_hours=lookahead,
+                now=now_dt,
             )
         else:
-            return EventResolverResult(cache_status=cache_status, match_reason="unsupported_provider")
+            result = EventResolverResult(cache_status=cache_status, match_reason="unsupported_provider")
+            _log_resolver_outcome(home_team=home_team, away_team=away_team, result=result)
+            return result
     except RapidApiOddsFeedClientError:
-        return EventResolverResult(
+        result = EventResolverResult(
             cache_status=cache_status,
             provider_call_count=1,
             match_reason="provider_error",
         )
+        _log_resolver_outcome(home_team=home_team, away_team=away_team, result=result)
+        return result
 
     event_id, match_reason = match_provider_event_from_list(
         events,
@@ -217,9 +328,11 @@ def try_auto_resolve_provider_event_id(
     if event_id and ttl > 0:
         cache_store.set(cache_key, event_id, ttl_seconds=ttl, now=now)
 
-    return EventResolverResult(
+    result = EventResolverResult(
         event_id=event_id,
         cache_status=cache_status,
         provider_call_count=1,
         match_reason=match_reason,
     )
+    _log_resolver_outcome(home_team=home_team, away_team=away_team, result=result)
+    return result
