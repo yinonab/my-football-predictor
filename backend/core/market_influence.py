@@ -3,11 +3,12 @@
 from __future__ import annotations
 
 import copy
-import re
 from dataclasses import dataclass
 from typing import Any, Mapping
 
 import config
+from core.market_event_map import make_event_map_key, normalize_team_for_event_map
+from core.market_event_resolver import try_auto_resolve_provider_event_id
 from core.market_live_fetch import MarketLiveFetchError, fetch_live_market_audit_report
 from core.market_matrix_shadow import calibrate_market_matrix_shadow
 from core.market_parser import build_snapshot_pipeline, parse_rapidapi_odds_feed_audit
@@ -23,15 +24,6 @@ class MarketInfluenceResult:
     top_scores: list[dict[str, Any]] | None = None
     calibrated_matrix: dict[str, float] | None = None
     metadata: dict[str, Any] | None = None
-
-
-def normalize_team_for_event_map(name: str) -> str:
-    cleaned = re.sub(r"\s*\([^)]*\)", "", str(name or "")).strip()
-    return re.sub(r"\s+", " ", cleaned)
-
-
-def make_event_map_key(home_team: str, away_team: str) -> str:
-    return f"{normalize_team_for_event_map(home_team)}|{normalize_team_for_event_map(away_team)}"
 
 
 def resolve_provider_event_id(
@@ -124,6 +116,18 @@ def try_apply_market_influence_to_predict(
         request_event_id=provider_event_id,
         event_map=event_map,
     )
+    mapped_event_id = resolved_event_id
+    if not resolved_event_id:
+        resolver_result = try_auto_resolve_provider_event_id(
+            home_team=home_team,
+            away_team=away_team,
+            influence_enabled=influence_on,
+            shadow_diagnostics_enabled=shadow_on,
+            live_fetch_enabled=live_on,
+            request_event_id=provider_event_id,
+            mapped_event_id=mapped_event_id,
+        )
+        resolved_event_id = resolver_result.event_id
     if not market_influence_gates_satisfied(
         influence_enabled=influence_on,
         shadow_diagnostics_enabled=shadow_on,

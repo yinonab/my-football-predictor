@@ -630,6 +630,40 @@ def load_market_provider_event_map() -> dict[str, str]:
     return {str(k).strip(): str(v).strip() for k, v in raw.items() if str(k).strip() and str(v).strip()}
 
 
+# Phase 6B — auto provider event resolver (default OFF; diagnostics/influence path only)
+MARKET_AUTO_EVENT_RESOLVER_ENABLED: bool = _env_bool("ENABLE_MARKET_AUTO_EVENT_RESOLVER", False)
+MARKET_EVENT_RESOLVER_CACHE_TTL_SECONDS: int = int(
+    os.getenv("MARKET_EVENT_RESOLVER_CACHE_TTL_SECONDS", "86400")
+)
+MARKET_EVENT_RESOLVER_MAX_CALLS_PER_REQUEST: int = int(
+    os.getenv("MARKET_EVENT_RESOLVER_MAX_CALLS_PER_REQUEST", "1")
+)
+MARKET_EVENT_RESOLVER_PROVIDER: str = os.getenv(
+    "MARKET_EVENT_RESOLVER_PROVIDER", "rapidapi_odds_feed"
+).strip().lower()
+MARKET_EVENT_RESOLVER_SPORT_ID: int = int(os.getenv("MARKET_EVENT_RESOLVER_SPORT_ID", "1"))
+
+
+def market_auto_event_resolver_enabled() -> bool:
+    return MARKET_AUTO_EVENT_RESOLVER_ENABLED
+
+
+def market_event_resolver_cache_ttl_seconds() -> int:
+    return MARKET_EVENT_RESOLVER_CACHE_TTL_SECONDS
+
+
+def market_event_resolver_max_calls_per_request() -> int:
+    return MARKET_EVENT_RESOLVER_MAX_CALLS_PER_REQUEST
+
+
+def market_event_resolver_provider() -> str:
+    return MARKET_EVENT_RESOLVER_PROVIDER
+
+
+def market_event_resolver_sport_id() -> int:
+    return MARKET_EVENT_RESOLVER_SPORT_ID
+
+
 # API
 API_HOST: str = "0.0.0.0"
 API_PORT: int = 8000

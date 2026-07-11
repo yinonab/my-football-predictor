@@ -357,6 +357,7 @@ def health() -> HealthResponse:
         market_shadow_diagnostics_enabled=config.market_shadow_diagnostics_enabled(),
         market_live_provider_fetch_enabled=config.market_live_provider_fetch_enabled(),
         market_influence_enabled=config.market_influence_enabled(),
+        market_auto_event_resolver_enabled=config.market_auto_event_resolver_enabled(),
     )
 
 
