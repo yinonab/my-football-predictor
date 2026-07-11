@@ -11,9 +11,9 @@ from fastapi.testclient import TestClient
 
 import config
 from api.main import app
+from core.market_event_map import make_event_map_key
 from core.market_influence import (
     influence_weight_pct,
-    make_event_map_key,
     quality_meets_minimum,
     resolve_provider_event_id,
     try_apply_market_influence_to_predict,

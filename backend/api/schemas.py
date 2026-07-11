@@ -27,6 +27,7 @@ class HealthResponse(BaseModel):
     market_shadow_diagnostics_enabled: bool = config.market_shadow_diagnostics_enabled()
     market_live_provider_fetch_enabled: bool = config.market_live_provider_fetch_enabled()
     market_influence_enabled: bool = config.market_influence_enabled()
+    market_auto_event_resolver_enabled: bool = config.market_auto_event_resolver_enabled()
 
 
 class PredictRequest(BaseModel):

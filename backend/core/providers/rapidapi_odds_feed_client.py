@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import requests
@@ -106,3 +107,54 @@ def fetch_event_markets(event_id: str, *, timeout: float = DEFAULT_TIMEOUT_SEC) 
         "http_status": last_status,
         "markets": [],
     }
+
+
+def fetch_scheduled_events(
+    *,
+    sport_id: int = 1,
+    pages: int = 1,
+    timeout: float = DEFAULT_TIMEOUT_SEC,
+) -> list[dict[str, Any]]:
+    """Fetch scheduled events from the provider event-list endpoint (discovery only)."""
+    events: list[dict[str, Any]] = []
+    now = datetime.now(timezone.utc)
+    params: dict[str, Any] = {
+        "sport_id": int(sport_id),
+        "status": "SCHEDULED",
+        "start_at_min": (now - timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S"),
+        "start_at_max": (now + timedelta(days=45)).strftime("%Y-%m-%d %H:%M:%S"),
+    }
+    last_status = 0
+    last_error = ""
+    for page in range(max(1, pages)):
+        params["page"] = page
+        url = f"{BASE_URL}{API_PREFIX}/events"
+        try:
+            resp = requests.get(url, headers=_headers(), params=params, timeout=timeout)
+        except requests.RequestException as exc:
+            raise RapidApiOddsFeedClientError(
+                f"rapidapi_request_failed:{_sanitize_error_message(str(exc))}"
+            ) from exc
+
+        last_status = resp.status_code
+        if resp.status_code >= 400:
+            last_error = f"http_{resp.status_code}"
+            break
+
+        try:
+            body = resp.json()
+        except Exception:
+            body = {}
+
+        batch = _paginated_items(body)
+        if not batch:
+            break
+        events.extend(batch)
+
+    if last_status == 401 or last_status == 403:
+        raise RapidApiOddsFeedClientError("rapidapi_auth_failed")
+    if last_status == 429:
+        raise RapidApiOddsFeedClientError("rapidapi_rate_limited")
+    if last_error and not events:
+        raise RapidApiOddsFeedClientError(last_error)
+    return events
