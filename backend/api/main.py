@@ -107,6 +107,7 @@ from core.math_engine import AdvancedDixonColesEngine
 from core.fusion_blowout import apply_fusion_blowout, compute_fusion_blowout_signal
 from core.market_diagnostics import build_market_diagnostics
 from core.market_influence import try_apply_market_influence_to_predict
+from core.market_influence_explanation import build_market_influence_explanation
 from core.market_shadow_api import (
     MarketShadowApiError,
     build_market_shadow_diagnostics,
@@ -1120,9 +1121,18 @@ def predict(request: PredictRequest) -> PredictResponse:
             match_context_diagnostics=match_context_diagnostics,
         )
         if influence_result.metadata is not None:
-            market_influence_block = MarketInfluenceAppliedResponse.model_validate(
-                influence_result.metadata
-            )
+            meta = dict(influence_result.metadata)
+            primary = scoreline_decision.primary_predicted_score
+            if primary is not None:
+                meta["explanation"] = build_market_influence_explanation(
+                    home_team=home_name,
+                    away_team=away_name,
+                    quality_band=str(meta.get("quality_band") or ""),
+                    influence_weight_pct=int(meta.get("influence_weight_pct") or 0),
+                    selected_score=f"{primary.home_goals}-{primary.away_goals}",
+                    outcome=primary.outcome,
+                )
+            market_influence_block = MarketInfluenceAppliedResponse.model_validate(meta)
 
     top_with_expl = []
     for rank, item in enumerate(result["top_scores"], start=1):
