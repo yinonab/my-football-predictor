@@ -658,6 +658,15 @@ class UnderdogFoundationDiagnosticsResponse(BaseModel):
     note: str = ""
 
 
+class MarketInfluenceExplanation(BaseModel):
+    title: str
+    summary: str
+    signal_label: str
+    influence_label: str
+    selected_score_label: str
+    details: list[str] = Field(default_factory=list)
+
+
 class MarketInfluenceAppliedResponse(BaseModel):
     market_influence_applied: bool = True
     quality_band: str | None = None
@@ -670,6 +679,7 @@ class MarketInfluenceAppliedResponse(BaseModel):
     primary_score_reason: str | None = None
     market_source: str | None = None
     fallback_reason: str | None = None
+    explanation: MarketInfluenceExplanation | None = None
 
 
 class PredictResponse(BaseModel):
