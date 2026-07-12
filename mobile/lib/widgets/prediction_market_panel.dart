@@ -4,6 +4,7 @@ import '../models/market_diagnostics.dart';
 import '../models/market_tab_view_model.dart';
 import '../models/prediction_result.dart';
 import '../utils/market_ui_copy.dart';
+import 'market_influence_section.dart';
 
 class PredictionMarketPanel extends StatelessWidget {
   final PredictionResult result;
@@ -16,103 +17,113 @@ class PredictionMarketPanel extends StatelessWidget {
     final vm = MarketTabViewModel.fromPredictionResult(result);
     final home = homeTeamShort(result);
     final away = awayTeamShort(result);
+    final showInfluence = MarketInfluenceSection.shouldShow(result);
 
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (showInfluence) ...[
+          MarketInfluenceSection(result: result),
+          const SizedBox(height: 12),
+        ],
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Icon(Icons.trending_up, color: theme.colorScheme.primary),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'שוק ההימורים',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                    textAlign: TextAlign.right,
-                  ),
-                ),
-                _StatusChip(
-                  label: marketStatusLabelHe(vm.statusMessage),
-                  active: vm.marketDataAvailable,
-                ),
-              ],
-            ),
-            if (vm.primarySource != null) ...[
-              const SizedBox(height: 6),
-              Text(
-                'מקור: ${vm.primarySource}',
-                style: theme.textTheme.bodySmall,
-                textAlign: TextAlign.right,
-              ),
-            ],
-            const SizedBox(height: 16),
-            Text(
-              'השוואת הסתברויות 1X2',
-              style: theme.textTheme.titleSmall,
-              textAlign: TextAlign.right,
-            ),
-            const SizedBox(height: 8),
-            _ComparisonTable(
-              homeLabel: home,
-              awayLabel: away,
-              model: vm.modelProbabilities1x2,
-              market: vm.marketConsensus1x2,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'ספרים / מקורות',
-              style: theme.textTheme.titleSmall,
-              textAlign: TextAlign.right,
-            ),
-            const SizedBox(height: 8),
-            if (vm.bookmakers.isEmpty)
-              _EmptyMarketState(status: vm.statusMessage)
-            else
-              ...vm.bookmakers.map(
-                (q) => _BookmakerTile(
-                  quote: q,
-                  homeLabel: home,
-                  awayLabel: away,
-                ),
-              ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest
-                    .withValues(alpha: 0.6),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(
-                    'הערות',
-                    style: theme.textTheme.labelLarge,
-                    textAlign: TextAlign.right,
-                  ),
-                  const SizedBox(height: 6),
-                  ...buildMarketFootnotes(vm).map(
-                    (line) => Padding(
-                      padding: const EdgeInsets.only(bottom: 4),
+                Row(
+                  children: [
+                    Icon(Icons.trending_up, color: theme.colorScheme.primary),
+                    const SizedBox(width: 8),
+                    Expanded(
                       child: Text(
-                        '• $line',
-                        style: theme.textTheme.bodySmall,
+                        'שוק ההימורים',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
                         textAlign: TextAlign.right,
                       ),
                     ),
+                    _StatusChip(
+                      label: marketStatusLabelHe(vm.statusMessage),
+                      active: vm.marketDataAvailable,
+                    ),
+                  ],
+                ),
+                if (vm.primarySource != null) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    'מקור: ${vm.primarySource}',
+                    style: theme.textTheme.bodySmall,
+                    textAlign: TextAlign.right,
                   ),
                 ],
-              ),
+                const SizedBox(height: 16),
+                Text(
+                  'השוואת הסתברויות 1X2',
+                  style: theme.textTheme.titleSmall,
+                  textAlign: TextAlign.right,
+                ),
+                const SizedBox(height: 8),
+                _ComparisonTable(
+                  homeLabel: home,
+                  awayLabel: away,
+                  model: vm.modelProbabilities1x2,
+                  market: vm.marketConsensus1x2,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'ספרים / מקורות',
+                  style: theme.textTheme.titleSmall,
+                  textAlign: TextAlign.right,
+                ),
+                const SizedBox(height: 8),
+                if (vm.bookmakers.isEmpty)
+                  _EmptyMarketState(status: vm.statusMessage)
+                else
+                  ...vm.bookmakers.map(
+                    (q) => _BookmakerTile(
+                      quote: q,
+                      homeLabel: home,
+                      awayLabel: away,
+                    ),
+                  ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceContainerHighest
+                        .withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Text(
+                        'הערות',
+                        style: theme.textTheme.labelLarge,
+                        textAlign: TextAlign.right,
+                      ),
+                      const SizedBox(height: 6),
+                      ...buildMarketFootnotes(vm).map(
+                        (line) => Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Text(
+                            '• $line',
+                            style: theme.textTheme.bodySmall,
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }
