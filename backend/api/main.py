@@ -109,6 +109,7 @@ from core.fusion_blowout import apply_fusion_blowout, compute_fusion_blowout_sig
 from core.market_diagnostics import build_market_diagnostics
 from core.market_influence import try_apply_market_influence_to_predict
 from core.market_influence_explanation import build_market_influence_explanation
+from core.market_resolution import build_market_resolution_context
 from core.market_shadow_api import (
     MarketShadowApiError,
     build_market_shadow_diagnostics,
@@ -720,7 +721,17 @@ def predict(request: PredictRequest) -> PredictResponse:
     home_name = request.home_team.strip()
     away_name = request.away_team.strip()
 
-    market_lookup = _odds_client.lookup_match_market(home_name, away_name)
+    market_resolution = build_market_resolution_context(
+        home_team=home_name,
+        away_team=away_name,
+        provider_event_id=request.provider_event_id,
+        market_region=request.market_region,
+    )
+    market_lookup = _odds_client.lookup_match_market(
+        home_name,
+        away_name,
+        resolution_context=market_resolution,
+    )
     market_fetch = market_lookup.fetch
     market_odds = market_fetch.legacy_consensus_percent() if market_fetch else None
     market_diagnostics_payload = build_market_diagnostics(
@@ -1106,6 +1117,7 @@ def predict(request: PredictRequest) -> PredictResponse:
         model_score_matrix=result.get("all_scores"),
         provider_event_id=request.provider_event_id,
         market_region=request.market_region,
+        resolution_context=market_resolution,
     )
     if influence_result.applied and influence_result.top_scores is not None:
         result["top_scores"] = influence_result.top_scores

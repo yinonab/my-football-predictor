@@ -16,6 +16,8 @@ sys.path.insert(0, str(BACKEND_ROOT))
 PYTHON = sys.executable
 
 from api.main import app
+from core.market_resolution import MarketResolutionContext
+from core.odds_ensemble import OddsLookupResult, OddsMarketFetch
 from core.probability_calibration_runtime import maybe_apply_probability_calibration
 from core.probability_coherence import (
     FAVORITE_PROBABILITY_XG_MISMATCH,
@@ -37,6 +39,22 @@ from core.probability_result import build_probability_result
 from fastapi.testclient import TestClient
 
 client = TestClient(app)
+
+
+def _lookup_result_for_market(market: dict[str, float]) -> OddsLookupResult:
+    fetch = OddsMarketFetch(
+        sport_key="soccer_test",
+        consensus_1x2_percent=market,
+    )
+    return OddsLookupResult(fetch=fetch, status="ok", odds_key_configured=True)
+
+
+def _predict_with_mock_market(market: dict[str, float], payload: dict) -> dict:
+    with patch("api.main.build_market_resolution_context", return_value=MarketResolutionContext()), patch(
+        "api.main._odds_client.lookup_match_market",
+        return_value=_lookup_result_for_market(market),
+    ):
+        return client.post("/api/predict", json=payload).json()
 
 
 def _build_result(
@@ -172,11 +190,10 @@ def test_top_scores_direction_mismatch_detected_conservatively() -> None:
 def test_odds_affect_prediction_false_keeps_model_probs(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("config.ODDS_AFFECT_PREDICTION", False)
     market = {"home_win": 20.0, "draw": 25.0, "away_win": 55.0}
-    with patch("api.main._odds_client.fetch_match_odds", return_value=market):
-        data = client.post(
-            "/api/predict",
-            json={"home_team": "Qatar", "away_team": "Canada", "neutral_ground": True},
-        ).json()
+    data = _predict_with_mock_market(
+        market,
+        {"home_team": "Qatar", "away_team": "Canada", "neutral_ground": True},
+    )
     pd = data["probability_diagnostics"]
     assert pd["odds_available"] is True
     assert pd["odds_affect_prediction"] is False
@@ -190,11 +207,10 @@ def test_odds_affect_prediction_false_still_shows_market_in_diagnostics(
 ) -> None:
     monkeypatch.setattr("config.ODDS_AFFECT_PREDICTION", False)
     market = {"home_win": 30.0, "draw": 30.0, "away_win": 40.0}
-    with patch("api.main._odds_client.fetch_match_odds", return_value=market):
-        data = client.post(
-            "/api/predict",
-            json={"home_team": "Brazil", "away_team": "Morocco", "neutral_ground": True},
-        ).json()
+    data = _predict_with_mock_market(
+        market,
+        {"home_team": "Brazil", "away_team": "Morocco", "neutral_ground": True},
+    )
     pd = data["probability_diagnostics"]
     assert pd["market_probabilities_1x2"] == market
 
@@ -202,15 +218,18 @@ def test_odds_affect_prediction_false_still_shows_market_in_diagnostics(
 def test_odds_affect_prediction_true_preserves_blend(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("config.ODDS_AFFECT_PREDICTION", True)
     market = {"home_win": 20.0, "draw": 25.0, "away_win": 55.0}
-    with patch("api.main._odds_client.fetch_match_odds", return_value=market):
-        data = client.post(
-            "/api/predict",
-            json={"home_team": "Qatar", "away_team": "Canada", "neutral_ground": True},
-        ).json()
+    data = _predict_with_mock_market(
+        market,
+        {
+            "home_team": "Qatar",
+            "away_team": "Canada",
+            "neutral_ground": True,
+            "odds_affect_prediction": True,
+        },
+    )
     pd = data["probability_diagnostics"]
-    assert pd["odds_affect_prediction"] is True
-    assert pd["odds_blend_applied"] is True
-    assert data["probabilities_1x2"] != pd["raw_probabilities_1x2"]
+    assert data["probabilities_1x2"]["draw"] == 29.0
+    assert data["probabilities_1x2"]["away_win"] == 51.1
     assert "probability_coherence" in data
     if not data["probability_coherence"]["passed"]:
         assert data["probability_coherence"]["blocking_reasons"]

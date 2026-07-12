@@ -120,7 +120,7 @@ def test_provider_disabled_status(all_influence_gates, monkeypatch: pytest.Monke
 
 def test_explicit_event_id_applied_status(all_influence_gates) -> None:
     with patch(
-        "core.market_influence.fetch_live_market_audit_report",
+        "core.market_resolution.fetch_live_market_audit_report",
         return_value=_live_fetch_result(GREEN_AUDIT),
     ):
         resp = client.post(
@@ -198,13 +198,30 @@ def test_no_secrets_or_raw_payload_in_status(auto_resolver_on) -> None:
     assert status["reason"] == "provider_event_id_missing"
 
 
+def test_resolver_outside_window_status(auto_resolver_on) -> None:
+    events = [
+        {
+            "id": 619963,
+            "status": "FINISHED",
+            "start_at": "2026-07-11 10:00:00",
+            "team_home": {"name": "Norway"},
+            "team_away": {"name": "England"},
+        }
+    ]
+    with patch("core.market_event_resolver.fetch_events_in_match_window", return_value=events):
+        resp = client.post("/api/predict", json=NORWAY_ENGLAND_PAYLOAD)
+    status = resp.json()["market_influence_status"]
+    assert status["reason"] == "resolver_outside_window"
+    assert status["provider_event_id"] is None
+
+
 def test_resolver_success_app_style_status(auto_resolver_on) -> None:
     events = [_event(619963, "Norway", "England")]
     with patch(
         "core.market_event_resolver.fetch_events_in_match_window",
         return_value=events,
     ), patch(
-        "core.market_influence.fetch_live_market_audit_report",
+        "core.market_resolution.fetch_live_market_audit_report",
         return_value=_live_fetch_result(GREEN_AUDIT),
     ):
         resp = client.post("/api/predict", json=NORWAY_ENGLAND_PAYLOAD)

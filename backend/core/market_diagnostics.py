@@ -130,6 +130,8 @@ def build_market_diagnostics(
     primary_source = "the_odds_api"
     if fetch.sport_key.startswith("oddspapi"):
         primary_source = "oddspapi"
+    elif fetch.sport_key == "rapidapi_odds_feed":
+        primary_source = "rapidapi_odds_feed"
 
     if odds_affect and consensus:
         notes.append(

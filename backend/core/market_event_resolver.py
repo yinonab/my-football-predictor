@@ -13,7 +13,11 @@ from core.market_event_resolver_cache import (
     MarketEventResolverCache,
     get_default_resolver_cache,
 )
-from core.market_event_map import make_event_map_key, normalize_team_for_event_map
+from core.market_event_map import (
+    make_event_map_key,
+    normalize_team_for_event_map,
+    normalize_team_for_resolver,
+)
 from core.providers.rapidapi_odds_feed_client import (
     RapidApiOddsFeedClientError,
     fetch_events_in_match_window,
@@ -36,7 +40,11 @@ class EventResolverResult:
 
 
 def _norm_fold(name: str) -> str:
-    return normalize_team_for_event_map(name).casefold()
+    return normalize_team_for_resolver(name).casefold()
+
+
+def _token_set(name: str) -> frozenset[str]:
+    return frozenset(_norm_fold(name).split())
 
 
 def _parse_event_start_at(value: Any) -> datetime | None:
@@ -90,11 +98,53 @@ def _extract_event_id(event: Mapping[str, Any]) -> str | None:
 
 
 def _extract_event_teams(event: Mapping[str, Any]) -> tuple[str, str] | None:
-    home = normalize_team_for_event_map((event.get("team_home") or {}).get("name", ""))
-    away = normalize_team_for_event_map((event.get("team_away") or {}).get("name", ""))
+    home = normalize_team_for_resolver((event.get("team_home") or {}).get("name", ""))
+    away = normalize_team_for_resolver((event.get("team_away") or {}).get("name", ""))
     if not home or not away:
         return None
     return home, away
+
+
+def _collect_orientation_matches(
+    events: list[dict[str, Any]],
+    *,
+    want_home: str,
+    want_away: str,
+    matcher,
+) -> tuple[list[str], list[str]]:
+    forward_ids: list[str] = []
+    reversed_ids: list[str] = []
+    for event in events:
+        teams = _extract_event_teams(event)
+        event_id = _extract_event_id(event)
+        if teams is None or event_id is None:
+            continue
+        event_home, event_away = teams[0], teams[1]
+        if matcher(event_home, event_away, want_home, want_away):
+            forward_ids.append(event_id)
+        elif matcher(event_home, event_away, want_away, want_home):
+            reversed_ids.append(event_id)
+    return forward_ids, reversed_ids
+
+
+def _resolve_orientation_ids(forward_ids: list[str], reversed_ids: list[str], *, suffix: str) -> tuple[str | None, str]:
+    if len(forward_ids) == 1:
+        return forward_ids[0], f"exact_match{suffix}"
+    if len(forward_ids) > 1:
+        return None, f"ambiguous_forward{suffix}"
+    if len(reversed_ids) == 1:
+        return reversed_ids[0], f"reversed_match{suffix}"
+    if len(reversed_ids) > 1:
+        return None, f"ambiguous_reversed{suffix}"
+    return None, "no_match"
+
+
+def _exact_matcher(event_home: str, event_away: str, want_home: str, want_away: str) -> bool:
+    return _norm_fold(event_home) == _norm_fold(want_home) and _norm_fold(event_away) == _norm_fold(want_away)
+
+
+def _fuzzy_token_matcher(event_home: str, event_away: str, want_home: str, want_away: str) -> bool:
+    return _token_set(event_home) == _token_set(want_home) and _token_set(event_away) == _token_set(want_away)
 
 
 def match_provider_event_from_list(
@@ -104,34 +154,28 @@ def match_provider_event_from_list(
     away_team: str,
 ) -> tuple[str | None, str]:
     """Return (event_id, reason). Ambiguous or missing matches return (None, reason)."""
-    want_home = _norm_fold(home_team)
-    want_away = _norm_fold(away_team)
+    want_home = normalize_team_for_resolver(home_team)
+    want_away = normalize_team_for_resolver(away_team)
     if not want_home or not want_away:
         return None, "invalid_team_names"
 
-    forward_ids: list[str] = []
-    reversed_ids: list[str] = []
+    forward_ids, reversed_ids = _collect_orientation_matches(
+        events,
+        want_home=want_home,
+        want_away=want_away,
+        matcher=_exact_matcher,
+    )
+    event_id, reason = _resolve_orientation_ids(forward_ids, reversed_ids, suffix="")
+    if event_id or reason != "no_match":
+        return event_id, reason
 
-    for event in events:
-        teams = _extract_event_teams(event)
-        event_id = _extract_event_id(event)
-        if teams is None or event_id is None:
-            continue
-        event_home, event_away = _norm_fold(teams[0]), _norm_fold(teams[1])
-        if event_home == want_home and event_away == want_away:
-            forward_ids.append(event_id)
-        elif event_home == want_away and event_away == want_home:
-            reversed_ids.append(event_id)
-
-    if len(forward_ids) == 1:
-        return forward_ids[0], "exact_match"
-    if len(forward_ids) > 1:
-        return None, "ambiguous_forward"
-    if len(reversed_ids) == 1:
-        return reversed_ids[0], "reversed_match"
-    if len(reversed_ids) > 1:
-        return None, "ambiguous_reversed"
-    return None, "no_match"
+    fuzzy_forward, fuzzy_reversed = _collect_orientation_matches(
+        events,
+        want_home=want_home,
+        want_away=want_away,
+        matcher=_fuzzy_token_matcher,
+    )
+    return _resolve_orientation_ids(fuzzy_forward, fuzzy_reversed, suffix="_fuzzy")
 
 
 def auto_resolver_gates_satisfied(
@@ -143,13 +187,17 @@ def auto_resolver_gates_satisfied(
     provider: str,
     request_event_id: str | None,
     mapped_event_id: str | None,
+    for_diagnostics: bool = False,
 ) -> bool:
-    if not (
-        influence_enabled
-        and shadow_diagnostics_enabled
-        and live_fetch_enabled
-        and auto_resolver_enabled
-    ):
+    if not (live_fetch_enabled and auto_resolver_enabled):
+        return False
+    if for_diagnostics:
+        if str(request_event_id or "").strip():
+            return False
+        if str(mapped_event_id or "").strip():
+            return False
+        return provider.strip().lower() in _SUPPORTED_PROVIDERS
+    if not (influence_enabled and shadow_diagnostics_enabled):
         return False
     if str(request_event_id or "").strip():
         return False
@@ -177,10 +225,12 @@ def _log_resolver_outcome(
             result.cache_status,
         )
         return
-    if reason in {"ambiguous_forward", "ambiguous_reversed"}:
+    if reason in {"ambiguous_forward", "ambiguous_reversed", "ambiguous_forward_fuzzy", "ambiguous_reversed_fuzzy"}:
         logger.warning("resolver_ambiguous home=%s away=%s reason=%s", home, away, reason)
     elif reason == "provider_error":
         logger.warning("resolver_provider_error home=%s away=%s", home, away)
+    elif reason == "outside_window":
+        logger.info("resolver_outside_window home=%s away=%s", home, away)
     elif reason == "no_match":
         logger.info("resolver_no_match home=%s away=%s", home, away)
     elif reason == "call_budget_exceeded":
@@ -203,9 +253,11 @@ def try_auto_resolve_provider_event_id(
     sport_id: int | None = None,
     lookback_hours: int | None = None,
     lookahead_hours: int | None = None,
+    pages: int | None = None,
     cache: MarketEventResolverCache | None = None,
     call_budget: EventResolverCallBudget | None = None,
     now: float | None = None,
+    for_diagnostics: bool = False,
 ) -> EventResolverResult:
     """Resolve provider_event_id via provider event list; never raises to caller."""
     provider_name = (
@@ -238,6 +290,7 @@ def try_auto_resolve_provider_event_id(
         provider=provider_name,
         request_event_id=request_event_id,
         mapped_event_id=mapped_event_id,
+        for_diagnostics=for_diagnostics,
     ):
         return EventResolverResult()
 
@@ -266,6 +319,7 @@ def try_auto_resolve_provider_event_id(
         if lookahead_hours is None
         else lookahead_hours
     )
+    page_count = config.market_event_resolver_pages() if pages is None else max(1, pages)
     cache_store = cache if cache is not None else get_default_resolver_cache()
     budget = (
         call_budget if call_budget is not None else EventResolverCallBudget(max_calls=max_calls)
@@ -298,7 +352,7 @@ def try_auto_resolve_provider_event_id(
                 sport_id=config.market_event_resolver_sport_id() if sport_id is None else sport_id,
                 lookback_hours=lookback,
                 lookahead_hours=lookahead,
-                pages=1,
+                pages=page_count,
                 now=now_dt,
             )
             events = filter_events_in_resolver_window(
@@ -325,6 +379,17 @@ def try_auto_resolve_provider_event_id(
         home_team=home_team,
         away_team=away_team,
     )
+    if event_id is None and match_reason == "no_match" and raw_events:
+        raw_event_id, raw_reason = match_provider_event_from_list(
+            raw_events,
+            home_team=home_team,
+            away_team=away_team,
+        )
+        if raw_event_id:
+            match_reason = "outside_window"
+        elif raw_reason not in ("no_match", "invalid_team_names"):
+            match_reason = raw_reason
+
     if event_id and ttl > 0:
         cache_store.set(cache_key, event_id, ttl_seconds=ttl, now=now)
 
