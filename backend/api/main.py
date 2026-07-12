@@ -40,6 +40,7 @@ from api.schemas import (
     MarketDiagnosticsResponse,
     MarketShadowDiagnosticsBlock,
     MarketInfluenceAppliedResponse,
+    MarketInfluenceStatusResponse,
     MarketShadowDiagnosticsRequest,
     MarketShadowDiagnosticsResponse,
     ActualScoreResponse,
@@ -1098,6 +1099,7 @@ def predict(request: PredictRequest) -> PredictResponse:
         market_shadow_block = MarketShadowDiagnosticsBlock.model_validate(shadow_dict)
 
     market_influence_block: MarketInfluenceAppliedResponse | None = None
+    market_influence_status_block: MarketInfluenceStatusResponse | None = None
     influence_result = try_apply_market_influence_to_predict(
         home_team=home_name,
         away_team=away_name,
@@ -1133,6 +1135,11 @@ def predict(request: PredictRequest) -> PredictResponse:
                     outcome=primary.outcome,
                 )
             market_influence_block = MarketInfluenceAppliedResponse.model_validate(meta)
+
+    if influence_result.status is not None:
+        market_influence_status_block = MarketInfluenceStatusResponse.model_validate(
+            influence_result.status
+        )
 
     top_with_expl = []
     for rank, item in enumerate(result["top_scores"], start=1):
@@ -1279,6 +1286,7 @@ def predict(request: PredictRequest) -> PredictResponse:
         scoreline_decision=_scoreline_decision_response(scoreline_decision),
         market_shadow_diagnostics=market_shadow_block,
         market_influence=market_influence_block,
+        market_influence_status=market_influence_status_block,
     )
 
 

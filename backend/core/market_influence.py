@@ -9,7 +9,7 @@ from typing import Any, Mapping
 
 import config
 from core.market_event_map import make_event_map_key, normalize_team_for_event_map
-from core.market_event_resolver import try_auto_resolve_provider_event_id
+from core.market_event_resolver import EventResolverResult, try_auto_resolve_provider_event_id
 from core.market_live_fetch import MarketLiveFetchError, fetch_live_market_audit_report
 from core.market_matrix_shadow import calibrate_market_matrix_shadow
 from core.market_parser import build_snapshot_pipeline, parse_rapidapi_odds_feed_audit
@@ -26,6 +26,41 @@ class MarketInfluenceResult:
     top_scores: list[dict[str, Any]] | None = None
     calibrated_matrix: dict[str, float] | None = None
     metadata: dict[str, Any] | None = None
+    status: dict[str, Any] | None = None
+
+
+def map_resolver_match_reason(match_reason: str | None) -> str:
+    """Map internal resolver match_reason to API market_influence_status.reason."""
+    reason = (match_reason or "").strip().lower()
+    if reason in ("ambiguous_forward", "ambiguous_reversed"):
+        return "resolver_ambiguous"
+    if reason == "outside_window":
+        return "resolver_outside_window"
+    if reason == "no_match":
+        return "resolver_no_match"
+    if reason in ("provider_error", "call_budget_exceeded"):
+        return "provider_event_id_missing"
+    return "resolver_no_match"
+
+
+def build_market_influence_status(
+    *,
+    attempted: bool,
+    applied: bool,
+    reason: str,
+    provider_event_id: str | None = None,
+    resolver_window_hours: int | None = None,
+    provider: str | None = _DEFAULT_PROVIDER,
+) -> dict[str, Any]:
+    """Non-sensitive status block for /api/predict (no secrets or raw provider payloads)."""
+    return {
+        "attempted": attempted,
+        "applied": applied,
+        "reason": reason,
+        "provider": provider,
+        "resolver_window_hours": resolver_window_hours,
+        "provider_event_id": str(provider_event_id).strip() if provider_event_id else None,
+    }
 
 
 def resolve_provider_event_id(
@@ -102,6 +137,9 @@ def try_apply_market_influence_to_predict(
     influence_on = (
         config.market_influence_enabled() if influence_enabled is None else influence_enabled
     )
+    if not influence_on:
+        return MarketInfluenceResult(applied=False)
+
     shadow_on = (
         config.market_shadow_diagnostics_enabled()
         if shadow_diagnostics_enabled is None
@@ -112,6 +150,20 @@ def try_apply_market_influence_to_predict(
         if live_fetch_enabled is None
         else live_fetch_enabled
     )
+    resolver_window_hours = config.market_event_resolver_lookahead_hours()
+
+    if not shadow_on or not live_on:
+        return MarketInfluenceResult(
+            applied=False,
+            status=build_market_influence_status(
+                attempted=False,
+                applied=False,
+                reason="provider_disabled",
+                provider=_DEFAULT_PROVIDER,
+                resolver_window_hours=resolver_window_hours,
+            ),
+        )
+
     resolved_event_id = resolve_provider_event_id(
         home_team=home_team,
         away_team=away_team,
@@ -119,6 +171,7 @@ def try_apply_market_influence_to_predict(
         event_map=event_map,
     )
     mapped_event_id = resolved_event_id
+    resolver_result: EventResolverResult | None = None
     if not resolved_event_id:
         resolver_result = try_auto_resolve_provider_event_id(
             home_team=home_team,
@@ -137,6 +190,7 @@ def try_apply_market_influence_to_predict(
                 normalize_team_for_event_map(home_team),
                 normalize_team_for_event_map(away_team),
             )
+
     if not market_influence_gates_satisfied(
         influence_enabled=influence_on,
         shadow_diagnostics_enabled=shadow_on,
@@ -149,10 +203,36 @@ def try_apply_market_influence_to_predict(
                 normalize_team_for_event_map(home_team),
                 normalize_team_for_event_map(away_team),
             )
-        return MarketInfluenceResult(applied=False)
+        if resolved_event_id:
+            status_reason = "provider_event_id_missing"
+        elif resolver_result is not None and resolver_result.match_reason:
+            status_reason = map_resolver_match_reason(resolver_result.match_reason)
+        else:
+            status_reason = "provider_event_id_missing"
+        return MarketInfluenceResult(
+            applied=False,
+            status=build_market_influence_status(
+                attempted=True,
+                applied=False,
+                reason=status_reason,
+                provider=_DEFAULT_PROVIDER,
+                resolver_window_hours=resolver_window_hours,
+                provider_event_id=resolved_event_id,
+            ),
+        )
 
     if not model_score_matrix:
-        return MarketInfluenceResult(applied=False)
+        return MarketInfluenceResult(
+            applied=False,
+            status=build_market_influence_status(
+                attempted=True,
+                applied=False,
+                reason="provider_event_id_missing",
+                provider=_DEFAULT_PROVIDER,
+                resolver_window_hours=resolver_window_hours,
+                provider_event_id=resolved_event_id,
+            ),
+        )
 
     try:
         fetch_result = fetch_live_market_audit_report(
@@ -171,7 +251,17 @@ def try_apply_market_influence_to_predict(
             normalize_team_for_event_map(away_team),
             str(exc),
         )
-        return MarketInfluenceResult(applied=False)
+        return MarketInfluenceResult(
+            applied=False,
+            status=build_market_influence_status(
+                attempted=True,
+                applied=False,
+                reason="live_fetch_failed",
+                provider=_DEFAULT_PROVIDER,
+                resolver_window_hours=resolver_window_hours,
+                provider_event_id=resolved_event_id,
+            ),
+        )
 
     consensus, quality = build_snapshot_pipeline(snapshot)
     min_band = (
@@ -191,6 +281,14 @@ def try_apply_market_influence_to_predict(
                 "quality_band": quality.band,
                 "fallback_reason": "quality_below_minimum",
             },
+            status=build_market_influence_status(
+                attempted=True,
+                applied=False,
+                reason="quality_below_minimum",
+                provider=_DEFAULT_PROVIDER,
+                resolver_window_hours=resolver_window_hours,
+                provider_event_id=resolved_event_id,
+            ),
         )
 
     weight_pct = influence_weight_pct(
@@ -205,6 +303,14 @@ def try_apply_market_influence_to_predict(
                 "quality_band": quality.band,
                 "fallback_reason": "red_band_no_influence",
             },
+            status=build_market_influence_status(
+                attempted=True,
+                applied=False,
+                reason="quality_below_minimum",
+                provider=_DEFAULT_PROVIDER,
+                resolver_window_hours=resolver_window_hours,
+                provider_event_id=resolved_event_id,
+            ),
         )
 
     matrix_work = copy.deepcopy(dict(model_score_matrix))
@@ -223,6 +329,14 @@ def try_apply_market_influence_to_predict(
                 "quality_band": quality.band,
                 "fallback_reason": "calibrated_matrix_invalid",
             },
+            status=build_market_influence_status(
+                attempted=True,
+                applied=False,
+                reason="quality_below_minimum",
+                provider=_DEFAULT_PROVIDER,
+                resolver_window_hours=resolver_window_hours,
+                provider_event_id=resolved_event_id,
+            ),
         )
 
     top_scores = [
@@ -230,8 +344,26 @@ def try_apply_market_influence_to_predict(
         for row in calibration.top_scores_after
     ]
     if not top_scores:
-        return MarketInfluenceResult(applied=False)
+        return MarketInfluenceResult(
+            applied=False,
+            status=build_market_influence_status(
+                attempted=True,
+                applied=False,
+                reason="quality_below_minimum",
+                provider=_DEFAULT_PROVIDER,
+                resolver_window_hours=resolver_window_hours,
+                provider_event_id=resolved_event_id,
+            ),
+        )
 
+    applied_status = build_market_influence_status(
+        attempted=True,
+        applied=True,
+        reason="applied",
+        provider=_DEFAULT_PROVIDER,
+        resolver_window_hours=resolver_window_hours,
+        provider_event_id=resolved_event_id,
+    )
     return MarketInfluenceResult(
         applied=True,
         top_scores=top_scores,
@@ -248,4 +380,5 @@ def try_apply_market_influence_to_predict(
             "primary_score_reason": "market_influence_applied",
             "market_source": "live",
         },
+        status=applied_status,
     )
