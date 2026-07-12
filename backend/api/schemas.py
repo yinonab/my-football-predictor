@@ -667,6 +667,15 @@ class MarketInfluenceExplanation(BaseModel):
     details: list[str] = Field(default_factory=list)
 
 
+class MarketInfluenceStatusResponse(BaseModel):
+    attempted: bool = False
+    applied: bool = False
+    reason: str = ""
+    provider: str | None = None
+    resolver_window_hours: int | None = None
+    provider_event_id: str | None = None
+
+
 class MarketInfluenceAppliedResponse(BaseModel):
     market_influence_applied: bool = True
     quality_band: str | None = None
@@ -717,6 +726,7 @@ class PredictResponse(BaseModel):
     scoreline_decision: ScorelineDecisionResponse | None = None
     market_shadow_diagnostics: MarketShadowDiagnosticsBlock | None = None
     market_influence: MarketInfluenceAppliedResponse | None = None
+    market_influence_status: MarketInfluenceStatusResponse | None = None
 
     @model_serializer(mode="wrap")
     def _omit_null_optional_blocks(self, handler):
@@ -725,6 +735,8 @@ class PredictResponse(BaseModel):
             data.pop("market_shadow_diagnostics", None)
         if data.get("market_influence") is None:
             data.pop("market_influence", None)
+        if data.get("market_influence_status") is None:
+            data.pop("market_influence_status", None)
         return data
 
 
