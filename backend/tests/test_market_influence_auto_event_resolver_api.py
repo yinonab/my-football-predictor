@@ -112,7 +112,7 @@ def test_auto_resolver_flag_default_false(influence_off) -> None:
 
 
 def test_resolver_flag_off_no_event_list_call(influence_off) -> None:
-    with patch("core.market_event_resolver.fetch_events_in_match_window") as list_mock:
+    with patch("core.market_event_resolver.fetch_resolver_discovery_events") as list_mock:
         resp = client.post("/api/predict", json=BASELINE_PAYLOAD)
     assert resp.status_code == 200
     list_mock.assert_not_called()
@@ -123,14 +123,14 @@ def test_influence_flags_off_no_event_list_call(monkeypatch: pytest.MonkeyPatch)
     monkeypatch.setattr(config, "market_auto_event_resolver_enabled", lambda: True)
     monkeypatch.setattr(config, "MARKET_INFLUENCE_ENABLED", False, raising=False)
     monkeypatch.setattr(config, "market_influence_enabled", lambda: False)
-    with patch("core.market_event_resolver.fetch_events_in_match_window") as list_mock:
+    with patch("core.market_event_resolver.fetch_resolver_discovery_events") as list_mock:
         resp = client.post("/api/predict", json=BASELINE_PAYLOAD)
     assert resp.status_code == 200
     list_mock.assert_not_called()
 
 
 def test_request_provider_event_id_skips_resolver(auto_resolver_on) -> None:
-    with patch("core.market_event_resolver.fetch_events_in_match_window") as list_mock, patch(
+    with patch("core.market_event_resolver.fetch_resolver_discovery_events") as list_mock, patch(
         "core.market_influence.fetch_live_market_audit_report",
         return_value=_live_fetch_result(GREEN_AUDIT),
     ):
@@ -146,7 +146,7 @@ def test_request_provider_event_id_skips_resolver(auto_resolver_on) -> None:
 def test_event_map_match_skips_resolver(auto_resolver_on, monkeypatch: pytest.MonkeyPatch) -> None:
     event_map = {make_event_map_key("Canada (קנדה)", "Argentina (ארגנטינה)"): "619963"}
     monkeypatch.setattr(config, "load_market_provider_event_map", lambda: event_map)
-    with patch("core.market_event_resolver.fetch_events_in_match_window") as list_mock, patch(
+    with patch("core.market_event_resolver.fetch_resolver_discovery_events") as list_mock, patch(
         "core.market_influence.fetch_live_market_audit_report",
         return_value=_live_fetch_result(GREEN_AUDIT),
     ):
@@ -159,7 +159,7 @@ def test_event_map_match_skips_resolver(auto_resolver_on, monkeypatch: pytest.Mo
 def test_resolver_on_exact_match_applies_influence(auto_resolver_on) -> None:
     events = [_event(619963, "Norway", "England")]
     with patch(
-        "core.market_event_resolver.fetch_events_in_match_window",
+        "core.market_event_resolver.fetch_resolver_discovery_events",
         return_value=events,
     ) as list_mock, patch(
         "core.market_influence.fetch_live_market_audit_report",
@@ -177,7 +177,7 @@ def test_resolver_on_exact_match_applies_influence(auto_resolver_on) -> None:
 def test_resolver_cache_hit_no_second_event_list_call(auto_resolver_on) -> None:
     events = [_event(619963, "Norway", "England")]
     with patch(
-        "core.market_event_resolver.fetch_events_in_match_window",
+        "core.market_event_resolver.fetch_resolver_discovery_events",
         return_value=events,
     ) as list_mock, patch(
         "core.market_influence.fetch_live_market_audit_report",
@@ -191,7 +191,7 @@ def test_resolver_cache_hit_no_second_event_list_call(auto_resolver_on) -> None:
 def test_resolver_reversed_match_safe(auto_resolver_on) -> None:
     events = [_event(700001, "Argentina", "Canada")]
     with patch(
-        "core.market_event_resolver.fetch_events_in_match_window",
+        "core.market_event_resolver.fetch_resolver_discovery_events",
         return_value=events,
     ), patch(
         "core.market_influence.fetch_live_market_audit_report",
@@ -206,7 +206,7 @@ def test_resolver_reversed_match_safe(auto_resolver_on) -> None:
 def test_resolver_no_match_prediction_unchanged(auto_resolver_on) -> None:
     events = [_event(1, "France", "Germany")]
     baseline = _core_snapshot(client.post("/api/predict", json=BASELINE_PAYLOAD).json())
-    with patch("core.market_event_resolver.fetch_events_in_match_window", return_value=events):
+    with patch("core.market_event_resolver.fetch_resolver_discovery_events", return_value=events):
         resp = client.post("/api/predict", json=BASELINE_PAYLOAD)
     assert resp.status_code == 200
     assert "market_influence" not in resp.json()
@@ -219,7 +219,7 @@ def test_resolver_ambiguous_match_prediction_unchanged(auto_resolver_on) -> None
         _event(2, "Canada", "Argentina"),
     ]
     baseline = _core_snapshot(client.post("/api/predict", json=BASELINE_PAYLOAD).json())
-    with patch("core.market_event_resolver.fetch_events_in_match_window", return_value=events):
+    with patch("core.market_event_resolver.fetch_resolver_discovery_events", return_value=events):
         resp = client.post("/api/predict", json=BASELINE_PAYLOAD)
     assert resp.status_code == 200
     assert "market_influence" not in resp.json()
@@ -229,7 +229,7 @@ def test_resolver_ambiguous_match_prediction_unchanged(auto_resolver_on) -> None
 def test_resolver_provider_error_prediction_unchanged_no_key_leak(auto_resolver_on) -> None:
     baseline = _core_snapshot(client.post("/api/predict", json=BASELINE_PAYLOAD).json())
     with patch(
-        "core.market_event_resolver.fetch_events_in_match_window",
+        "core.market_event_resolver.fetch_resolver_discovery_events",
         side_effect=RapidApiOddsFeedClientError("rapidapi_auth_failed:super-secret-key"),
     ):
         resp = client.post("/api/predict", json=BASELINE_PAYLOAD)
@@ -243,7 +243,7 @@ def test_resolver_budget_exceeded_prediction_unchanged(auto_resolver_on, monkeyp
     monkeypatch.setattr(config, "MARKET_EVENT_RESOLVER_MAX_CALLS_PER_REQUEST", 0, raising=False)
     monkeypatch.setattr(config, "market_event_resolver_max_calls_per_request", lambda: 0)
     baseline = _core_snapshot(client.post("/api/predict", json=BASELINE_PAYLOAD).json())
-    with patch("core.market_event_resolver.fetch_events_in_match_window") as list_mock:
+    with patch("core.market_event_resolver.fetch_resolver_discovery_events") as list_mock:
         resp = client.post("/api/predict", json=BASELINE_PAYLOAD)
     assert resp.status_code == 200
     list_mock.assert_not_called()
@@ -255,7 +255,7 @@ def test_no_api_keys_required_for_resolver_path(auto_resolver_on, monkeypatch: p
     monkeypatch.delenv("RAPIDAPI_KEY", raising=False)
     monkeypatch.delenv("THE_ODDS_API_KEY", raising=False)
     events = [_event(619963, "Norway", "England")]
-    with patch("core.market_event_resolver.fetch_events_in_match_window", return_value=events), patch(
+    with patch("core.market_event_resolver.fetch_resolver_discovery_events", return_value=events), patch(
         "core.market_influence.fetch_live_market_audit_report",
         return_value=_live_fetch_result(GREEN_AUDIT),
     ):

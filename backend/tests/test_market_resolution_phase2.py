@@ -30,13 +30,23 @@ GREEN_AUDIT = json.loads(
 )
 
 
-def _event(event_id: int, home: str, away: str) -> dict:
-    return {
+def _event(
+    event_id: int,
+    home: str,
+    away: str,
+    *,
+    status: str = "SCHEDULED",
+    start_at: str | None = None,
+) -> dict:
+    payload = {
         "id": event_id,
-        "status": "SCHEDULED",
+        "status": status,
         "team_home": {"name": home},
         "team_away": {"name": away},
     }
+    if start_at is not None:
+        payload["start_at"] = start_at
+    return payload
 
 
 def _live_fetch_result(audit: dict) -> LiveFetchResult:
@@ -98,10 +108,95 @@ def test_build_market_resolution_context_explicit_id(all_gates) -> None:
     fetch_mock.assert_called_once()
 
 
+def test_predict_france_spain_scheduled_resolver_applies_influence(all_gates) -> None:
+    events = [_event(700100, "France", "Spain", start_at="2026-07-14 19:00:00")]
+    with patch(
+        "core.market_event_resolver.fetch_resolver_discovery_events",
+        return_value=events,
+    ), patch(
+        "core.market_resolution.fetch_live_market_audit_report",
+        return_value=_live_fetch_result(GREEN_AUDIT),
+    ) as resolution_fetch_mock, patch(
+        "core.market_influence.fetch_live_market_audit_report",
+    ) as influence_fetch_mock:
+        resp = client.post(
+            "/api/predict",
+            json={
+                "home_team": "France",
+                "away_team": "Spain",
+                "venue_mode": "neutral",
+                "neutral_ground": True,
+                "rho": -0.15,
+                "avg_goals": 2.6,
+                "use_live_stats": False,
+                "use_match_context": False,
+                "odds_affect_prediction": False,
+                "include_diagnostics": True,
+                "top_n": 3,
+            },
+        )
+    assert resp.status_code == 200
+    data = resp.json()
+    resolution_fetch_mock.assert_called_once()
+    influence_fetch_mock.assert_not_called()
+    assert data["market_influence"]["market_influence_applied"] is True
+    status = data["market_influence_status"]
+    assert status["applied"] is True
+    assert status["reason"] == "applied"
+    assert status["provider_event_id"] == "700100"
+
+
+def test_predict_france_spain_market_diagnostics_use_odds_feed_after_scheduled_resolve(
+    all_gates,
+) -> None:
+    events = [_event(700100, "France", "Spain", start_at="2026-07-14 19:00:00")]
+    legacy = OddsLookupResult(
+        status="quota_exceeded",
+        odds_key_configured=True,
+        notes=["quota exceeded"],
+    )
+    oddspapi = MagicMock()
+    oddspapi.is_available = True
+    oddspapi.lookup_match_market.return_value = legacy
+    the_odds = MagicMock()
+    the_odds.is_available = True
+    the_odds.lookup_match_market.return_value = legacy
+    real_client = UnifiedOddsClient(oddspapi=oddspapi, the_odds_api=the_odds)
+
+    with patch("api.main._odds_client", real_client), patch(
+        "core.market_event_resolver.fetch_resolver_discovery_events",
+        return_value=events,
+    ), patch(
+        "core.market_resolution.fetch_live_market_audit_report",
+        return_value=_live_fetch_result(GREEN_AUDIT),
+    ):
+        resp = client.post(
+            "/api/predict",
+            json={
+                "home_team": "France",
+                "away_team": "Spain",
+                "venue_mode": "neutral",
+                "neutral_ground": True,
+                "rho": -0.15,
+                "avg_goals": 2.6,
+                "use_live_stats": False,
+                "use_match_context": False,
+                "odds_affect_prediction": False,
+                "include_diagnostics": True,
+                "top_n": 3,
+            },
+        )
+    assert resp.status_code == 200
+    market = resp.json()["market_diagnostics"]
+    assert market["status"] == "ok"
+    assert market["primary_source"] == "rapidapi_odds_feed"
+    assert market["available"] is True
+
+
 def test_build_market_resolution_context_single_fetch_per_predict(all_gates) -> None:
     events = [_event(619963, "Norway", "England")]
     with patch(
-        "core.market_event_resolver.fetch_events_in_match_window",
+        "core.market_event_resolver.fetch_resolver_discovery_events",
         return_value=events,
     ), patch(
         "core.market_resolution.fetch_live_market_audit_report",
@@ -127,18 +222,17 @@ def test_build_market_resolution_context_single_fetch_per_predict(all_gates) -> 
 
 
 def test_predict_outside_window_status(all_gates) -> None:
-    now_ts = 1752274800.0  # 2026-07-11T23:00:00+00:00
     events = [
         {
             "id": 619963,
-            "status": "FINISHED",
-            "start_at": "2026-07-11 10:00:00",
+            "status": "SCHEDULED",
+            "start_at": "2027-01-15 19:00:00",
             "team_home": {"name": "Norway"},
             "team_away": {"name": "England"},
         }
     ]
     with patch(
-        "core.market_event_resolver.fetch_events_in_match_window",
+        "core.market_event_resolver.fetch_resolver_discovery_events",
         return_value=events,
     ), patch(
         "core.market_resolution.fetch_live_market_audit_report",
@@ -201,7 +295,7 @@ def test_predict_market_diagnostics_uses_odds_feed_when_legacy_quota(all_gates) 
     real_client = UnifiedOddsClient(oddspapi=oddspapi, the_odds_api=the_odds)
 
     with patch("api.main._odds_client", real_client), patch(
-        "core.market_event_resolver.fetch_events_in_match_window",
+        "core.market_event_resolver.fetch_resolver_discovery_events",
         return_value=events,
     ), patch(
         "core.market_resolution.fetch_live_market_audit_report",
@@ -242,7 +336,7 @@ def test_predict_legacy_quota_without_odds_feed_still_fails(all_gates) -> None:
     real_client = UnifiedOddsClient(oddspapi=oddspapi, the_odds_api=the_odds)
 
     with patch("api.main._odds_client", real_client), patch(
-        "core.market_event_resolver.fetch_events_in_match_window",
+        "core.market_event_resolver.fetch_resolver_discovery_events",
         return_value=[],
     ), patch(
         "core.market_resolution.fetch_live_market_audit_report",
