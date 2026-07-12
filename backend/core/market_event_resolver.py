@@ -20,7 +20,7 @@ from core.market_event_map import (
 )
 from core.providers.rapidapi_odds_feed_client import (
     RapidApiOddsFeedClientError,
-    fetch_events_in_match_window,
+    fetch_resolver_discovery_events,
 )
 
 logger = logging.getLogger(__name__)
@@ -178,6 +178,68 @@ def match_provider_event_from_list(
     return _resolve_orientation_ids(fuzzy_forward, fuzzy_reversed, suffix="_fuzzy")
 
 
+def _find_event_by_id(events: list[dict[str, Any]], event_id: str | None) -> dict[str, Any] | None:
+    if not event_id:
+        return None
+    for event in events:
+        if _extract_event_id(event) == str(event_id):
+            return event
+    return None
+
+
+def event_in_client_window(
+    event: Mapping[str, Any],
+    *,
+    lookback_hours: int,
+    lookahead_hours: int,
+    now: datetime | None = None,
+) -> bool:
+    """Whether event start_at falls inside the configured client acceptance window."""
+    now_ts = now or datetime.now(timezone.utc)
+    window_start = now_ts - timedelta(hours=lookback_hours)
+    window_end = now_ts + timedelta(hours=lookahead_hours)
+    start_at = _parse_event_start_at(event.get("start_at"))
+    if start_at is None:
+        status = str(event.get("status") or "").strip().upper()
+        return status in _RESOLVER_WINDOW_STATUSES
+    return window_start <= start_at <= window_end
+
+
+def _apply_client_window_to_match(
+    *,
+    event_id: str | None,
+    match_reason: str,
+    raw_events: list[dict[str, Any]],
+    lookback_hours: int,
+    lookahead_hours: int,
+    now: datetime | None,
+) -> tuple[str | None, str]:
+    """Keep resolved id only when the matched event is inside the client window."""
+    if event_id is None:
+        return None, match_reason
+    if match_reason in {
+        "ambiguous_forward",
+        "ambiguous_reversed",
+        "ambiguous_forward_fuzzy",
+        "ambiguous_reversed_fuzzy",
+        "invalid_team_names",
+        "provider_error",
+        "call_budget_exceeded",
+    }:
+        return event_id, match_reason
+    matched = _find_event_by_id(raw_events, event_id)
+    if matched is None:
+        return None, "no_match"
+    if event_in_client_window(
+        matched,
+        lookback_hours=lookback_hours,
+        lookahead_hours=lookahead_hours,
+        now=now,
+    ):
+        return event_id, match_reason
+    return None, "outside_window"
+
+
 def auto_resolver_gates_satisfied(
     *,
     influence_enabled: bool,
@@ -211,18 +273,28 @@ def _log_resolver_outcome(
     home_team: str,
     away_team: str,
     result: EventResolverResult,
+    matched_event: Mapping[str, Any] | None = None,
+    list_count: int | None = None,
+    pages: int | None = None,
 ) -> None:
     home = normalize_team_for_event_map(home_team)
     away = normalize_team_for_event_map(away_team)
     reason = result.match_reason or ""
     if result.event_id:
+        start_at = (matched_event or {}).get("start_at")
+        status = (matched_event or {}).get("status")
+        tournament = ((matched_event or {}).get("tournament") or {}).get("name")
         logger.info(
-            "resolver_resolved home=%s away=%s event_id=%s reason=%s cache=%s",
+            "resolver_resolved home=%s away=%s event_id=%s reason=%s cache=%s "
+            "start_at=%s status=%s tournament=%s",
             home,
             away,
             result.event_id,
             reason,
             result.cache_status,
+            start_at,
+            status,
+            tournament,
         )
         return
     if reason in {"ambiguous_forward", "ambiguous_reversed", "ambiguous_forward_fuzzy", "ambiguous_reversed_fuzzy"}:
@@ -232,7 +304,16 @@ def _log_resolver_outcome(
     elif reason == "outside_window":
         logger.info("resolver_outside_window home=%s away=%s", home, away)
     elif reason == "no_match":
-        logger.info("resolver_no_match home=%s away=%s", home, away)
+        if list_count is not None and pages is not None:
+            logger.info(
+                "resolver_no_match home=%s away=%s list_count=%s pages=%s",
+                home,
+                away,
+                list_count,
+                pages,
+            )
+        else:
+            logger.info("resolver_no_match home=%s away=%s", home, away)
     elif reason == "call_budget_exceeded":
         logger.warning("resolver_call_budget_exceeded home=%s away=%s", home, away)
 
@@ -348,18 +429,22 @@ def try_auto_resolve_provider_event_id(
 
     try:
         if provider_name == "rapidapi_odds_feed":
-            raw_events = fetch_events_in_match_window(
+            discovery_status = config.market_event_resolver_discovery_status()
+            api_lookback = config.market_event_resolver_api_lookback_hours()
+            api_lookahead = config.market_event_resolver_api_lookahead_hours()
+            raw_events = fetch_resolver_discovery_events(
                 sport_id=config.market_event_resolver_sport_id() if sport_id is None else sport_id,
-                lookback_hours=lookback,
-                lookahead_hours=lookahead,
+                status=discovery_status or None,
+                api_lookback_hours=api_lookback,
+                api_lookahead_hours=api_lookahead,
                 pages=page_count,
                 now=now_dt,
             )
-            events = filter_events_in_resolver_window(
-                raw_events,
-                lookback_hours=lookback,
-                lookahead_hours=lookahead,
-                now=now_dt,
+            logger.info(
+                "resolver_list_fetched count=%s pages=%s status=%s",
+                len(raw_events),
+                page_count,
+                discovery_status or "none",
             )
         else:
             result = EventResolverResult(cache_status=cache_status, match_reason="unsupported_provider")
@@ -375,20 +460,19 @@ def try_auto_resolve_provider_event_id(
         return result
 
     event_id, match_reason = match_provider_event_from_list(
-        events,
+        raw_events,
         home_team=home_team,
         away_team=away_team,
     )
-    if event_id is None and match_reason == "no_match" and raw_events:
-        raw_event_id, raw_reason = match_provider_event_from_list(
-            raw_events,
-            home_team=home_team,
-            away_team=away_team,
-        )
-        if raw_event_id:
-            match_reason = "outside_window"
-        elif raw_reason not in ("no_match", "invalid_team_names"):
-            match_reason = raw_reason
+    event_id, match_reason = _apply_client_window_to_match(
+        event_id=event_id,
+        match_reason=match_reason,
+        raw_events=raw_events,
+        lookback_hours=lookback,
+        lookahead_hours=lookahead,
+        now=now_dt,
+    )
+    matched_event = _find_event_by_id(raw_events, event_id)
 
     if event_id and ttl > 0:
         cache_store.set(cache_key, event_id, ttl_seconds=ttl, now=now)
@@ -399,5 +483,12 @@ def try_auto_resolve_provider_event_id(
         provider_call_count=1,
         match_reason=match_reason,
     )
-    _log_resolver_outcome(home_team=home_team, away_team=away_team, result=result)
+    _log_resolver_outcome(
+        home_team=home_team,
+        away_team=away_team,
+        result=result,
+        matched_event=matched_event,
+        list_count=len(raw_events),
+        pages=page_count,
+    )
     return result

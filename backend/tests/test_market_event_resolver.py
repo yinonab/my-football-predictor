@@ -149,7 +149,7 @@ def test_auto_resolver_gates_require_all_flags() -> None:
 def test_try_auto_resolve_cache_hit_skips_provider() -> None:
     cache = MarketEventResolverCache()
     cache.set("Canada|Argentina", "700001", ttl_seconds=3600)
-    with patch("core.market_event_resolver.fetch_events_in_match_window") as fetch_mock:
+    with patch("core.market_event_resolver.fetch_resolver_discovery_events") as fetch_mock:
         result = try_auto_resolve_provider_event_id(
             home_team="Canada (קנדה)",
             away_team="Argentina (ארגנטינה)",
@@ -168,7 +168,7 @@ def test_try_auto_resolve_cache_hit_skips_provider() -> None:
 def test_try_auto_resolve_cache_miss_calls_provider_once() -> None:
     events = [_event(619963, "Norway", "England")]
     with patch(
-        "core.market_event_resolver.fetch_events_in_match_window",
+        "core.market_event_resolver.fetch_resolver_discovery_events",
         return_value=events,
     ) as fetch_mock:
         result = try_auto_resolve_provider_event_id(
@@ -187,7 +187,7 @@ def test_try_auto_resolve_cache_miss_calls_provider_once() -> None:
 
 def test_try_auto_resolve_provider_error_fail_safe() -> None:
     with patch(
-        "core.market_event_resolver.fetch_events_in_match_window",
+        "core.market_event_resolver.fetch_resolver_discovery_events",
         side_effect=RapidApiOddsFeedClientError("rapidapi_auth_failed:secret-key-xyz"),
     ):
         result = try_auto_resolve_provider_event_id(
@@ -204,7 +204,7 @@ def test_try_auto_resolve_provider_error_fail_safe() -> None:
 
 def test_try_auto_resolve_budget_exceeded() -> None:
     budget = EventResolverCallBudget(max_calls=0)
-    with patch("core.market_event_resolver.fetch_events_in_match_window") as fetch_mock:
+    with patch("core.market_event_resolver.fetch_resolver_discovery_events") as fetch_mock:
         result = try_auto_resolve_provider_event_id(
             home_team="Norway",
             away_team="England",
@@ -222,7 +222,7 @@ def test_try_auto_resolve_budget_exceeded() -> None:
 def test_try_auto_resolve_flag_off_no_provider_call(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(config, "MARKET_AUTO_EVENT_RESOLVER_ENABLED", False, raising=False)
     monkeypatch.setattr(config, "market_auto_event_resolver_enabled", lambda: False)
-    with patch("core.market_event_resolver.fetch_events_in_match_window") as fetch_mock:
+    with patch("core.market_event_resolver.fetch_resolver_discovery_events") as fetch_mock:
         result = try_auto_resolve_provider_event_id(
             home_team="Norway",
             away_team="England",
@@ -264,7 +264,7 @@ def test_filter_post_kickoff_within_lookback_resolves() -> None:
         )
     ]
     with patch(
-        "core.market_event_resolver.fetch_events_in_match_window",
+        "core.market_event_resolver.fetch_resolver_discovery_events",
         return_value=events,
     ) as fetch_mock:
         result = try_auto_resolve_provider_event_id(
@@ -299,19 +299,19 @@ def test_filter_event_outside_lookback_excluded() -> None:
     assert filtered == []
 
 
-def test_try_auto_resolve_outside_lookback_no_match() -> None:
-    now = datetime(2026, 7, 11, 23, 0, 0, tzinfo=timezone.utc)
+def test_try_auto_resolve_outside_client_window() -> None:
+    now = datetime(2026, 7, 12, 11, 0, 0, tzinfo=timezone.utc)
     events = [
         _event(
             619963,
             "Norway",
             "England",
-            status="FINISHED",
-            start_at="2026-07-11 10:00:00",
+            status="SCHEDULED",
+            start_at="2027-01-15 19:00:00",
         )
     ]
     with patch(
-        "core.market_event_resolver.fetch_events_in_match_window",
+        "core.market_event_resolver.fetch_resolver_discovery_events",
         return_value=events,
     ):
         result = try_auto_resolve_provider_event_id(
@@ -330,7 +330,7 @@ def test_try_auto_resolve_outside_lookback_no_match() -> None:
 
 def test_resolver_logs_no_match(caplog: pytest.LogCaptureFixture) -> None:
     caplog.set_level("INFO", logger="core.market_event_resolver")
-    with patch("core.market_event_resolver.fetch_events_in_match_window", return_value=[]):
+    with patch("core.market_event_resolver.fetch_resolver_discovery_events", return_value=[]):
         try_auto_resolve_provider_event_id(
             home_team="Norway",
             away_team="England",
@@ -379,11 +379,107 @@ def test_match_fuzzy_ambiguous_returns_none() -> None:
     assert reason == "ambiguous_forward_fuzzy"
 
 
+def test_try_auto_resolve_passes_scheduled_discovery_params(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(config, "MARKET_EVENT_RESOLVER_PAGES", 2, raising=False)
+    monkeypatch.setattr(config, "market_event_resolver_pages", lambda: 2)
+    monkeypatch.setattr(config, "MARKET_EVENT_RESOLVER_DISCOVERY_STATUS", "SCHEDULED", raising=False)
+    monkeypatch.setattr(config, "market_event_resolver_discovery_status", lambda: "SCHEDULED")
+    monkeypatch.setattr(config, "MARKET_EVENT_RESOLVER_API_LOOKBACK_HOURS", 24, raising=False)
+    monkeypatch.setattr(config, "market_event_resolver_api_lookback_hours", lambda: 24)
+    monkeypatch.setattr(config, "MARKET_EVENT_RESOLVER_API_LOOKAHEAD_HOURS", 1080, raising=False)
+    monkeypatch.setattr(config, "market_event_resolver_api_lookahead_hours", lambda: 1080)
+    now = datetime(2026, 7, 12, 11, 0, 0, tzinfo=timezone.utc)
+    with patch(
+        "core.market_event_resolver.fetch_resolver_discovery_events",
+        return_value=[
+            _event(700100, "France", "Spain", start_at="2026-07-14 19:00:00"),
+        ],
+    ) as fetch_mock:
+        result = try_auto_resolve_provider_event_id(
+            home_team="France",
+            away_team="Spain",
+            influence_enabled=True,
+            shadow_diagnostics_enabled=True,
+            live_fetch_enabled=True,
+            auto_resolver_enabled=True,
+            now=now.timestamp(),
+        )
+    fetch_mock.assert_called_once()
+    kwargs = fetch_mock.call_args.kwargs
+    assert kwargs["pages"] == 2
+    assert kwargs["status"] == "SCHEDULED"
+    assert kwargs["api_lookback_hours"] == 24
+    assert kwargs["api_lookahead_hours"] == 1080
+    assert result.event_id == "700100"
+    assert result.match_reason == "exact_match"
+
+
+def test_try_auto_resolve_france_spain_scheduled_page_zero() -> None:
+    now = datetime(2026, 7, 12, 11, 0, 0, tzinfo=timezone.utc)
+    events = [_event(700100, "France", "Spain", start_at="2026-07-14 19:00:00")]
+    with patch(
+        "core.market_event_resolver.fetch_resolver_discovery_events",
+        return_value=events,
+    ):
+        result = try_auto_resolve_provider_event_id(
+            home_team="France",
+            away_team="Spain",
+            influence_enabled=True,
+            shadow_diagnostics_enabled=True,
+            live_fetch_enabled=True,
+            auto_resolver_enabled=True,
+            now=now.timestamp(),
+        )
+    assert result.event_id == "700100"
+    assert result.match_reason == "exact_match"
+
+
+def test_try_auto_resolve_scheduled_no_match_when_fixture_absent() -> None:
+    club_fixtures = [_event(i, f"Club{i}", f"ClubB{i}") for i in range(1, 6)]
+    with patch(
+        "core.market_event_resolver.fetch_resolver_discovery_events",
+        return_value=club_fixtures,
+    ):
+        result = try_auto_resolve_provider_event_id(
+            home_team="France",
+            away_team="Spain",
+            influence_enabled=True,
+            shadow_diagnostics_enabled=True,
+            live_fetch_enabled=True,
+            auto_resolver_enabled=True,
+        )
+    assert result.event_id is None
+    assert result.match_reason == "no_match"
+
+
+def test_try_auto_resolve_scheduled_ambiguous_duplicate_fixtures() -> None:
+    now = datetime(2026, 7, 12, 11, 0, 0, tzinfo=timezone.utc)
+    events = [
+        _event(1, "France", "Spain", start_at="2026-07-14 19:00:00"),
+        _event(2, "France", "Spain", start_at="2026-07-15 19:00:00"),
+    ]
+    with patch(
+        "core.market_event_resolver.fetch_resolver_discovery_events",
+        return_value=events,
+    ):
+        result = try_auto_resolve_provider_event_id(
+            home_team="France",
+            away_team="Spain",
+            influence_enabled=True,
+            shadow_diagnostics_enabled=True,
+            live_fetch_enabled=True,
+            auto_resolver_enabled=True,
+            now=now.timestamp(),
+        )
+    assert result.event_id is None
+    assert result.match_reason == "ambiguous_forward"
+
+
 def test_try_auto_resolve_passes_configured_pages(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(config, "MARKET_EVENT_RESOLVER_PAGES", 2, raising=False)
     monkeypatch.setattr(config, "market_event_resolver_pages", lambda: 2)
     with patch(
-        "core.market_event_resolver.fetch_events_in_match_window",
+        "core.market_event_resolver.fetch_resolver_discovery_events",
         return_value=[_event(619963, "Norway", "England")],
     ) as fetch_mock:
         try_auto_resolve_provider_event_id(
@@ -399,13 +495,15 @@ def test_try_auto_resolve_passes_configured_pages(monkeypatch: pytest.MonkeyPatc
 
 
 def test_try_auto_resolve_fetches_page_two_when_needed(monkeypatch: pytest.MonkeyPatch) -> None:
+    now = datetime(2026, 7, 12, 11, 0, 0, tzinfo=timezone.utc)
+
     def _side_effect(**kwargs):
         if kwargs.get("pages", 1) >= 2:
-            return [_event(999, "France", "Spain")]
+            return [_event(999, "France", "Spain", start_at="2026-07-14 19:00:00")]
         return []
 
     with patch(
-        "core.market_event_resolver.fetch_events_in_match_window",
+        "core.market_event_resolver.fetch_resolver_discovery_events",
         side_effect=_side_effect,
     ) as fetch_mock:
         result = try_auto_resolve_provider_event_id(
@@ -416,24 +514,25 @@ def test_try_auto_resolve_fetches_page_two_when_needed(monkeypatch: pytest.Monke
             live_fetch_enabled=True,
             auto_resolver_enabled=True,
             pages=2,
+            now=now.timestamp(),
         )
     assert result.event_id == "999"
     assert fetch_mock.call_args.kwargs["pages"] == 2
 
 
 def test_try_auto_resolve_outside_window_reason() -> None:
-    now = datetime(2026, 7, 11, 23, 0, 0, tzinfo=timezone.utc)
+    now = datetime(2026, 7, 12, 11, 0, 0, tzinfo=timezone.utc)
     events = [
         _event(
             619963,
             "Norway",
             "England",
-            status="FINISHED",
-            start_at="2026-07-11 10:00:00",
+            status="SCHEDULED",
+            start_at="2027-01-15 19:00:00",
         )
     ]
     with patch(
-        "core.market_event_resolver.fetch_events_in_match_window",
+        "core.market_event_resolver.fetch_resolver_discovery_events",
         return_value=events,
     ):
         result = try_auto_resolve_provider_event_id(

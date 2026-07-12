@@ -144,7 +144,7 @@ def test_explicit_event_id_applied_status(all_influence_gates) -> None:
 
 def test_resolver_no_match_app_style_status(auto_resolver_on) -> None:
     events = [_event(1, "France", "Germany")]
-    with patch("core.market_event_resolver.fetch_events_in_match_window", return_value=events):
+    with patch("core.market_event_resolver.fetch_resolver_discovery_events", return_value=events):
         resp = client.post("/api/predict", json=BASELINE_PAYLOAD)
     assert resp.status_code == 200
     data = resp.json()
@@ -162,7 +162,7 @@ def test_resolver_ambiguous_status(auto_resolver_on) -> None:
         _event(1, "Canada", "Argentina"),
         _event(2, "Canada", "Argentina"),
     ]
-    with patch("core.market_event_resolver.fetch_events_in_match_window", return_value=events):
+    with patch("core.market_event_resolver.fetch_resolver_discovery_events", return_value=events):
         resp = client.post("/api/predict", json=BASELINE_PAYLOAD)
     status = resp.json()["market_influence_status"]
     assert status["reason"] == "resolver_ambiguous"
@@ -187,7 +187,7 @@ def test_live_fetch_failed_status(all_influence_gates) -> None:
 
 def test_no_secrets_or_raw_payload_in_status(auto_resolver_on) -> None:
     with patch(
-        "core.market_event_resolver.fetch_events_in_match_window",
+        "core.market_event_resolver.fetch_resolver_discovery_events",
         side_effect=RapidApiOddsFeedClientError("rapidapi_auth_failed:top-secret-key"),
     ):
         resp = client.post("/api/predict", json=BASELINE_PAYLOAD)
@@ -208,7 +208,7 @@ def test_resolver_outside_window_status(auto_resolver_on) -> None:
             "team_away": {"name": "England"},
         }
     ]
-    with patch("core.market_event_resolver.fetch_events_in_match_window", return_value=events):
+    with patch("core.market_event_resolver.fetch_resolver_discovery_events", return_value=events):
         resp = client.post("/api/predict", json=NORWAY_ENGLAND_PAYLOAD)
     status = resp.json()["market_influence_status"]
     assert status["reason"] == "resolver_outside_window"
@@ -218,7 +218,7 @@ def test_resolver_outside_window_status(auto_resolver_on) -> None:
 def test_resolver_success_app_style_status(auto_resolver_on) -> None:
     events = [_event(619963, "Norway", "England")]
     with patch(
-        "core.market_event_resolver.fetch_events_in_match_window",
+        "core.market_event_resolver.fetch_resolver_discovery_events",
         return_value=events,
     ), patch(
         "core.market_resolution.fetch_live_market_audit_report",

@@ -115,24 +115,51 @@ def fetch_events_in_match_window(
     lookback_hours: int = 6,
     lookahead_hours: int = 72,
     pages: int = 1,
+    status: str | None = None,
     timeout: float = DEFAULT_TIMEOUT_SEC,
     now: datetime | None = None,
 ) -> list[dict[str, Any]]:
-    """Single event-list call covering scheduled/live/recent events in the time window.
+    """Legacy narrow event-list query (kept for backward compatibility)."""
+    return fetch_resolver_discovery_events(
+        sport_id=sport_id,
+        status=status,
+        api_lookback_hours=lookback_hours,
+        api_lookahead_hours=lookahead_hours,
+        pages=pages,
+        timeout=timeout,
+        now=now,
+    )
 
-    Omits provider status filter so one request can return multiple statuses within
-    start_at_min/max (scheduled, live/in-progress, and recent post-kickoff events).
-    """
+
+def fetch_resolver_discovery_events(
+    *,
+    sport_id: int = 1,
+    status: str | None = "SCHEDULED",
+    api_lookback_hours: int = 24,
+    api_lookahead_hours: int = 1080,
+    pages: int = 2,
+    timeout: float = DEFAULT_TIMEOUT_SEC,
+    now: datetime | None = None,
+) -> list[dict[str, Any]]:
+    """Scheduled discovery query for resolver — wide API window, optional status filter."""
     events: list[dict[str, Any]] = []
     now_ts = now or datetime.now(timezone.utc)
     params: dict[str, Any] = {
         "sport_id": int(sport_id),
-        "start_at_min": (now_ts - timedelta(hours=lookback_hours)).strftime("%Y-%m-%d %H:%M:%S"),
-        "start_at_max": (now_ts + timedelta(hours=lookahead_hours)).strftime("%Y-%m-%d %H:%M:%S"),
+        "start_at_min": (now_ts - timedelta(hours=api_lookback_hours)).strftime(
+            "%Y-%m-%d %H:%M:%S"
+        ),
+        "start_at_max": (now_ts + timedelta(hours=api_lookahead_hours)).strftime(
+            "%Y-%m-%d %H:%M:%S"
+        ),
     }
+    status_value = str(status or "").strip().upper()
+    if status_value:
+        params["status"] = status_value
     last_status = 0
     last_error = ""
-    for page in range(max(1, pages)):
+    page_count = max(1, pages)
+    for page in range(page_count):
         params["page"] = page
         url = f"{BASE_URL}{API_PREFIX}/events"
         try:
