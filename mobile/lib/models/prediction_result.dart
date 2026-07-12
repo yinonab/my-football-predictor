@@ -637,6 +637,88 @@ class ModelDiagnostics {
   }
 }
 
+class MarketInfluenceExplanation {
+  final String title;
+  final String summary;
+  final String signalLabel;
+  final String influenceLabel;
+  final String selectedScoreLabel;
+  final List<String> details;
+
+  const MarketInfluenceExplanation({
+    this.title = '',
+    this.summary = '',
+    this.signalLabel = '',
+    this.influenceLabel = '',
+    this.selectedScoreLabel = '',
+    this.details = const [],
+  });
+
+  factory MarketInfluenceExplanation.fromJson(Map<String, dynamic> json) {
+    return MarketInfluenceExplanation(
+      title: json['title'] as String? ?? '',
+      summary: json['summary'] as String? ?? '',
+      signalLabel: json['signal_label'] as String? ?? '',
+      influenceLabel: json['influence_label'] as String? ?? '',
+      selectedScoreLabel: json['selected_score_label'] as String? ?? '',
+      details: (json['details'] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .toList(),
+    );
+  }
+}
+
+class MarketInfluenceApplied {
+  final bool marketInfluenceApplied;
+  final String? qualityBand;
+  final double? qualityScore;
+  final int? influenceWeightPct;
+  final String? provider;
+  final String? providerEventId;
+  final String? cacheStatus;
+  final int? providerCallCount;
+  final String? primaryScoreReason;
+  final String? marketSource;
+  final String? fallbackReason;
+  final MarketInfluenceExplanation? explanation;
+
+  const MarketInfluenceApplied({
+    this.marketInfluenceApplied = false,
+    this.qualityBand,
+    this.qualityScore,
+    this.influenceWeightPct,
+    this.provider,
+    this.providerEventId,
+    this.cacheStatus,
+    this.providerCallCount,
+    this.primaryScoreReason,
+    this.marketSource,
+    this.fallbackReason,
+    this.explanation,
+  });
+
+  factory MarketInfluenceApplied.fromJson(Map<String, dynamic> json) {
+    return MarketInfluenceApplied(
+      marketInfluenceApplied: json['market_influence_applied'] as bool? ?? false,
+      qualityBand: json['quality_band'] as String?,
+      qualityScore: (json['quality_score'] as num?)?.toDouble(),
+      influenceWeightPct: (json['influence_weight_pct'] as num?)?.toInt(),
+      provider: json['provider'] as String?,
+      providerEventId: json['provider_event_id']?.toString(),
+      cacheStatus: json['cache_status'] as String?,
+      providerCallCount: (json['provider_call_count'] as num?)?.toInt(),
+      primaryScoreReason: json['primary_score_reason'] as String?,
+      marketSource: json['market_source'] as String?,
+      fallbackReason: json['fallback_reason'] as String?,
+      explanation: json['explanation'] != null
+          ? MarketInfluenceExplanation.fromJson(
+              json['explanation'] as Map<String, dynamic>,
+            )
+          : null,
+    );
+  }
+}
+
 class PredictionResult {
   final String homeTeam;
   final String awayTeam;
@@ -665,6 +747,7 @@ class PredictionResult {
   final ProbabilityDiagnostics? probabilityDiagnostics;
   final MarketDiagnosticsPayload? marketDiagnostics;
   final ModelDiagnostics? modelDiagnostics;
+  final MarketInfluenceApplied? marketInfluence;
 
   Nr3XgDecomposition? get nr3XgDecomposition =>
       modelDiagnostics?.nr3XgDecomposition;
@@ -703,6 +786,7 @@ class PredictionResult {
     this.probabilityDiagnostics,
     this.marketDiagnostics,
     this.modelDiagnostics,
+    this.marketInfluence,
   });
 
   factory PredictionResult.fromJson(Map<String, dynamic> json) {
@@ -779,6 +863,11 @@ class PredictionResult {
       modelDiagnostics: json['model_diagnostics'] != null
           ? ModelDiagnostics.fromJson(
               json['model_diagnostics'] as Map<String, dynamic>,
+            )
+          : null,
+      marketInfluence: json['market_influence'] != null
+          ? MarketInfluenceApplied.fromJson(
+              json['market_influence'] as Map<String, dynamic>,
             )
           : null,
     );
