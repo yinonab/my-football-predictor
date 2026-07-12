@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 import pytest
@@ -9,6 +10,7 @@ import pytest
 import config
 from core.market_event_resolver import (
     auto_resolver_gates_satisfied,
+    filter_events_in_resolver_window,
     match_provider_event_from_list,
     try_auto_resolve_provider_event_id,
 )
@@ -31,13 +33,19 @@ def _event(
     event_id: int,
     home: str,
     away: str,
+    *,
+    status: str = "SCHEDULED",
+    start_at: str | None = None,
 ) -> dict:
-    return {
+    payload = {
         "id": event_id,
-        "status": "SCHEDULED",
+        "status": status,
         "team_home": {"name": home},
         "team_away": {"name": away},
     }
+    if start_at is not None:
+        payload["start_at"] = start_at
+    return payload
 
 
 def test_match_exact_orientation() -> None:
@@ -141,7 +149,7 @@ def test_auto_resolver_gates_require_all_flags() -> None:
 def test_try_auto_resolve_cache_hit_skips_provider() -> None:
     cache = MarketEventResolverCache()
     cache.set("Canada|Argentina", "700001", ttl_seconds=3600)
-    with patch("core.market_event_resolver.fetch_scheduled_events") as fetch_mock:
+    with patch("core.market_event_resolver.fetch_events_in_match_window") as fetch_mock:
         result = try_auto_resolve_provider_event_id(
             home_team="Canada (קנדה)",
             away_team="Argentina (ארגנטינה)",
@@ -160,7 +168,7 @@ def test_try_auto_resolve_cache_hit_skips_provider() -> None:
 def test_try_auto_resolve_cache_miss_calls_provider_once() -> None:
     events = [_event(619963, "Norway", "England")]
     with patch(
-        "core.market_event_resolver.fetch_scheduled_events",
+        "core.market_event_resolver.fetch_events_in_match_window",
         return_value=events,
     ) as fetch_mock:
         result = try_auto_resolve_provider_event_id(
@@ -179,7 +187,7 @@ def test_try_auto_resolve_cache_miss_calls_provider_once() -> None:
 
 def test_try_auto_resolve_provider_error_fail_safe() -> None:
     with patch(
-        "core.market_event_resolver.fetch_scheduled_events",
+        "core.market_event_resolver.fetch_events_in_match_window",
         side_effect=RapidApiOddsFeedClientError("rapidapi_auth_failed:secret-key-xyz"),
     ):
         result = try_auto_resolve_provider_event_id(
@@ -196,7 +204,7 @@ def test_try_auto_resolve_provider_error_fail_safe() -> None:
 
 def test_try_auto_resolve_budget_exceeded() -> None:
     budget = EventResolverCallBudget(max_calls=0)
-    with patch("core.market_event_resolver.fetch_scheduled_events") as fetch_mock:
+    with patch("core.market_event_resolver.fetch_events_in_match_window") as fetch_mock:
         result = try_auto_resolve_provider_event_id(
             home_team="Norway",
             away_team="England",
@@ -214,7 +222,7 @@ def test_try_auto_resolve_budget_exceeded() -> None:
 def test_try_auto_resolve_flag_off_no_provider_call(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(config, "MARKET_AUTO_EVENT_RESOLVER_ENABLED", False, raising=False)
     monkeypatch.setattr(config, "market_auto_event_resolver_enabled", lambda: False)
-    with patch("core.market_event_resolver.fetch_scheduled_events") as fetch_mock:
+    with patch("core.market_event_resolver.fetch_events_in_match_window") as fetch_mock:
         result = try_auto_resolve_provider_event_id(
             home_team="Norway",
             away_team="England",
@@ -225,3 +233,111 @@ def test_try_auto_resolve_flag_off_no_provider_call(monkeypatch: pytest.MonkeyPa
         )
     assert result.event_id is None
     fetch_mock.assert_not_called()
+
+
+def test_filter_live_event_within_window() -> None:
+    now = datetime(2026, 7, 11, 23, 0, 0, tzinfo=timezone.utc)
+    events = [
+        _event(
+            619963,
+            "Norway",
+            "England",
+            status="LIVE",
+            start_at="2026-07-11 21:00:00",
+        )
+    ]
+    filtered = filter_events_in_resolver_window(
+        events, lookback_hours=6, lookahead_hours=72, now=now
+    )
+    assert len(filtered) == 1
+
+
+def test_filter_post_kickoff_within_lookback_resolves() -> None:
+    now = datetime(2026, 7, 11, 23, 55, 0, tzinfo=timezone.utc)
+    events = [
+        _event(
+            619963,
+            "Norway",
+            "England",
+            status="LIVE",
+            start_at="2026-07-11 21:00:00",
+        )
+    ]
+    with patch(
+        "core.market_event_resolver.fetch_events_in_match_window",
+        return_value=events,
+    ) as fetch_mock:
+        result = try_auto_resolve_provider_event_id(
+            home_team="Norway",
+            away_team="England",
+            influence_enabled=True,
+            shadow_diagnostics_enabled=True,
+            live_fetch_enabled=True,
+            auto_resolver_enabled=True,
+            lookback_hours=6,
+            lookahead_hours=72,
+            now=now.timestamp(),
+        )
+    assert result.event_id == "619963"
+    fetch_mock.assert_called_once()
+
+
+def test_filter_event_outside_lookback_excluded() -> None:
+    now = datetime(2026, 7, 11, 23, 0, 0, tzinfo=timezone.utc)
+    events = [
+        _event(
+            619963,
+            "Norway",
+            "England",
+            status="FINISHED",
+            start_at="2026-07-11 10:00:00",
+        )
+    ]
+    filtered = filter_events_in_resolver_window(
+        events, lookback_hours=6, lookahead_hours=72, now=now
+    )
+    assert filtered == []
+
+
+def test_try_auto_resolve_outside_lookback_no_match() -> None:
+    now = datetime(2026, 7, 11, 23, 0, 0, tzinfo=timezone.utc)
+    events = [
+        _event(
+            619963,
+            "Norway",
+            "England",
+            status="FINISHED",
+            start_at="2026-07-11 10:00:00",
+        )
+    ]
+    with patch(
+        "core.market_event_resolver.fetch_events_in_match_window",
+        return_value=events,
+    ):
+        result = try_auto_resolve_provider_event_id(
+            home_team="Norway",
+            away_team="England",
+            influence_enabled=True,
+            shadow_diagnostics_enabled=True,
+            live_fetch_enabled=True,
+            auto_resolver_enabled=True,
+            lookback_hours=6,
+            now=now.timestamp(),
+        )
+    assert result.event_id is None
+    assert result.match_reason == "no_match"
+
+
+def test_resolver_logs_no_match(caplog: pytest.LogCaptureFixture) -> None:
+    caplog.set_level("INFO", logger="core.market_event_resolver")
+    with patch("core.market_event_resolver.fetch_events_in_match_window", return_value=[]):
+        try_auto_resolve_provider_event_id(
+            home_team="Norway",
+            away_team="England",
+            influence_enabled=True,
+            shadow_diagnostics_enabled=True,
+            live_fetch_enabled=True,
+            auto_resolver_enabled=True,
+        )
+    assert "resolver_started" in caplog.text
+    assert "resolver_no_match" in caplog.text
