@@ -646,8 +646,9 @@ MARKET_EVENT_RESOLVER_LOOKBACK_HOURS: int = int(
     os.getenv("MARKET_EVENT_RESOLVER_LOOKBACK_HOURS", "6")
 )
 MARKET_EVENT_RESOLVER_LOOKAHEAD_HOURS: int = int(
-    os.getenv("MARKET_EVENT_RESOLVER_LOOKAHEAD_HOURS", "72")
+    os.getenv("MARKET_EVENT_RESOLVER_LOOKAHEAD_HOURS", "168")
 )
+MARKET_EVENT_RESOLVER_PAGES: int = int(os.getenv("MARKET_EVENT_RESOLVER_PAGES", "2"))
 
 
 def market_auto_event_resolver_enabled() -> bool:
@@ -676,6 +677,10 @@ def market_event_resolver_lookback_hours() -> int:
 
 def market_event_resolver_lookahead_hours() -> int:
     return MARKET_EVENT_RESOLVER_LOOKAHEAD_HOURS
+
+
+def market_event_resolver_pages() -> int:
+    return max(1, MARKET_EVENT_RESOLVER_PAGES)
 
 
 # API

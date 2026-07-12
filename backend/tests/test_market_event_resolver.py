@@ -325,7 +325,7 @@ def test_try_auto_resolve_outside_lookback_no_match() -> None:
             now=now.timestamp(),
         )
     assert result.event_id is None
-    assert result.match_reason == "no_match"
+    assert result.match_reason == "outside_window"
 
 
 def test_resolver_logs_no_match(caplog: pytest.LogCaptureFixture) -> None:
@@ -341,3 +341,110 @@ def test_resolver_logs_no_match(caplog: pytest.LogCaptureFixture) -> None:
         )
     assert "resolver_started" in caplog.text
     assert "resolver_no_match" in caplog.text
+
+
+def test_match_alias_accent_normalization() -> None:
+    events = [_event(9001, "Czechia", "Iran")]
+    event_id, reason = match_provider_event_from_list(
+        events,
+        home_team="Czech Republic",
+        away_team="IR Iran",
+    )
+    assert event_id == "9001"
+    assert reason == "exact_match"
+
+
+def test_match_fuzzy_single_candidate() -> None:
+    events = [_event(77, "Korea South", "Saudi Arabia")]
+    event_id, reason = match_provider_event_from_list(
+        events,
+        home_team="South Korea",
+        away_team="Saudi Arabia",
+    )
+    assert event_id == "77"
+    assert reason == "exact_match_fuzzy"
+
+
+def test_match_fuzzy_ambiguous_returns_none() -> None:
+    events = [
+        _event(1, "B A C", "Saudi Arabia"),
+        _event(2, "C A B", "Saudi Arabia"),
+    ]
+    event_id, reason = match_provider_event_from_list(
+        events,
+        home_team="A B C",
+        away_team="Saudi Arabia",
+    )
+    assert event_id is None
+    assert reason == "ambiguous_forward_fuzzy"
+
+
+def test_try_auto_resolve_passes_configured_pages(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(config, "MARKET_EVENT_RESOLVER_PAGES", 2, raising=False)
+    monkeypatch.setattr(config, "market_event_resolver_pages", lambda: 2)
+    with patch(
+        "core.market_event_resolver.fetch_events_in_match_window",
+        return_value=[_event(619963, "Norway", "England")],
+    ) as fetch_mock:
+        try_auto_resolve_provider_event_id(
+            home_team="Norway",
+            away_team="England",
+            influence_enabled=True,
+            shadow_diagnostics_enabled=True,
+            live_fetch_enabled=True,
+            auto_resolver_enabled=True,
+        )
+    fetch_mock.assert_called_once()
+    assert fetch_mock.call_args.kwargs["pages"] == 2
+
+
+def test_try_auto_resolve_fetches_page_two_when_needed(monkeypatch: pytest.MonkeyPatch) -> None:
+    def _side_effect(**kwargs):
+        if kwargs.get("pages", 1) >= 2:
+            return [_event(999, "France", "Spain")]
+        return []
+
+    with patch(
+        "core.market_event_resolver.fetch_events_in_match_window",
+        side_effect=_side_effect,
+    ) as fetch_mock:
+        result = try_auto_resolve_provider_event_id(
+            home_team="France",
+            away_team="Spain",
+            influence_enabled=True,
+            shadow_diagnostics_enabled=True,
+            live_fetch_enabled=True,
+            auto_resolver_enabled=True,
+            pages=2,
+        )
+    assert result.event_id == "999"
+    assert fetch_mock.call_args.kwargs["pages"] == 2
+
+
+def test_try_auto_resolve_outside_window_reason() -> None:
+    now = datetime(2026, 7, 11, 23, 0, 0, tzinfo=timezone.utc)
+    events = [
+        _event(
+            619963,
+            "Norway",
+            "England",
+            status="FINISHED",
+            start_at="2026-07-11 10:00:00",
+        )
+    ]
+    with patch(
+        "core.market_event_resolver.fetch_events_in_match_window",
+        return_value=events,
+    ):
+        result = try_auto_resolve_provider_event_id(
+            home_team="Norway",
+            away_team="England",
+            influence_enabled=True,
+            shadow_diagnostics_enabled=True,
+            live_fetch_enabled=True,
+            auto_resolver_enabled=True,
+            lookback_hours=6,
+            now=now.timestamp(),
+        )
+    assert result.event_id is None
+    assert result.match_reason == "outside_window"

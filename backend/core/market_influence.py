@@ -5,7 +5,7 @@ from __future__ import annotations
 import copy
 import logging
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import TYPE_CHECKING, Any, Mapping
 
 import config
 from core.market_event_map import make_event_map_key, normalize_team_for_event_map
@@ -14,6 +14,9 @@ from core.market_live_fetch import MarketLiveFetchError, fetch_live_market_audit
 from core.market_matrix_shadow import calibrate_market_matrix_shadow
 from core.market_parser import build_snapshot_pipeline, parse_rapidapi_odds_feed_audit
 from core.market_quality import BAND_GREEN, BAND_RED, BAND_YELLOW
+
+if TYPE_CHECKING:
+    from core.market_resolution import MarketResolutionContext
 
 _BAND_RANK = {BAND_RED: 0, BAND_YELLOW: 1, BAND_GREEN: 2}
 _DEFAULT_PROVIDER = "rapidapi_odds_feed"
@@ -32,7 +35,12 @@ class MarketInfluenceResult:
 def map_resolver_match_reason(match_reason: str | None) -> str:
     """Map internal resolver match_reason to API market_influence_status.reason."""
     reason = (match_reason or "").strip().lower()
-    if reason in ("ambiguous_forward", "ambiguous_reversed"):
+    if reason in (
+        "ambiguous_forward",
+        "ambiguous_reversed",
+        "ambiguous_forward_fuzzy",
+        "ambiguous_reversed_fuzzy",
+    ):
         return "resolver_ambiguous"
     if reason == "outside_window":
         return "resolver_outside_window"
@@ -132,6 +140,7 @@ def try_apply_market_influence_to_predict(
     max_weight: float | None = None,
     min_quality_band: str | None = None,
     event_map: Mapping[str, str] | None = None,
+    resolution_context: MarketResolutionContext | None = None,
 ) -> MarketInfluenceResult:
     """Apply gated market influence to exact-score outputs; never raises to caller."""
     influence_on = (
@@ -172,7 +181,21 @@ def try_apply_market_influence_to_predict(
     )
     mapped_event_id = resolved_event_id
     resolver_result: EventResolverResult | None = None
-    if not resolved_event_id:
+    shared_snapshot = None
+    shared_consensus = None
+    shared_quality = None
+    shared_fetch_cache_status: str | None = None
+    shared_fetch_call_count = 0
+
+    if resolution_context is not None:
+        resolved_event_id = resolution_context.provider_event_id or resolved_event_id
+        resolver_result = resolution_context.resolver_result
+        shared_snapshot = resolution_context.snapshot
+        shared_consensus = resolution_context.consensus
+        shared_quality = resolution_context.quality
+        shared_fetch_cache_status = resolution_context.fetch_cache_status
+        shared_fetch_call_count = resolution_context.markets_fetch_call_count
+    elif not resolved_event_id:
         resolver_result = try_auto_resolve_provider_event_id(
             home_team=home_team,
             away_team=away_team,
@@ -235,15 +258,25 @@ def try_apply_market_influence_to_predict(
         )
 
     try:
-        fetch_result = fetch_live_market_audit_report(
-            provider=_DEFAULT_PROVIDER,
-            provider_event_id=str(resolved_event_id),
-            home_team=home_team,
-            away_team=away_team,
-            live_fetch_enabled=True,
-            region=market_region,
-        )
-        snapshot = parse_rapidapi_odds_feed_audit(fetch_result.audit_report)
+        if shared_snapshot is not None and shared_consensus is not None and shared_quality is not None:
+            snapshot = shared_snapshot
+            consensus = shared_consensus
+            quality = shared_quality
+            fetch_cache_status = shared_fetch_cache_status or "disabled"
+            fetch_call_count = shared_fetch_call_count
+        else:
+            fetch_result = fetch_live_market_audit_report(
+                provider=_DEFAULT_PROVIDER,
+                provider_event_id=str(resolved_event_id),
+                home_team=home_team,
+                away_team=away_team,
+                live_fetch_enabled=True,
+                region=market_region,
+            )
+            snapshot = parse_rapidapi_odds_feed_audit(fetch_result.audit_report)
+            consensus, quality = build_snapshot_pipeline(snapshot)
+            fetch_cache_status = fetch_result.cache_status
+            fetch_call_count = fetch_result.provider_call_count
     except MarketLiveFetchError as exc:
         logger.warning(
             "influence_fallback_reason=live_fetch_error home=%s away=%s detail=%s",
@@ -263,7 +296,6 @@ def try_apply_market_influence_to_predict(
             ),
         )
 
-    consensus, quality = build_snapshot_pipeline(snapshot)
     min_band = (
         config.market_influence_min_quality() if min_quality_band is None else min_quality_band
     )
@@ -375,8 +407,8 @@ def try_apply_market_influence_to_predict(
             "influence_weight_pct": weight_pct,
             "provider": _DEFAULT_PROVIDER,
             "provider_event_id": str(resolved_event_id),
-            "cache_status": fetch_result.cache_status,
-            "provider_call_count": fetch_result.provider_call_count,
+            "cache_status": fetch_cache_status,
+            "provider_call_count": fetch_call_count,
             "primary_score_reason": "market_influence_applied",
             "market_source": "live",
         },

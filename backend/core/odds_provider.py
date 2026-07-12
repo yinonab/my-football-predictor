@@ -1,10 +1,15 @@
-"""Unified odds lookup — OddsPapi primary, The Odds API fallback."""
+"""Unified odds lookup — OddsPapi primary, The Odds API fallback, odds-feed shared resolution."""
 
 from __future__ import annotations
+
+from typing import TYPE_CHECKING
 
 import config
 from core.oddspapi_client import OddsPapiClient
 from core.odds_ensemble import OddsClient, OddsLookupResult
+
+if TYPE_CHECKING:
+    from core.market_resolution import MarketResolutionContext
 
 
 class UnifiedOddsClient:
@@ -27,17 +32,22 @@ class UnifiedOddsClient:
         self,
         home_team: str,
         away_team: str,
+        *,
+        resolution_context: MarketResolutionContext | None = None,
     ) -> OddsLookupResult:
         mode = config.ODDS_PROVIDER.strip().lower()
         notes: list[str] = []
+        legacy_result: OddsLookupResult | None = None
 
         if mode in ("auto", "oddspapi"):
             result = self._oddspapi.lookup_match_market(home_team, away_team)
             if result.status == "ok" and result.fetch is not None:
                 return result
             if mode == "oddspapi":
-                return result
-            notes.extend(result.notes)
+                legacy_result = result
+            else:
+                notes.extend(result.notes)
+                legacy_result = result
 
         if mode in ("auto", "the_odds_api", "the-odds-api"):
             fallback = self._the_odds_api.lookup_match_market(home_team, away_team)
@@ -49,13 +59,30 @@ class UnifiedOddsClient:
                 return fallback
             if notes:
                 fallback.notes = notes + list(fallback.notes)
-            return fallback
+            legacy_result = fallback
 
-        return OddsLookupResult(
-            status="not_configured",
-            notes=["ODDS_PROVIDER not configured (use auto|oddspapi|the_odds_api)"],
-            odds_key_configured=False,
+        if legacy_result is None:
+            legacy_result = OddsLookupResult(
+                status="not_configured",
+                notes=["ODDS_PROVIDER not configured (use auto|oddspapi|the_odds_api)"],
+                odds_key_configured=False,
+            )
+
+        odds_feed_fetch = (
+            resolution_context.odds_market_fetch if resolution_context is not None else None
         )
+        if odds_feed_fetch is not None and odds_feed_fetch.bookmakers:
+            feed_notes = list(legacy_result.notes)
+            feed_notes.append("Market data from RapidAPI odds-feed (shared resolution)")
+            return OddsLookupResult(
+                fetch=odds_feed_fetch,
+                status="ok",
+                notes=feed_notes,
+                odds_key_configured=True,
+                requests_remaining=legacy_result.requests_remaining,
+            )
+
+        return legacy_result
 
     def fetch_match_market(self, home_team: str, away_team: str):
         return self.lookup_match_market(home_team, away_team).fetch
