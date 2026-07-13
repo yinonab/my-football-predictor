@@ -719,6 +719,168 @@ class MarketInfluenceApplied {
   }
 }
 
+class MarketPrimaryPredictionH2H {
+  final double? home;
+  final double? draw;
+  final double? away;
+
+  const MarketPrimaryPredictionH2H({this.home, this.draw, this.away});
+
+  factory MarketPrimaryPredictionH2H.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const MarketPrimaryPredictionH2H();
+    return MarketPrimaryPredictionH2H(
+      home: (json['home'] as num?)?.toDouble(),
+      draw: (json['draw'] as num?)?.toDouble(),
+      away: (json['away'] as num?)?.toDouble(),
+    );
+  }
+}
+
+class MarketPrimaryPredictionTotals {
+  final double? line;
+  final double? over;
+  final double? under;
+
+  const MarketPrimaryPredictionTotals({this.line, this.over, this.under});
+
+  factory MarketPrimaryPredictionTotals.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const MarketPrimaryPredictionTotals();
+    return MarketPrimaryPredictionTotals(
+      line: (json['line'] as num?)?.toDouble(),
+      over: (json['over'] as num?)?.toDouble(),
+      under: (json['under'] as num?)?.toDouble(),
+    );
+  }
+}
+
+class MarketPrimaryPredictionBtts {
+  final double? yes;
+  final double? no;
+
+  const MarketPrimaryPredictionBtts({this.yes, this.no});
+
+  factory MarketPrimaryPredictionBtts.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const MarketPrimaryPredictionBtts();
+    return MarketPrimaryPredictionBtts(
+      yes: (json['yes'] as num?)?.toDouble(),
+      no: (json['no'] as num?)?.toDouble(),
+    );
+  }
+}
+
+class MarketPrimaryPredictionInputs {
+  final MarketPrimaryPredictionH2H h2h;
+  final MarketPrimaryPredictionTotals totals;
+  final MarketPrimaryPredictionBtts btts;
+  final double? spread;
+
+  const MarketPrimaryPredictionInputs({
+    this.h2h = const MarketPrimaryPredictionH2H(),
+    this.totals = const MarketPrimaryPredictionTotals(),
+    this.btts = const MarketPrimaryPredictionBtts(),
+    this.spread,
+  });
+
+  factory MarketPrimaryPredictionInputs.fromJson(Map<String, dynamic>? json) {
+    if (json == null) return const MarketPrimaryPredictionInputs();
+    return MarketPrimaryPredictionInputs(
+      h2h: MarketPrimaryPredictionH2H.fromJson(
+        json['h2h'] as Map<String, dynamic>?,
+      ),
+      totals: MarketPrimaryPredictionTotals.fromJson(
+        json['totals'] as Map<String, dynamic>?,
+      ),
+      btts: MarketPrimaryPredictionBtts.fromJson(
+        json['btts'] as Map<String, dynamic>?,
+      ),
+      spread: (json['spread'] as num?)?.toDouble(),
+    );
+  }
+}
+
+class MarketPrimaryPredictionScore {
+  final String score;
+  final double probability;
+
+  const MarketPrimaryPredictionScore({
+    required this.score,
+    required this.probability,
+  });
+
+  factory MarketPrimaryPredictionScore.fromJson(Map<String, dynamic> json) {
+    return MarketPrimaryPredictionScore(
+      score: json['score'] as String? ?? '',
+      probability: (json['probability'] as num?)?.toDouble() ?? 0,
+    );
+  }
+}
+
+class MarketPrimaryPrediction {
+  final bool applied;
+  final String reason;
+  final int? marketWeightPct;
+  final int? modelWeightPct;
+  final String? selectedScore;
+  final String? selectedOutcome;
+  final String? marketFavorite;
+  final String? confidence;
+  final String? marketGoalTrend;
+  final String? bttsSignal;
+  final String? spreadSignal;
+  final String? explanation;
+  final MarketPrimaryPredictionInputs inputs;
+  final List<MarketPrimaryPredictionScore> topScores;
+  final List<String> notes;
+
+  const MarketPrimaryPrediction({
+    this.applied = false,
+    this.reason = '',
+    this.marketWeightPct,
+    this.modelWeightPct,
+    this.selectedScore,
+    this.selectedOutcome,
+    this.marketFavorite,
+    this.confidence,
+    this.marketGoalTrend,
+    this.bttsSignal,
+    this.spreadSignal,
+    this.explanation,
+    this.inputs = const MarketPrimaryPredictionInputs(),
+    this.topScores = const [],
+    this.notes = const [],
+  });
+
+  factory MarketPrimaryPrediction.fromJson(Map<String, dynamic> json) {
+    return MarketPrimaryPrediction(
+      applied: json['applied'] as bool? ?? false,
+      reason: json['reason'] as String? ?? '',
+      marketWeightPct: (json['market_weight_pct'] as num?)?.toInt(),
+      modelWeightPct: (json['model_weight_pct'] as num?)?.toInt(),
+      selectedScore: json['selected_score'] as String?,
+      selectedOutcome: json['selected_outcome'] as String?,
+      marketFavorite: json['market_favorite'] as String?,
+      confidence: json['confidence'] as String?,
+      marketGoalTrend: json['market_goal_trend'] as String?,
+      bttsSignal: json['btts_signal'] as String?,
+      spreadSignal: json['spread_signal'] as String?,
+      explanation: json['explanation'] as String?,
+      inputs: MarketPrimaryPredictionInputs.fromJson(
+        json['inputs'] as Map<String, dynamic>?,
+      ),
+      topScores: (json['top_scores'] as List<dynamic>? ?? [])
+          .map(
+            (e) => MarketPrimaryPredictionScore.fromJson(
+              e as Map<String, dynamic>,
+            ),
+          )
+          .toList(),
+      notes: (json['notes'] as List<dynamic>? ?? [])
+          .map((e) => e.toString())
+          .toList(),
+    );
+  }
+}
+
 class PredictionResult {
   final String homeTeam;
   final String awayTeam;
@@ -748,6 +910,7 @@ class PredictionResult {
   final MarketDiagnosticsPayload? marketDiagnostics;
   final ModelDiagnostics? modelDiagnostics;
   final MarketInfluenceApplied? marketInfluence;
+  final MarketPrimaryPrediction? marketPrimaryPrediction;
 
   Nr3XgDecomposition? get nr3XgDecomposition =>
       modelDiagnostics?.nr3XgDecomposition;
@@ -787,6 +950,7 @@ class PredictionResult {
     this.marketDiagnostics,
     this.modelDiagnostics,
     this.marketInfluence,
+    this.marketPrimaryPrediction,
   });
 
   factory PredictionResult.fromJson(Map<String, dynamic> json) {
@@ -868,6 +1032,11 @@ class PredictionResult {
       marketInfluence: json['market_influence'] != null
           ? MarketInfluenceApplied.fromJson(
               json['market_influence'] as Map<String, dynamic>,
+            )
+          : null,
+      marketPrimaryPrediction: json['market_primary_prediction'] != null
+          ? MarketPrimaryPrediction.fromJson(
+              json['market_primary_prediction'] as Map<String, dynamic>,
             )
           : null,
     );

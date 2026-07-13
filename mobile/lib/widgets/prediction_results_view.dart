@@ -7,9 +7,10 @@ import '../utils/underdog_scoring_narrative.dart';
 import 'outcome_cards.dart';
 import 'prediction_insight_sections.dart';
 import 'prediction_market_panel.dart';
+import 'market_primary_prediction_panel.dart';
 import 'score_list.dart';
 
-enum PredictionResultTab { prediction, market, environment }
+enum PredictionResultTab { prediction, market, marketPrediction, environment }
 
 class PredictionResultsView extends StatefulWidget {
   final PredictionResult result;
@@ -66,6 +67,11 @@ class _PredictionResultsViewState extends State<PredictionResultsView> {
               value: PredictionResultTab.market,
               label: Text('שוק'),
               icon: Icon(Icons.trending_up, size: 18),
+            ),
+            ButtonSegment(
+              value: PredictionResultTab.marketPrediction,
+              label: Text('תחזית שוק'),
+              icon: Icon(Icons.insights_outlined, size: 18),
             ),
             ButtonSegment(
               value: PredictionResultTab.environment,
@@ -176,6 +182,8 @@ class _PredictionResultsViewState extends State<PredictionResultsView> {
           ),
         ] else if (_tab == PredictionResultTab.market) ...[
           PredictionMarketPanel(result: result),
+        ] else if (_tab == PredictionResultTab.marketPrediction) ...[
+          MarketPrimaryPredictionPanel(result: result),
         ] else ...[
           PredictionEnvironmentDataCard(result: result),
           const SizedBox(height: 8),
