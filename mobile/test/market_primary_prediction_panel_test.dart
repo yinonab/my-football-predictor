@@ -6,6 +6,26 @@ import 'package:football_predictor/widgets/market_primary_prediction_panel.dart'
 import 'package:football_predictor/widgets/prediction_market_panel.dart';
 import 'package:football_predictor/widgets/prediction_results_view.dart';
 
+bool rowContainsTeamAndScore(
+  WidgetTester tester,
+  String team,
+  String score,
+) {
+  for (final element in find.byType(Row).evaluate()) {
+    final texts = <String>[];
+    void collect(Element e) {
+      if (e.widget is Text) {
+        final data = (e.widget as Text).data;
+        if (data != null && data.isNotEmpty) texts.add(data);
+      }
+      e.visitChildren(collect);
+    }
+    element.visitChildren(collect);
+    if (texts.contains(team) && texts.contains(score)) return true;
+  }
+  return false;
+}
+
 void main() {
   Map<String, dynamic> marketPrimaryBlock({
     bool applied = true,
@@ -153,17 +173,36 @@ void main() {
     expect(parseSelectedScore('1-2').awayGoals, 2);
   });
 
-  test('marketPrimaryOutcomeLabelHe maps outcomes', () {
+  test('spreadSignalLabel uses Hebrew display name when available', () {
     expect(
-      marketPrimaryOutcomeLabelHe(
+      spreadSignalLabel(
+        signal: 'strong_home_favorite',
+        homeTeam: 'France (צרפת)',
+        awayTeam: 'Spain (ספרד)',
+      ),
+      'צרפת פייבוריטית חזקה',
+    );
+  });
+
+  test('marketPrimaryWinnerHeadline maps outcomes', () {
+    expect(
+      marketPrimaryWinnerHeadline(
         outcome: 'home_win',
         homeTeam: 'France',
         awayTeam: 'Spain',
       ),
-      'ניצחון France',
+      'France wins',
     );
     expect(
-      marketPrimaryOutcomeLabelHe(
+      marketPrimaryWinnerHeadline(
+        outcome: 'home_win',
+        homeTeam: 'France (צרפת)',
+        awayTeam: 'Spain (ספרד)',
+      ),
+      'צרפת מנצחת',
+    );
+    expect(
+      marketPrimaryWinnerHeadline(
         outcome: 'draw',
         homeTeam: 'France',
         awayTeam: 'Spain',
@@ -172,7 +211,7 @@ void main() {
     );
   });
 
-  testWidgets('Hero shows home score away with team context for home win', (
+  testWidgets('Hero scoreboard shows France 2 and Spain 1 for home win', (
     tester,
   ) async {
     final result = baseResult({
@@ -190,14 +229,16 @@ void main() {
         ),
       ),
     );
-    expect(find.text('France'), findsWidgets);
-    expect(find.text('Spain'), findsWidgets);
-    expect(find.text('2 - 1'), findsOneWidget);
-    expect(find.text('ניצחון France'), findsOneWidget);
+    expect(find.text('France wins'), findsOneWidget);
+    expect(find.text('2 - 1'), findsNothing);
+    expect(rowContainsTeamAndScore(tester, 'France', '2'), isTrue);
+    expect(rowContainsTeamAndScore(tester, 'Spain', '1'), isTrue);
     expect(find.text('תוצאה מומלצת לפי השוק'), findsOneWidget);
   });
 
-  testWidgets('Hero shows France 1 - 2 Spain for away win', (tester) async {
+  testWidgets('Hero scoreboard shows Spain as winner for away win', (
+    tester,
+  ) async {
     final result = baseResult({
       'market_primary_prediction': marketPrimaryBlock(
         selectedScore: '1-2',
@@ -214,13 +255,16 @@ void main() {
         ),
       ),
     );
-    expect(find.text('France'), findsWidgets);
-    expect(find.text('Spain'), findsWidgets);
-    expect(find.text('1 - 2'), findsOneWidget);
-    expect(find.text('ניצחון Spain'), findsOneWidget);
+    expect(find.text('Spain wins'), findsOneWidget);
+    expect(find.text('2 - 1'), findsNothing);
+    expect(find.text('1 - 2'), findsNothing);
+    expect(rowContainsTeamAndScore(tester, 'France', '1'), isTrue);
+    expect(rowContainsTeamAndScore(tester, 'Spain', '2'), isTrue);
   });
 
-  testWidgets('Hero shows France 1 - 1 Spain for draw', (tester) async {
+  testWidgets('Hero scoreboard shows draw with both teams at 1', (
+    tester,
+  ) async {
     final result = baseResult({
       'market_primary_prediction': marketPrimaryBlock(
         selectedScore: '1-1',
@@ -236,13 +280,15 @@ void main() {
         ),
       ),
     );
-    expect(find.text('France'), findsWidgets);
-    expect(find.text('Spain'), findsWidgets);
-    expect(find.text('1 - 1'), findsOneWidget);
     expect(find.text('תיקו'), findsWidgets);
+    expect(find.text('1 - 1'), findsNothing);
+    expect(rowContainsTeamAndScore(tester, 'France', '1'), isTrue);
+    expect(rowContainsTeamAndScore(tester, 'Spain', '1'), isTrue);
   });
 
-  testWidgets('Hero uses Hebrew team names when available', (tester) async {
+  testWidgets('Hero uses Hebrew winner headline and scoreboard rows', (
+    tester,
+  ) async {
     final result = PredictionResult.fromJson({
       'home_team': 'France (צרפת)',
       'away_team': 'Spain (ספרד)',
@@ -293,7 +339,10 @@ void main() {
     );
     expect(find.text('צרפת'), findsWidgets);
     expect(find.text('ספרד'), findsWidgets);
-    expect(find.text('ניצחון צרפת'), findsOneWidget);
+    expect(find.text('צרפת מנצחת'), findsOneWidget);
+    expect(rowContainsTeamAndScore(tester, 'צרפת', '2'), isTrue);
+    expect(rowContainsTeamAndScore(tester, 'ספרד', '1'), isTrue);
+    expect(find.text('2 - 1'), findsNothing);
   });
 
   testWidgets('Market primary panel shows selected score 2-1 and signals', (
@@ -312,7 +361,10 @@ void main() {
       ),
     );
     expect(find.text('תחזית שוק'), findsOneWidget);
-    expect(find.text('2 - 1'), findsOneWidget);
+    expect(find.text('France wins'), findsOneWidget);
+    expect(find.text('2 - 1'), findsNothing);
+    expect(rowContainsTeamAndScore(tester, 'France', '2'), isTrue);
+    expect(rowContainsTeamAndScore(tester, 'Spain', '1'), isTrue);
     expect(find.text('2-1'), findsWidgets);
     expect(find.textContaining('70% שוק'), findsOneWidget);
     expect(find.textContaining('GREEN'), findsOneWidget);
@@ -621,7 +673,7 @@ void main() {
         ),
       ),
     );
-    expect(find.text('2 - 1'), findsOneWidget);
+    expect(rowContainsTeamAndScore(tester, 'France', '2'), isTrue);
     expect(find.textContaining('לא זמין'), findsNWidgets(3));
   });
 
@@ -676,7 +728,8 @@ void main() {
     await tester.tap(find.text('תחזית שוק'));
     await tester.pumpAndSettle();
     expect(find.textContaining('תוצאה מומלצת לפי השוק'), findsOneWidget);
-    expect(find.text('2 - 1'), findsOneWidget);
+    expect(find.text('France wins'), findsOneWidget);
+    expect(find.text('2 - 1'), findsNothing);
     expect(find.text('2-1'), findsWidgets);
   });
 
