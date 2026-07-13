@@ -73,6 +73,34 @@ String marketPrimaryOutcomeLabelHe({
   }
 }
 
+bool teamNameHasHebrewTranslation(String full) {
+  final start = full.indexOf('(');
+  final end = full.indexOf(')');
+  return start >= 0 && end > start && full.substring(start + 1, end).trim().isNotEmpty;
+}
+
+/// Hero headline: "צרפת מנצחת" or "France wins".
+String marketPrimaryWinnerHeadline({
+  required String? outcome,
+  required String homeTeam,
+  required String awayTeam,
+}) {
+  switch (outcome) {
+    case 'home_win':
+      final team = displayTeamLabel(homeTeam);
+      return teamNameHasHebrewTranslation(homeTeam) ? '$team מנצחת' : '$team wins';
+    case 'away_win':
+      final team = displayTeamLabel(awayTeam);
+      return teamNameHasHebrewTranslation(awayTeam) ? '$team מנצחת' : '$team wins';
+    case 'draw':
+      return 'תיקו';
+    default:
+      return '';
+  }
+}
+
+String formatGoalCount(int? goals) => goals?.toString() ?? '—';
+
 String marketPrimaryOutcomeWinnerLabel({
   required String? outcome,
   required String homeTeam,
@@ -122,8 +150,8 @@ String spreadSignalLabel({
   if (signal == null || signal == 'unavailable') return 'לא זמין';
   if (signal == 'neutral') return 'ניטרלי';
 
-  final home = homeTeam != null ? primaryTeamLabel(homeTeam) : null;
-  final away = awayTeam != null ? primaryTeamLabel(awayTeam) : null;
+  final home = homeTeam != null ? displayTeamLabel(homeTeam) : null;
+  final away = awayTeam != null ? displayTeamLabel(awayTeam) : null;
 
   switch (signal) {
     case 'slight_home_favorite':
@@ -525,11 +553,14 @@ class _HeroCard extends StatelessWidget {
     final homeLabel = homeTeam.isNotEmpty ? displayTeamLabel(homeTeam) : 'בית';
     final awayLabel = awayTeam.isNotEmpty ? displayTeamLabel(awayTeam) : 'חוץ';
     final parsed = parseSelectedScore(block.selectedScore);
-    final outcomeLabel = marketPrimaryOutcomeLabelHe(
+    final winnerHeadline = marketPrimaryWinnerHeadline(
       outcome: block.selectedOutcome,
       homeTeam: homeTeam,
       awayTeam: awayTeam,
     );
+    final outcome = block.selectedOutcome;
+    final homeWins = outcome == 'home_win';
+    final awayWins = outcome == 'away_win';
     return Card(
       elevation: 2,
       child: Padding(
@@ -552,42 +583,30 @@ class _HeroCard extends StatelessWidget {
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 16),
-            Text(
-              homeLabel,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Directionality(
-              textDirection: TextDirection.ltr,
-              child: Text(
-                parsed.ltrDisplay,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.displaySmall?.copyWith(
+            if (winnerHeadline.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              Text(
+                winnerHeadline,
+                textAlign: TextAlign.right,
+                style: theme.textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.primary,
                 ),
               ),
+            ],
+            const SizedBox(height: 12),
+            _ScoreboardTeamRow(
+              teamLabel: homeLabel,
+              scoreText: formatGoalCount(parsed.homeGoals),
+              emphasized: homeWins,
+              theme: theme,
             ),
             const SizedBox(height: 6),
-            Text(
-              awayLabel,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+            _ScoreboardTeamRow(
+              teamLabel: awayLabel,
+              scoreText: formatGoalCount(parsed.awayGoals),
+              emphasized: awayWins,
+              theme: theme,
             ),
-            if (outcomeLabel.isNotEmpty) ...[
-              const SizedBox(height: 10),
-              Text(
-                outcomeLabel,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyLarge,
-              ),
-            ],
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
@@ -607,6 +626,55 @@ class _HeroCard extends StatelessWidget {
                     ),
                   ),
               ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ScoreboardTeamRow extends StatelessWidget {
+  final String teamLabel;
+  final String scoreText;
+  final bool emphasized;
+  final ThemeData theme;
+
+  const _ScoreboardTeamRow({
+    required this.teamLabel,
+    required this.scoreText,
+    required this.theme,
+    this.emphasized = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final teamStyle = theme.textTheme.titleLarge?.copyWith(
+      fontWeight: emphasized ? FontWeight.bold : FontWeight.w600,
+      color: emphasized ? theme.colorScheme.primary : null,
+    );
+    final scoreStyle = theme.textTheme.headlineMedium?.copyWith(
+      fontWeight: FontWeight.bold,
+      color: emphasized ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+    );
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: emphasized
+          ? BoxDecoration(
+              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.4),
+              borderRadius: BorderRadius.circular(10),
+            )
+          : null,
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(teamLabel, style: teamStyle),
+            const SizedBox(width: 16),
+            Directionality(
+              textDirection: TextDirection.ltr,
+              child: Text(scoreText, style: scoreStyle),
             ),
           ],
         ),
@@ -714,21 +782,19 @@ class _MarketDirectionRow extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
             )
           : null,
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              label,
-              textAlign: TextAlign.right,
-              style: labelStyle,
+      child: Align(
+        alignment: Alignment.centerRight,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(label, style: labelStyle),
+            const SizedBox(width: 16),
+            Directionality(
+              textDirection: TextDirection.ltr,
+              child: Text(value, style: valueStyle),
             ),
-          ),
-          const SizedBox(width: 12),
-          Directionality(
-            textDirection: TextDirection.ltr,
-            child: Text(value, style: valueStyle),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
