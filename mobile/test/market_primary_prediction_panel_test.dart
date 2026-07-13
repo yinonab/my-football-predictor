@@ -11,6 +11,7 @@ void main() {
     bool applied = true,
     String reason = 'applied',
     String selectedScore = '2-1',
+    String selectedOutcome = 'home_win',
     String spreadSignal = 'strong_home_favorite',
     String marketGoalTrend = 'neutral',
     String bttsSignal = 'yes',
@@ -22,7 +23,7 @@ void main() {
       'market_weight_pct': 70,
       'model_weight_pct': 30,
       'selected_score': selectedScore,
-      'selected_outcome': 'home_win',
+      'selected_outcome': selectedOutcome,
       'market_favorite': 'France',
       'confidence': 'GREEN',
       'market_goal_trend': marketGoalTrend,
@@ -141,6 +142,160 @@ void main() {
     expect(bttsSignalLabel('yes'), 'כן');
   });
 
+  test('displayTeamLabel prefers Hebrew in parentheses', () {
+    expect(displayTeamLabel('France (צרפת)'), 'צרפת');
+    expect(displayTeamLabel('Spain'), 'Spain');
+  });
+
+  test('parseSelectedScore formats LTR display', () {
+    expect(parseSelectedScore('2-1').ltrDisplay, '2 - 1');
+    expect(parseSelectedScore('1-2').homeGoals, 1);
+    expect(parseSelectedScore('1-2').awayGoals, 2);
+  });
+
+  test('marketPrimaryOutcomeLabelHe maps outcomes', () {
+    expect(
+      marketPrimaryOutcomeLabelHe(
+        outcome: 'home_win',
+        homeTeam: 'France',
+        awayTeam: 'Spain',
+      ),
+      'ניצחון France',
+    );
+    expect(
+      marketPrimaryOutcomeLabelHe(
+        outcome: 'draw',
+        homeTeam: 'France',
+        awayTeam: 'Spain',
+      ),
+      'תיקו',
+    );
+  });
+
+  testWidgets('Hero shows home score away with team context for home win', (
+    tester,
+  ) async {
+    final result = baseResult({
+      'market_primary_prediction': marketPrimaryBlock(
+        selectedScore: '2-1',
+        selectedOutcome: 'home_win',
+      ),
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: MarketPrimaryPredictionPanel(result: result),
+          ),
+        ),
+      ),
+    );
+    expect(find.text('France'), findsWidgets);
+    expect(find.text('Spain'), findsWidgets);
+    expect(find.text('2 - 1'), findsOneWidget);
+    expect(find.text('ניצחון France'), findsOneWidget);
+    expect(find.text('תוצאה מומלצת לפי השוק'), findsOneWidget);
+  });
+
+  testWidgets('Hero shows France 1 - 2 Spain for away win', (tester) async {
+    final result = baseResult({
+      'market_primary_prediction': marketPrimaryBlock(
+        selectedScore: '1-2',
+        selectedOutcome: 'away_win',
+        spreadSignal: 'strong_away_favorite',
+      ),
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: MarketPrimaryPredictionPanel(result: result),
+          ),
+        ),
+      ),
+    );
+    expect(find.text('France'), findsWidgets);
+    expect(find.text('Spain'), findsWidgets);
+    expect(find.text('1 - 2'), findsOneWidget);
+    expect(find.text('ניצחון Spain'), findsOneWidget);
+  });
+
+  testWidgets('Hero shows France 1 - 1 Spain for draw', (tester) async {
+    final result = baseResult({
+      'market_primary_prediction': marketPrimaryBlock(
+        selectedScore: '1-1',
+        selectedOutcome: 'draw',
+      ),
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: MarketPrimaryPredictionPanel(result: result),
+          ),
+        ),
+      ),
+    );
+    expect(find.text('France'), findsWidgets);
+    expect(find.text('Spain'), findsWidgets);
+    expect(find.text('1 - 1'), findsOneWidget);
+    expect(find.text('תיקו'), findsWidgets);
+  });
+
+  testWidgets('Hero uses Hebrew team names when available', (tester) async {
+    final result = PredictionResult.fromJson({
+      'home_team': 'France (צרפת)',
+      'away_team': 'Spain (ספרד)',
+      'home_power': 994,
+      'away_power': 1006,
+      'home_breakdown': {
+        'name': 'France',
+        'power_score': 994,
+        'elo': 1840,
+        'breakdown': '',
+      },
+      'away_breakdown': {
+        'name': 'Spain',
+        'power_score': 1006,
+        'elo': 1808,
+        'breakdown': '',
+      },
+      'home_xg': 1.08,
+      'away_xg': 1.02,
+      'probabilities_1x2': {
+        'home_win': 34.5,
+        'draw': 34.0,
+        'away_win': 31.5,
+      },
+      'outcome_explanations': {
+        'home_win': 'h',
+        'draw': 'd',
+        'away_win': 'a',
+      },
+      'top_scores': [
+        {'score': '1-1', 'probability': 15.5, 'explanation': ''},
+      ],
+      'score_coverage': {
+        'target_percent': 50.0,
+        'achieved_percent': 50.0,
+        'scores': ['1-1'],
+      },
+      'market_primary_prediction': marketPrimaryBlock(),
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: MarketPrimaryPredictionPanel(result: result),
+          ),
+        ),
+      ),
+    );
+    expect(find.text('צרפת'), findsWidgets);
+    expect(find.text('ספרד'), findsWidgets);
+    expect(find.text('ניצחון צרפת'), findsOneWidget);
+  });
+
   testWidgets('Market primary panel shows selected score 2-1 and signals', (
     tester,
   ) async {
@@ -157,15 +312,15 @@ void main() {
       ),
     );
     expect(find.text('תחזית שוק'), findsOneWidget);
+    expect(find.text('2 - 1'), findsOneWidget);
     expect(find.text('2-1'), findsWidgets);
-    expect(find.textContaining('מועדף שוק: France'), findsOneWidget);
     expect(find.textContaining('70% שוק'), findsOneWidget);
     expect(find.textContaining('GREEN'), findsOneWidget);
     expect(find.textContaining('Market odds favored France'), findsOneWidget);
     expect(find.textContaining('תוצאות מובילות לפי שוק'), findsOneWidget);
-    expect(find.text('ניטרלי'), findsOneWidget);
-    expect(find.text('כן'), findsOneWidget);
-    expect(find.textContaining('France פייבוריטית חזקה'), findsOneWidget);
+    expect(find.textContaining('מעל/מתחת 2.5: ניטרלי'), findsOneWidget);
+    expect(find.textContaining('BTTS: כן'), findsOneWidget);
+    expect(find.textContaining('האנדיקפ: France פייבוריטית חזקה'), findsOneWidget);
     expect(find.textContaining('strong_home_favorite'), findsNothing);
     expect(find.textContaining('strong home favorite'), findsNothing);
   });
@@ -466,8 +621,8 @@ void main() {
         ),
       ),
     );
-    expect(find.text('2-1'), findsWidgets);
-    expect(find.text('לא זמין'), findsNWidgets(3));
+    expect(find.text('2 - 1'), findsOneWidget);
+    expect(find.textContaining('לא זמין'), findsNWidgets(3));
   });
 
   testWidgets('Market tab unchanged when market primary present', (
@@ -520,7 +675,8 @@ void main() {
     expect(find.text('תחזית שוק'), findsOneWidget);
     await tester.tap(find.text('תחזית שוק'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('תוצאה מומלצת לפי שוק'), findsOneWidget);
+    expect(find.textContaining('תוצאה מומלצת לפי השוק'), findsOneWidget);
+    expect(find.text('2 - 1'), findsOneWidget);
     expect(find.text('2-1'), findsWidgets);
   });
 
