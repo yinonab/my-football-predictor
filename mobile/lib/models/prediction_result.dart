@@ -719,6 +719,55 @@ class MarketInfluenceApplied {
   }
 }
 
+class MarketInfluenceStatus {
+  final bool attempted;
+  final bool applied;
+  final String reason;
+  final String? provider;
+  final int? resolverWindowHours;
+  final String? providerEventId;
+  final int? resolverPagesFetched;
+  final int? resolverEventsSeen;
+  final String? resolverDiscoveryStatus;
+  final int? resolverApiLookbackHours;
+  final int? resolverApiLookaheadHours;
+  final String? resolverCacheStatus;
+
+  const MarketInfluenceStatus({
+    this.attempted = false,
+    this.applied = false,
+    this.reason = '',
+    this.provider,
+    this.resolverWindowHours,
+    this.providerEventId,
+    this.resolverPagesFetched,
+    this.resolverEventsSeen,
+    this.resolverDiscoveryStatus,
+    this.resolverApiLookbackHours,
+    this.resolverApiLookaheadHours,
+    this.resolverCacheStatus,
+  });
+
+  factory MarketInfluenceStatus.fromJson(Map<String, dynamic> json) {
+    return MarketInfluenceStatus(
+      attempted: json['attempted'] as bool? ?? false,
+      applied: json['applied'] as bool? ?? false,
+      reason: json['reason'] as String? ?? '',
+      provider: json['provider'] as String?,
+      resolverWindowHours: (json['resolver_window_hours'] as num?)?.toInt(),
+      providerEventId: json['provider_event_id']?.toString(),
+      resolverPagesFetched: (json['resolver_pages_fetched'] as num?)?.toInt(),
+      resolverEventsSeen: (json['resolver_events_seen'] as num?)?.toInt(),
+      resolverDiscoveryStatus: json['resolver_discovery_status'] as String?,
+      resolverApiLookbackHours:
+          (json['resolver_api_lookback_hours'] as num?)?.toInt(),
+      resolverApiLookaheadHours:
+          (json['resolver_api_lookahead_hours'] as num?)?.toInt(),
+      resolverCacheStatus: json['resolver_cache_status'] as String?,
+    );
+  }
+}
+
 class MarketPrimaryPredictionH2H {
   final double? home;
   final double? draw;
@@ -910,6 +959,7 @@ class PredictionResult {
   final MarketDiagnosticsPayload? marketDiagnostics;
   final ModelDiagnostics? modelDiagnostics;
   final MarketInfluenceApplied? marketInfluence;
+  final MarketInfluenceStatus? marketInfluenceStatus;
   final MarketPrimaryPrediction? marketPrimaryPrediction;
 
   Nr3XgDecomposition? get nr3XgDecomposition =>
@@ -950,6 +1000,7 @@ class PredictionResult {
     this.marketDiagnostics,
     this.modelDiagnostics,
     this.marketInfluence,
+    this.marketInfluenceStatus,
     this.marketPrimaryPrediction,
   });
 
@@ -1032,6 +1083,11 @@ class PredictionResult {
       marketInfluence: json['market_influence'] != null
           ? MarketInfluenceApplied.fromJson(
               json['market_influence'] as Map<String, dynamic>,
+            )
+          : null,
+      marketInfluenceStatus: json['market_influence_status'] != null
+          ? MarketInfluenceStatus.fromJson(
+              json['market_influence_status'] as Map<String, dynamic>,
             )
           : null,
       marketPrimaryPrediction: json['market_primary_prediction'] != null

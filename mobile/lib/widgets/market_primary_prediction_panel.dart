@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/prediction_result.dart';
+import '../models/market_diagnostics.dart';
 
 Color qualityBandColor(String band) {
   switch (band.toUpperCase()) {
@@ -76,6 +77,55 @@ String spreadSignalLabel({
   }
 }
 
+/// Backend resolver paging default (for compact "pages fetched / max" display).
+const int marketResolverMaxPagesHint = 5;
+
+bool isResolverMissInfluenceReason(String? reason) {
+  switch (reason) {
+    case 'resolver_no_match':
+    case 'resolver_outside_window':
+    case 'resolver_ambiguous':
+      return true;
+    default:
+      return false;
+  }
+}
+
+String marketInfluenceReasonLabelHe(String? reason) {
+  switch (reason) {
+    case 'resolver_no_match':
+      return 'לא נמצא אירוע שוק מתאים';
+    case 'resolver_outside_window':
+      return 'נמצא אירוע, אך מחוץ לחלון הזמן הנתמך';
+    case 'resolver_ambiguous':
+      return 'נמצאו כמה אירועים אפשריים';
+    case 'market_unavailable':
+      return 'נתוני שוק לא זמינים';
+    case 'quality_below_minimum':
+      return 'איכות נתוני השוק נמוכה';
+    case 'provider_disabled':
+      return 'ספק השוק אינו פעיל';
+    case 'live_fetch_failed':
+      return 'טעינת נתוני השוק נכשלה';
+    case 'quota_exceeded':
+      return 'מגבלת שימוש של ספק השוק';
+    default:
+      return '';
+  }
+}
+
+bool isLegacyMarketQuotaExceeded(MarketDiagnosticsPayload? diag) {
+  if (diag == null) return false;
+  if (diag.status == 'quota_exceeded') return true;
+  if (diag.primarySource == 'the_odds_api' &&
+      (diag.status == 'quota_exceeded' ||
+          diag.requestsRemaining == 0 ||
+          diag.status == 'api_error')) {
+    return true;
+  }
+  return false;
+}
+
 /// Interpreted market-primary prediction tab (תחזית שוק).
 class MarketPrimaryPredictionPanel extends StatelessWidget {
   final PredictionResult result;
@@ -88,75 +138,55 @@ class MarketPrimaryPredictionPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final block = result.marketPrimaryPrediction;
-    if (block == null) {
-      return const _UnavailableCard();
-    }
-    if (!block.applied) {
-      return _FallbackCard(reason: block.reason);
-    }
-    final theme = Theme.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _HeroCard(block: block, theme: theme),
-        const SizedBox(height: 12),
-        _MarketDirectionCard(
-          block: block,
-          homeTeam: result.homeTeam,
-          awayTeam: result.awayTeam,
-          theme: theme,
-        ),
-        const SizedBox(height: 12),
-        _GoalSignalsCard(
-          block: block,
-          homeTeam: result.homeTeam,
-          awayTeam: result.awayTeam,
-          theme: theme,
-        ),
-        const SizedBox(height: 12),
-        if (block.explanation != null && block.explanation!.isNotEmpty)
-          _ExplanationCard(text: block.explanation!),
-        if (block.topScores.isNotEmpty) ...[
+    if (block != null && block.applied) {
+      final theme = Theme.of(context);
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _HeroCard(block: block, theme: theme),
           const SizedBox(height: 12),
-          _TopScoresCard(
-            scores: block.topScores,
-            selected: block.selectedScore,
+          _MarketDirectionCard(
+            block: block,
+            homeTeam: result.homeTeam,
+            awayTeam: result.awayTeam,
             theme: theme,
           ),
+          const SizedBox(height: 12),
+          _GoalSignalsCard(
+            block: block,
+            homeTeam: result.homeTeam,
+            awayTeam: result.awayTeam,
+            theme: theme,
+          ),
+          const SizedBox(height: 12),
+          if (block.explanation != null && block.explanation!.isNotEmpty)
+            _ExplanationCard(text: block.explanation!),
+          if (block.topScores.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _TopScoresCard(
+              scores: block.topScores,
+              selected: block.selectedScore,
+              theme: theme,
+            ),
+          ],
+          const SizedBox(height: 12),
+          _InputsCard(block: block, theme: theme),
         ],
-        const SizedBox(height: 12),
-        _InputsCard(block: block, theme: theme),
-      ],
-    );
+      );
+    }
+    return _MarketPrimaryFallbackPanel(result: result);
   }
 }
 
-class _UnavailableCard extends StatelessWidget {
-  const _UnavailableCard();
+class _MarketPrimaryFallbackPanel extends StatelessWidget {
+  final PredictionResult result;
+
+  const _MarketPrimaryFallbackPanel({required this.result});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Text(
-          'תחזית שוק אינה זמינה למשחק זה',
-          textAlign: TextAlign.right,
-          style: Theme.of(context).textTheme.bodyLarge,
-        ),
-      ),
-    );
-  }
-}
-
-class _FallbackCard extends StatelessWidget {
-  final String reason;
-
-  const _FallbackCard({required this.reason});
-
-  @override
-  Widget build(BuildContext context) {
-    final label = _reasonHebrew(reason);
+    final spec = _resolveFallbackSpec(result);
+    final theme = Theme.of(context);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -164,35 +194,243 @@ class _FallbackCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              'תחזית שוק אינה זמינה למשחק זה',
+              spec.title,
               textAlign: TextAlign.right,
-              style: Theme.of(context).textTheme.titleMedium,
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
             ),
             const SizedBox(height: 8),
-            Text(
-              label,
-              textAlign: TextAlign.right,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
+            for (final paragraph in spec.bodyParagraphs) ...[
+              Text(
+                paragraph,
+                textAlign: TextAlign.right,
+                style: theme.textTheme.bodyMedium,
+              ),
+              const SizedBox(height: 6),
+            ],
+            if (spec.details.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              for (final detail in spec.details)
+                _FallbackDetailRow(
+                  label: detail.label,
+                  value: detail.value,
+                  valueLtr: detail.valueLtr,
+                ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  static String _reasonHebrew(String reason) {
+  static _FallbackSpec _resolveFallbackSpec(PredictionResult result) {
+    final influence = result.marketInfluenceStatus;
+    final diag = result.marketDiagnostics;
+    final mppReason = result.marketPrimaryPrediction?.reason ?? '';
+
+    if (isResolverMissInfluenceReason(influence?.reason)) {
+      return _resolverMissFallback(influence!);
+    }
+    if (mppReason == 'quality_below_minimum') {
+      return const _FallbackSpec(
+        title: 'איכות נתוני השוק נמוכה',
+        bodyParagraphs: [
+          'נתוני השוק שנמצאו אינם מספיק אמינים כדי להציג תחזית שוק.',
+        ],
+      );
+    }
+    if (isLegacyMarketQuotaExceeded(diag)) {
+      return const _FallbackSpec(
+        title: 'נתוני שוק אינם זמינים כרגע',
+        bodyParagraphs: [
+          'מקור השוק הזמין כרגע הגיע למגבלת שימוש.',
+          'נסה שוב מאוחר יותר.',
+        ],
+      );
+    }
+    if (mppReason == 'market_unavailable') {
+      return const _FallbackSpec(
+        title: 'תחזית שוק לא זמינה',
+        bodyParagraphs: [
+          'לא התקבלו נתוני שוק מספיקים כדי לבנות תחזית מבוססת שוק.',
+          'התחזית הרגילה עדיין זמינה בטאב תחזית.',
+        ],
+      );
+    }
+    return _genericFallback(mppReason, influence?.reason);
+  }
+
+  static _FallbackSpec _resolverMissFallback(MarketInfluenceStatus influence) {
+    final reasonLabel = marketInfluenceReasonLabelHe(influence.reason);
+    final details = <_FallbackDetail>[];
+    if (reasonLabel.isNotEmpty) {
+      details.add(_FallbackDetail(label: 'סיבה', value: reasonLabel));
+    }
+    if (influence.provider != null && influence.provider!.isNotEmpty) {
+      details.add(
+        _FallbackDetail(
+          label: 'מקור',
+          value: influence.provider!,
+          valueLtr: true,
+        ),
+      );
+    }
+    if (influence.resolverPagesFetched != null) {
+      details.add(
+        _FallbackDetail(
+          label: 'עמודים שנבדקו',
+          value:
+              '${influence.resolverPagesFetched} / $marketResolverMaxPagesHint',
+          valueLtr: true,
+        ),
+      );
+    }
+    if (influence.resolverEventsSeen != null) {
+      details.add(
+        _FallbackDetail(
+          label: 'אירועים שנבדקו',
+          value: '${influence.resolverEventsSeen}',
+          valueLtr: true,
+        ),
+      );
+    }
+    if (influence.resolverDiscoveryStatus != null &&
+        influence.resolverDiscoveryStatus!.isNotEmpty) {
+      details.add(
+        _FallbackDetail(
+          label: 'סטטוס חיפוש',
+          value: influence.resolverDiscoveryStatus!,
+          valueLtr: true,
+        ),
+      );
+    }
+    return _FallbackSpec(
+      title: 'תחזית שוק לא זמינה זמנית',
+      bodyParagraphs: const [
+        'לא נמצא אירוע שוק מתאים עבור המשחק ברגע זה.',
+        'נסה להריץ את החיזוי שוב בעוד דקה.',
+      ],
+      details: details,
+    );
+  }
+
+  static _FallbackSpec _genericFallback(
+    String mppReason,
+    String? influenceReason,
+  ) {
+    final label = marketInfluenceReasonLabelHe(influenceReason);
+    if (label.isNotEmpty) {
+      return _FallbackSpec(
+        title: 'תחזית שוק לא זמינה',
+        bodyParagraphs: [label],
+      );
+    }
+    final mppLabel = _mppReasonLabelHe(mppReason);
+    if (mppLabel.isNotEmpty) {
+      return _FallbackSpec(
+        title: 'תחזית שוק לא זמינה',
+        bodyParagraphs: [mppLabel],
+      );
+    }
+    return const _FallbackSpec(
+      title: 'תחזית שוק לא זמינה',
+      bodyParagraphs: ['תחזית שוק אינה זמינה למשחק זה.'],
+    );
+  }
+
+  static String _mppReasonLabelHe(String reason) {
     switch (reason) {
       case 'quality_below_minimum':
         return 'איכות נתוני השוק נמוכה מדי לתחזית שוק.';
       case 'market_unavailable':
-        return 'נתוני שוק לא זמינים.';
+        return 'לא התקבלו נתוני שוק מספיקים כדי לבנות תחזית מבוססת שוק.';
       case 'missing_h2h':
         return 'חסרים נתוני 1X2 מהשוק.';
       case 'provider_disabled':
-        return 'שירות השוק אינו פעיל.';
+        return 'ספק השוק אינו פעיל.';
+      case 'live_fetch_failed':
+        return 'טעינת נתוני השוק נכשלה.';
+      case 'quota_exceeded':
+        return 'מגבלת שימוש של ספק השוק.';
       default:
-        return reason;
+        return '';
     }
+  }
+}
+
+class _FallbackSpec {
+  final String title;
+  final List<String> bodyParagraphs;
+  final List<_FallbackDetail> details;
+
+  const _FallbackSpec({
+    required this.title,
+    required this.bodyParagraphs,
+    this.details = const [],
+  });
+}
+
+class _FallbackDetail {
+  final String label;
+  final String value;
+  final bool valueLtr;
+
+  const _FallbackDetail({
+    required this.label,
+    required this.value,
+    this.valueLtr = false,
+  });
+}
+
+class _FallbackDetailRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final bool valueLtr;
+
+  const _FallbackDetailRow({
+    required this.label,
+    required this.value,
+    this.valueLtr = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final valueWidget = valueLtr
+        ? Directionality(
+            textDirection: TextDirection.ltr,
+            child: Text(
+              value,
+              textAlign: TextAlign.left,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          )
+        : Text(
+            value,
+            textAlign: TextAlign.right,
+            style: Theme.of(context).textTheme.bodySmall,
+          );
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(
+            flex: 2,
+            child: Text(
+              '$label:',
+              textAlign: TextAlign.right,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            flex: 3,
+            child: valueWidget,
+          ),
+        ],
+      ),
+    );
   }
 }
 
