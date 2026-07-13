@@ -11,9 +11,13 @@ from fastapi.testclient import TestClient
 
 import config
 from api.main import app
+from core.market_event_resolver import ResolverEventListDiscovery
 from core.market_influence import map_resolver_match_reason
 from core.market_live_cache import reset_default_cache
-from core.market_event_resolver_cache import reset_default_resolver_cache
+from core.market_event_resolver_cache import (
+    reset_default_resolver_cache,
+    reset_default_resolver_list_cache,
+)
 from core.market_live_fetch import LiveFetchResult
 from core.providers.rapidapi_odds_feed_client import RapidApiOddsFeedClientError
 
@@ -58,13 +62,33 @@ def _live_fetch_result(audit: dict) -> LiveFetchResult:
     )
 
 
+def _discovery(
+    events: list[dict],
+    *,
+    pages_fetched: int = 1,
+    list_cache_status: str = "miss",
+) -> ResolverEventListDiscovery:
+    return ResolverEventListDiscovery(
+        events=list(events),
+        pages_fetched=pages_fetched,
+        events_seen=len(events),
+        list_cache_status=list_cache_status,
+        provider_page_calls=pages_fetched,
+        discovery_status="SCHEDULED",
+        api_lookback_hours=24,
+        api_lookahead_hours=1080,
+    )
+
+
 @pytest.fixture(autouse=True)
 def _clear_caches() -> None:
     reset_default_cache()
     reset_default_resolver_cache()
+    reset_default_resolver_list_cache()
     yield
     reset_default_cache()
     reset_default_resolver_cache()
+    reset_default_resolver_list_cache()
 
 
 @pytest.fixture
@@ -144,7 +168,10 @@ def test_explicit_event_id_applied_status(all_influence_gates) -> None:
 
 def test_resolver_no_match_app_style_status(auto_resolver_on) -> None:
     events = [_event(1, "France", "Germany")]
-    with patch("core.market_event_resolver.fetch_resolver_discovery_events", return_value=events):
+    with patch(
+        "core.market_event_resolver.discover_resolver_event_list",
+        return_value=_discovery(events, pages_fetched=5, list_cache_status="miss"),
+    ):
         resp = client.post("/api/predict", json=BASELINE_PAYLOAD)
     assert resp.status_code == 200
     data = resp.json()
@@ -155,6 +182,12 @@ def test_resolver_no_match_app_style_status(auto_resolver_on) -> None:
     assert status["reason"] == "resolver_no_match"
     assert status["provider"] == "rapidapi_odds_feed"
     assert status["provider_event_id"] is None
+    assert status["resolver_pages_fetched"] == 5
+    assert status["resolver_events_seen"] == 1
+    assert status["resolver_discovery_status"] == "SCHEDULED"
+    assert status["resolver_api_lookback_hours"] == 24
+    assert status["resolver_api_lookahead_hours"] == 1080
+    assert status["resolver_cache_status"] == "miss"
 
 
 def test_resolver_ambiguous_status(auto_resolver_on) -> None:
@@ -162,7 +195,10 @@ def test_resolver_ambiguous_status(auto_resolver_on) -> None:
         _event(1, "Canada", "Argentina"),
         _event(2, "Canada", "Argentina"),
     ]
-    with patch("core.market_event_resolver.fetch_resolver_discovery_events", return_value=events):
+    with patch(
+        "core.market_event_resolver.discover_resolver_event_list",
+        return_value=_discovery(events),
+    ):
         resp = client.post("/api/predict", json=BASELINE_PAYLOAD)
     status = resp.json()["market_influence_status"]
     assert status["reason"] == "resolver_ambiguous"
@@ -187,7 +223,7 @@ def test_live_fetch_failed_status(all_influence_gates) -> None:
 
 def test_no_secrets_or_raw_payload_in_status(auto_resolver_on) -> None:
     with patch(
-        "core.market_event_resolver.fetch_resolver_discovery_events",
+        "core.market_event_resolver.discover_resolver_event_list",
         side_effect=RapidApiOddsFeedClientError("rapidapi_auth_failed:top-secret-key"),
     ):
         resp = client.post("/api/predict", json=BASELINE_PAYLOAD)
@@ -208,7 +244,10 @@ def test_resolver_outside_window_status(auto_resolver_on) -> None:
             "team_away": {"name": "England"},
         }
     ]
-    with patch("core.market_event_resolver.fetch_resolver_discovery_events", return_value=events):
+    with patch(
+        "core.market_event_resolver.discover_resolver_event_list",
+        return_value=_discovery(events),
+    ):
         resp = client.post("/api/predict", json=NORWAY_ENGLAND_PAYLOAD)
     status = resp.json()["market_influence_status"]
     assert status["reason"] == "resolver_outside_window"
@@ -218,8 +257,8 @@ def test_resolver_outside_window_status(auto_resolver_on) -> None:
 def test_resolver_success_app_style_status(auto_resolver_on) -> None:
     events = [_event(619963, "Norway", "England")]
     with patch(
-        "core.market_event_resolver.fetch_resolver_discovery_events",
-        return_value=events,
+        "core.market_event_resolver.discover_resolver_event_list",
+        return_value=_discovery(events),
     ), patch(
         "core.market_resolution.fetch_live_market_audit_report",
         return_value=_live_fetch_result(GREEN_AUDIT),
@@ -229,3 +268,8 @@ def test_resolver_success_app_style_status(auto_resolver_on) -> None:
     assert data["market_influence"]["market_influence_applied"] is True
     assert data["market_influence_status"]["applied"] is True
     assert data["market_influence_status"]["reason"] == "applied"
+    status = data["market_influence_status"]
+    assert status["resolver_pages_fetched"] == 1
+    assert status["resolver_events_seen"] == 1
+    assert status["resolver_discovery_status"] == "SCHEDULED"
+    assert status["resolver_cache_status"] == "miss"

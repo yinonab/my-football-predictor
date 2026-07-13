@@ -131,33 +131,48 @@ def fetch_events_in_match_window(
     )
 
 
-def fetch_resolver_discovery_events(
+def _resolver_discovery_params(
     *,
-    sport_id: int = 1,
-    status: str | None = "SCHEDULED",
-    api_lookback_hours: int = 24,
-    api_lookahead_hours: int = 1080,
-    pages: int = 2,
-    timeout: float = DEFAULT_TIMEOUT_SEC,
-    now: datetime | None = None,
-) -> list[dict[str, Any]]:
-    """Scheduled discovery query for resolver — wide API window, optional status filter."""
-    events: list[dict[str, Any]] = []
-    now_ts = now or datetime.now(timezone.utc)
+    sport_id: int,
+    status: str | None,
+    api_lookback_hours: int,
+    api_lookahead_hours: int,
+    now: datetime,
+) -> dict[str, Any]:
     params: dict[str, Any] = {
         "sport_id": int(sport_id),
-        "start_at_min": (now_ts - timedelta(hours=api_lookback_hours)).strftime(
+        "start_at_min": (now - timedelta(hours=api_lookback_hours)).strftime(
             "%Y-%m-%d %H:%M:%S"
         ),
-        "start_at_max": (now_ts + timedelta(hours=api_lookahead_hours)).strftime(
+        "start_at_max": (now + timedelta(hours=api_lookahead_hours)).strftime(
             "%Y-%m-%d %H:%M:%S"
         ),
     }
     status_value = str(status or "").strip().upper()
     if status_value:
         params["status"] = status_value
-    last_status = 0
-    last_error = ""
+    return params
+
+
+def iter_resolver_discovery_event_pages(
+    *,
+    sport_id: int = 1,
+    status: str | None = "SCHEDULED",
+    api_lookback_hours: int = 24,
+    api_lookahead_hours: int = 1080,
+    pages: int = 5,
+    timeout: float = DEFAULT_TIMEOUT_SEC,
+    now: datetime | None = None,
+):
+    """Yield (page_index, batch) for scheduled discovery; bounded by pages."""
+    now_ts = now or datetime.now(timezone.utc)
+    params = _resolver_discovery_params(
+        sport_id=sport_id,
+        status=status,
+        api_lookback_hours=api_lookback_hours,
+        api_lookahead_hours=api_lookahead_hours,
+        now=now_ts,
+    )
     page_count = max(1, pages)
     for page in range(page_count):
         params["page"] = page
@@ -169,10 +184,12 @@ def fetch_resolver_discovery_events(
                 f"rapidapi_request_failed:{_sanitize_error_message(str(exc))}"
             ) from exc
 
-        last_status = resp.status_code
         if resp.status_code >= 400:
-            last_error = f"http_{resp.status_code}"
-            break
+            if resp.status_code == 401 or resp.status_code == 403:
+                raise RapidApiOddsFeedClientError("rapidapi_auth_failed")
+            if resp.status_code == 429:
+                raise RapidApiOddsFeedClientError("rapidapi_rate_limited")
+            raise RapidApiOddsFeedClientError(f"http_{resp.status_code}")
 
         try:
             body = resp.json()
@@ -180,16 +197,34 @@ def fetch_resolver_discovery_events(
             body = {}
 
         batch = _paginated_items(body)
+        yield page, batch
         if not batch:
             break
-        events.extend(batch)
 
-    if last_status == 401 or last_status == 403:
-        raise RapidApiOddsFeedClientError("rapidapi_auth_failed")
-    if last_status == 429:
-        raise RapidApiOddsFeedClientError("rapidapi_rate_limited")
-    if last_error and not events:
-        raise RapidApiOddsFeedClientError(last_error)
+
+def fetch_resolver_discovery_events(
+    *,
+    sport_id: int = 1,
+    status: str | None = "SCHEDULED",
+    api_lookback_hours: int = 24,
+    api_lookahead_hours: int = 1080,
+    pages: int = 5,
+    timeout: float = DEFAULT_TIMEOUT_SEC,
+    now: datetime | None = None,
+) -> list[dict[str, Any]]:
+    """Scheduled discovery query for resolver — wide API window, optional status filter."""
+    events: list[dict[str, Any]] = []
+    for _page, batch in iter_resolver_discovery_event_pages(
+        sport_id=sport_id,
+        status=status,
+        api_lookback_hours=api_lookback_hours,
+        api_lookahead_hours=api_lookahead_hours,
+        pages=pages,
+        timeout=timeout,
+        now=now,
+    ):
+        if batch:
+            events.extend(batch)
     return events
 
 

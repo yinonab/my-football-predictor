@@ -11,7 +11,8 @@ from fastapi.testclient import TestClient
 
 import config
 from api.main import app
-from core.market_event_resolver_cache import reset_default_resolver_cache
+from core.market_event_resolver import ResolverEventListDiscovery
+from core.market_event_resolver_cache import reset_default_resolver_cache, reset_default_resolver_list_cache
 from core.market_live_cache import reset_default_cache
 from core.market_live_fetch import LiveFetchResult
 from core.market_resolution import (
@@ -57,13 +58,28 @@ def _live_fetch_result(audit: dict) -> LiveFetchResult:
     )
 
 
+def _discovery(events: list[dict], *, pages_fetched: int = 1) -> ResolverEventListDiscovery:
+    return ResolverEventListDiscovery(
+        events=list(events),
+        pages_fetched=pages_fetched,
+        events_seen=len(events),
+        list_cache_status="miss",
+        provider_page_calls=pages_fetched,
+        discovery_status="SCHEDULED",
+        api_lookback_hours=24,
+        api_lookahead_hours=1080,
+    )
+
+
 @pytest.fixture(autouse=True)
 def _clear_caches() -> None:
     reset_default_cache()
     reset_default_resolver_cache()
+    reset_default_resolver_list_cache()
     yield
     reset_default_cache()
     reset_default_resolver_cache()
+    reset_default_resolver_list_cache()
 
 
 @pytest.fixture
@@ -111,8 +127,8 @@ def test_build_market_resolution_context_explicit_id(all_gates) -> None:
 def test_predict_france_spain_scheduled_resolver_applies_influence(all_gates) -> None:
     events = [_event(700100, "France", "Spain", start_at="2026-07-14 19:00:00")]
     with patch(
-        "core.market_event_resolver.fetch_resolver_discovery_events",
-        return_value=events,
+        "core.market_event_resolver.discover_resolver_event_list",
+        return_value=_discovery(events),
     ), patch(
         "core.market_resolution.fetch_live_market_audit_report",
         return_value=_live_fetch_result(GREEN_AUDIT),
@@ -164,8 +180,8 @@ def test_predict_france_spain_market_diagnostics_use_odds_feed_after_scheduled_r
     real_client = UnifiedOddsClient(oddspapi=oddspapi, the_odds_api=the_odds)
 
     with patch("api.main._odds_client", real_client), patch(
-        "core.market_event_resolver.fetch_resolver_discovery_events",
-        return_value=events,
+        "core.market_event_resolver.discover_resolver_event_list",
+        return_value=_discovery(events),
     ), patch(
         "core.market_resolution.fetch_live_market_audit_report",
         return_value=_live_fetch_result(GREEN_AUDIT),
@@ -196,8 +212,8 @@ def test_predict_france_spain_market_diagnostics_use_odds_feed_after_scheduled_r
 def test_build_market_resolution_context_single_fetch_per_predict(all_gates) -> None:
     events = [_event(619963, "Norway", "England")]
     with patch(
-        "core.market_event_resolver.fetch_resolver_discovery_events",
-        return_value=events,
+        "core.market_event_resolver.discover_resolver_event_list",
+        return_value=_discovery(events),
     ), patch(
         "core.market_resolution.fetch_live_market_audit_report",
         return_value=_live_fetch_result(GREEN_AUDIT),
@@ -232,8 +248,8 @@ def test_predict_outside_window_status(all_gates) -> None:
         }
     ]
     with patch(
-        "core.market_event_resolver.fetch_resolver_discovery_events",
-        return_value=events,
+        "core.market_event_resolver.discover_resolver_event_list",
+        return_value=_discovery(events),
     ), patch(
         "core.market_resolution.fetch_live_market_audit_report",
     ) as fetch_mock:
@@ -295,8 +311,8 @@ def test_predict_market_diagnostics_uses_odds_feed_when_legacy_quota(all_gates) 
     real_client = UnifiedOddsClient(oddspapi=oddspapi, the_odds_api=the_odds)
 
     with patch("api.main._odds_client", real_client), patch(
-        "core.market_event_resolver.fetch_resolver_discovery_events",
-        return_value=events,
+        "core.market_event_resolver.discover_resolver_event_list",
+        return_value=_discovery(events),
     ), patch(
         "core.market_resolution.fetch_live_market_audit_report",
         return_value=_live_fetch_result(GREEN_AUDIT),
@@ -336,8 +352,8 @@ def test_predict_legacy_quota_without_odds_feed_still_fails(all_gates) -> None:
     real_client = UnifiedOddsClient(oddspapi=oddspapi, the_odds_api=the_odds)
 
     with patch("api.main._odds_client", real_client), patch(
-        "core.market_event_resolver.fetch_resolver_discovery_events",
-        return_value=[],
+        "core.market_event_resolver.discover_resolver_event_list",
+        return_value=_discovery([]),
     ), patch(
         "core.market_resolution.fetch_live_market_audit_report",
     ) as fetch_mock:

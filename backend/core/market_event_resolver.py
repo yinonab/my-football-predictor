@@ -11,7 +11,9 @@ import config
 from core.market_event_resolver_cache import (
     EventResolverCallBudget,
     MarketEventResolverCache,
+    ResolverEventListCache,
     get_default_resolver_cache,
+    get_default_resolver_list_cache,
 )
 from core.market_event_map import (
     make_event_map_key,
@@ -20,7 +22,7 @@ from core.market_event_map import (
 )
 from core.providers.rapidapi_odds_feed_client import (
     RapidApiOddsFeedClientError,
-    fetch_resolver_discovery_events,
+    iter_resolver_discovery_event_pages,
 )
 
 logger = logging.getLogger(__name__)
@@ -34,9 +36,31 @@ _RESOLVER_WINDOW_STATUSES: frozenset[str] = frozenset(
 @dataclass(frozen=True)
 class EventResolverResult:
     event_id: str | None = None
-    cache_status: str = "disabled"  # hit | miss | disabled
+    cache_status: str = "disabled"  # hit | miss | disabled (event-id cache)
     provider_call_count: int = 0
     match_reason: str | None = None
+    list_cache_status: str = "disabled"  # hit | miss | disabled (event-list cache)
+    pages_fetched: int | None = None
+    events_seen: int | None = None
+    discovery_status: str | None = None
+    api_lookback_hours: int | None = None
+    api_lookahead_hours: int | None = None
+
+
+@dataclass(frozen=True)
+class ResolverEventListDiscovery:
+    events: list[dict[str, Any]]
+    pages_fetched: int
+    events_seen: int
+    list_cache_status: str
+    provider_page_calls: int
+    discovery_status: str
+    api_lookback_hours: int
+    api_lookahead_hours: int
+
+
+def _discovery_should_stop_fetching(match_reason: str) -> bool:
+    return match_reason != "no_match"
 
 
 def _norm_fold(name: str) -> str:
@@ -268,6 +292,106 @@ def auto_resolver_gates_satisfied(
     return provider.strip().lower() in _SUPPORTED_PROVIDERS
 
 
+def discover_resolver_event_list(
+    *,
+    provider_name: str,
+    sport_id: int,
+    discovery_status: str,
+    api_lookback_hours: int,
+    api_lookahead_hours: int,
+    max_pages: int,
+    home_team: str,
+    away_team: str,
+    list_cache: ResolverEventListCache | None = None,
+    list_cache_ttl_seconds: int | None = None,
+    now: datetime | None = None,
+    now_ts: float | None = None,
+) -> ResolverEventListDiscovery:
+    """Fetch scheduled discovery pages with list cache and early stop on team match."""
+    cache_store = list_cache if list_cache is not None else get_default_resolver_list_cache()
+    ttl = (
+        config.market_event_resolver_list_cache_ttl_seconds()
+        if list_cache_ttl_seconds is None
+        else list_cache_ttl_seconds
+    )
+    now_dt = now or datetime.now(timezone.utc)
+    now_value = now_dt.timestamp() if now_ts is None else now_ts
+    status_label = str(discovery_status or "").strip().upper() or "none"
+    bucket_ts = ResolverEventListCache.window_bucket_ts(now=now_value, bucket_seconds=ttl or 300)
+    list_key = ResolverEventListCache.make_key(
+        provider=provider_name,
+        sport_id=sport_id,
+        status=status_label,
+        api_lookback_hours=api_lookback_hours,
+        api_lookahead_hours=api_lookahead_hours,
+        pages=max_pages,
+        window_bucket_ts=bucket_ts,
+    )
+
+    if ttl > 0:
+        cached = cache_store.get(list_key, now=now_value)
+        if cached is not None:
+            events, pages_fetched = cached
+            return ResolverEventListDiscovery(
+                events=events,
+                pages_fetched=pages_fetched,
+                events_seen=len(events),
+                list_cache_status="hit",
+                provider_page_calls=0,
+                discovery_status=status_label,
+                api_lookback_hours=api_lookback_hours,
+                api_lookahead_hours=api_lookahead_hours,
+            )
+        list_cache_status = "miss"
+    else:
+        list_cache_status = "disabled"
+
+    events: list[dict[str, Any]] = []
+    pages_fetched = 0
+    provider_page_calls = 0
+    for _page, batch in iter_resolver_discovery_event_pages(
+        sport_id=sport_id,
+        status=discovery_status or None,
+        api_lookback_hours=api_lookback_hours,
+        api_lookahead_hours=api_lookahead_hours,
+        pages=max_pages,
+        now=now_dt,
+    ):
+        provider_page_calls += 1
+        pages_fetched += 1
+        if batch:
+            events.extend(batch)
+        _, match_reason = match_provider_event_from_list(
+            events,
+            home_team=home_team,
+            away_team=away_team,
+        )
+        if _discovery_should_stop_fetching(match_reason):
+            break
+        if not batch:
+            break
+
+    if ttl > 0:
+        cache_store.set(
+            list_key,
+            events,
+            pages_fetched=pages_fetched,
+            ttl_seconds=ttl,
+            now=now_value,
+        )
+
+    return ResolverEventListDiscovery(
+        events=events,
+        pages_fetched=pages_fetched,
+        events_seen=len(events),
+        list_cache_status=list_cache_status,
+        provider_page_calls=provider_page_calls,
+        discovery_status=status_label,
+        api_lookback_hours=api_lookback_hours,
+        api_lookahead_hours=api_lookahead_hours,
+    )
+
+
 def _log_resolver_outcome(
     *,
     home_team: str,
@@ -282,18 +406,13 @@ def _log_resolver_outcome(
     reason = result.match_reason or ""
     if result.event_id:
         start_at = (matched_event or {}).get("start_at")
-        status = (matched_event or {}).get("status")
         tournament = ((matched_event or {}).get("tournament") or {}).get("name")
         logger.info(
-            "resolver_resolved home=%s away=%s event_id=%s reason=%s cache=%s "
-            "start_at=%s status=%s tournament=%s",
+            "resolver_resolved event_id=%s home=%s away=%s start_at=%s tournament=%s",
+            result.event_id,
             home,
             away,
-            result.event_id,
-            reason,
-            result.cache_status,
             start_at,
-            status,
             tournament,
         )
         return
@@ -306,11 +425,11 @@ def _log_resolver_outcome(
     elif reason == "no_match":
         if list_count is not None and pages is not None:
             logger.info(
-                "resolver_no_match home=%s away=%s list_count=%s pages=%s",
+                "resolver_no_match home=%s away=%s pages=%s events=%s",
                 home,
                 away,
-                list_count,
                 pages,
+                list_count,
             )
         else:
             logger.info("resolver_no_match home=%s away=%s", home, away)
@@ -427,24 +546,32 @@ def try_auto_resolve_provider_event_id(
         _log_resolver_outcome(home_team=home_team, away_team=away_team, result=result)
         return result
 
+    discovery_status = config.market_event_resolver_discovery_status()
+    api_lookback = config.market_event_resolver_api_lookback_hours()
+    api_lookahead = config.market_event_resolver_api_lookahead_hours()
+    resolved_sport_id = config.market_event_resolver_sport_id() if sport_id is None else sport_id
+
     try:
         if provider_name == "rapidapi_odds_feed":
-            discovery_status = config.market_event_resolver_discovery_status()
-            api_lookback = config.market_event_resolver_api_lookback_hours()
-            api_lookahead = config.market_event_resolver_api_lookahead_hours()
-            raw_events = fetch_resolver_discovery_events(
-                sport_id=config.market_event_resolver_sport_id() if sport_id is None else sport_id,
-                status=discovery_status or None,
+            discovery = discover_resolver_event_list(
+                provider_name=provider_name,
+                sport_id=resolved_sport_id,
+                discovery_status=discovery_status,
                 api_lookback_hours=api_lookback,
                 api_lookahead_hours=api_lookahead,
-                pages=page_count,
+                max_pages=page_count,
+                home_team=home_team,
+                away_team=away_team,
                 now=now_dt,
+                now_ts=now,
             )
+            raw_events = discovery.events
             logger.info(
-                "resolver_list_fetched count=%s pages=%s status=%s",
-                len(raw_events),
-                page_count,
-                discovery_status or "none",
+                "resolver_list_fetched pages=%s events=%s cache=%s status=%s",
+                discovery.pages_fetched,
+                discovery.events_seen,
+                discovery.list_cache_status,
+                discovery.discovery_status,
             )
         else:
             result = EventResolverResult(cache_status=cache_status, match_reason="unsupported_provider")
@@ -455,6 +582,9 @@ def try_auto_resolve_provider_event_id(
             cache_status=cache_status,
             provider_call_count=1,
             match_reason="provider_error",
+            discovery_status=discovery_status or None,
+            api_lookback_hours=api_lookback,
+            api_lookahead_hours=api_lookahead,
         )
         _log_resolver_outcome(home_team=home_team, away_team=away_team, result=result)
         return result
@@ -480,8 +610,14 @@ def try_auto_resolve_provider_event_id(
     result = EventResolverResult(
         event_id=event_id,
         cache_status=cache_status,
-        provider_call_count=1,
+        provider_call_count=discovery.provider_page_calls,
         match_reason=match_reason,
+        list_cache_status=discovery.list_cache_status,
+        pages_fetched=discovery.pages_fetched,
+        events_seen=discovery.events_seen,
+        discovery_status=discovery.discovery_status,
+        api_lookback_hours=discovery.api_lookback_hours,
+        api_lookahead_hours=discovery.api_lookahead_hours,
     )
     _log_resolver_outcome(
         home_team=home_team,
@@ -489,6 +625,6 @@ def try_auto_resolve_provider_event_id(
         result=result,
         matched_event=matched_event,
         list_count=len(raw_events),
-        pages=page_count,
+        pages=discovery.pages_fetched,
     )
     return result

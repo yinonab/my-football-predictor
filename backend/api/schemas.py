@@ -674,6 +674,12 @@ class MarketInfluenceStatusResponse(BaseModel):
     provider: str | None = None
     resolver_window_hours: int | None = None
     provider_event_id: str | None = None
+    resolver_pages_fetched: int | None = None
+    resolver_events_seen: int | None = None
+    resolver_discovery_status: str | None = None
+    resolver_api_lookback_hours: int | None = None
+    resolver_api_lookahead_hours: int | None = None
+    resolver_cache_status: str | None = None
 
 
 class MarketInfluenceAppliedResponse(BaseModel):

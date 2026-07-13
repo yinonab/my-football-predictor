@@ -59,9 +59,10 @@ def build_market_influence_status(
     provider_event_id: str | None = None,
     resolver_window_hours: int | None = None,
     provider: str | None = _DEFAULT_PROVIDER,
+    resolver_result: EventResolverResult | None = None,
 ) -> dict[str, Any]:
     """Non-sensitive status block for /api/predict (no secrets or raw provider payloads)."""
-    return {
+    status = {
         "attempted": attempted,
         "applied": applied,
         "reason": reason,
@@ -69,6 +70,20 @@ def build_market_influence_status(
         "resolver_window_hours": resolver_window_hours,
         "provider_event_id": str(provider_event_id).strip() if provider_event_id else None,
     }
+    if resolver_result is not None:
+        if resolver_result.pages_fetched is not None:
+            status["resolver_pages_fetched"] = resolver_result.pages_fetched
+        if resolver_result.events_seen is not None:
+            status["resolver_events_seen"] = resolver_result.events_seen
+        if resolver_result.discovery_status:
+            status["resolver_discovery_status"] = resolver_result.discovery_status
+        if resolver_result.api_lookback_hours is not None:
+            status["resolver_api_lookback_hours"] = resolver_result.api_lookback_hours
+        if resolver_result.api_lookahead_hours is not None:
+            status["resolver_api_lookahead_hours"] = resolver_result.api_lookahead_hours
+        if resolver_result.list_cache_status in ("hit", "miss"):
+            status["resolver_cache_status"] = resolver_result.list_cache_status
+    return status
 
 
 def resolve_provider_event_id(
@@ -241,6 +256,7 @@ def try_apply_market_influence_to_predict(
                 provider=_DEFAULT_PROVIDER,
                 resolver_window_hours=resolver_window_hours,
                 provider_event_id=resolved_event_id,
+                resolver_result=resolver_result,
             ),
         )
 
@@ -395,6 +411,7 @@ def try_apply_market_influence_to_predict(
         provider=_DEFAULT_PROVIDER,
         resolver_window_hours=resolver_window_hours,
         provider_event_id=resolved_event_id,
+        resolver_result=resolver_result,
     )
     return MarketInfluenceResult(
         applied=True,
