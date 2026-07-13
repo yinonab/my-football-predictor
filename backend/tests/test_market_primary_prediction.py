@@ -12,7 +12,8 @@ from fastapi.testclient import TestClient
 
 import config
 from api.main import app
-from core.market_event_resolver_cache import reset_default_resolver_cache
+from core.market_event_resolver import ResolverEventListDiscovery
+from core.market_event_resolver_cache import reset_default_resolver_cache, reset_default_resolver_list_cache
 from core.market_live_cache import reset_default_cache
 from core.market_live_fetch import LiveFetchResult
 from core.market_primary_prediction import build_market_primary_prediction
@@ -108,10 +109,28 @@ def _ctx(
     )
 
 
+def _discovery(events: list[dict], *, pages_fetched: int = 1) -> ResolverEventListDiscovery:
+    return ResolverEventListDiscovery(
+        events=list(events),
+        pages_fetched=pages_fetched,
+        events_seen=len(events),
+        list_cache_status="miss",
+        provider_page_calls=pages_fetched,
+        discovery_status="SCHEDULED",
+        api_lookback_hours=24,
+        api_lookahead_hours=1080,
+    )
+
+
 @pytest.fixture(autouse=True)
 def _reset_caches() -> None:
     reset_default_cache()
     reset_default_resolver_cache()
+    reset_default_resolver_list_cache()
+    yield
+    reset_default_cache()
+    reset_default_resolver_cache()
+    reset_default_resolver_list_cache()
 
 
 @pytest.fixture
@@ -289,8 +308,8 @@ def test_yellow_band_weights() -> None:
 def test_api_does_not_change_primary_scoreline_or_influence(all_gates) -> None:
     events = [_event(623029, "France", "Spain")]
     with patch(
-        "core.market_event_resolver.fetch_resolver_discovery_events",
-        return_value=events,
+        "core.market_event_resolver.discover_resolver_event_list",
+        return_value=_discovery(events),
     ), patch(
         "core.market_resolution.fetch_live_market_audit_report",
         return_value=_live_fetch_result(GREEN_AUDIT),
@@ -347,8 +366,8 @@ def test_france_spain_mocked_api_market_primary(all_gates) -> None:
     }
     events = [_event(623029, "France", "Spain")]
     with patch(
-        "core.market_event_resolver.fetch_resolver_discovery_events",
-        return_value=events,
+        "core.market_event_resolver.discover_resolver_event_list",
+        return_value=_discovery(events),
     ), patch(
         "core.market_resolution.fetch_live_market_audit_report",
         return_value=_live_fetch_result(fra_esp_audit),

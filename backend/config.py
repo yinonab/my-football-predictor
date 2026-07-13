@@ -648,7 +648,10 @@ MARKET_EVENT_RESOLVER_LOOKBACK_HOURS: int = int(
 MARKET_EVENT_RESOLVER_LOOKAHEAD_HOURS: int = int(
     os.getenv("MARKET_EVENT_RESOLVER_LOOKAHEAD_HOURS", "168")
 )
-MARKET_EVENT_RESOLVER_PAGES: int = int(os.getenv("MARKET_EVENT_RESOLVER_PAGES", "2"))
+MARKET_EVENT_RESOLVER_PAGES: int = int(os.getenv("MARKET_EVENT_RESOLVER_PAGES", "5"))
+MARKET_EVENT_RESOLVER_LIST_CACHE_TTL_SECONDS: int = int(
+    os.getenv("MARKET_EVENT_RESOLVER_LIST_CACHE_TTL_SECONDS", "300")
+)
 MARKET_EVENT_RESOLVER_DISCOVERY_STATUS: str = os.getenv(
     "MARKET_EVENT_RESOLVER_DISCOVERY_STATUS", "SCHEDULED"
 ).strip().upper()
@@ -702,6 +705,10 @@ def market_event_resolver_api_lookback_hours() -> int:
 
 def market_event_resolver_api_lookahead_hours() -> int:
     return MARKET_EVENT_RESOLVER_API_LOOKAHEAD_HOURS
+
+
+def market_event_resolver_list_cache_ttl_seconds() -> int:
+    return max(0, MARKET_EVENT_RESOLVER_LIST_CACHE_TTL_SECONDS)
 
 
 # API
