@@ -15,6 +15,67 @@ Color qualityBandColor(String band) {
   }
 }
 
+String primaryTeamLabel(String full) {
+  final idx = full.indexOf('(');
+  if (idx > 0) return full.substring(0, idx).trim();
+  return full.trim();
+}
+
+String marketGoalTrendLabel(String? trend) {
+  switch (trend) {
+    case 'under_2_5':
+      return 'מתחת 2.5';
+    case 'over_2_5':
+      return 'מעל 2.5';
+    case 'neutral':
+      return 'ניטרלי';
+    default:
+      return 'לא זמין';
+  }
+}
+
+String bttsSignalLabel(String? signal) {
+  switch (signal) {
+    case 'yes':
+      return 'כן';
+    case 'no':
+      return 'לא';
+    case 'neutral':
+      return 'ניטרלי';
+    default:
+      return 'לא זמין';
+  }
+}
+
+String spreadSignalLabel({
+  required String? signal,
+  String? homeTeam,
+  String? awayTeam,
+}) {
+  if (signal == null || signal == 'unavailable') return 'לא זמין';
+  if (signal == 'neutral') return 'ניטרלי';
+
+  final home = homeTeam != null ? primaryTeamLabel(homeTeam) : null;
+  final away = awayTeam != null ? primaryTeamLabel(awayTeam) : null;
+
+  switch (signal) {
+    case 'slight_home_favorite':
+      return home != null ? '$home פייבוריטית קלה' : 'פייבוריט ביתי קל';
+    case 'clear_home_favorite':
+      return home != null ? '$home פייבוריטית ברורה' : 'פייבוריט ביתי ברור';
+    case 'strong_home_favorite':
+      return home != null ? '$home פייבוריטית חזקה' : 'פייבוריט ביתי חזק';
+    case 'slight_away_favorite':
+      return away != null ? '$away פייבוריטית קלה' : 'פייבוריט חוץ קל';
+    case 'clear_away_favorite':
+      return away != null ? '$away פייבוריטית ברורה' : 'פייבוריט חוץ ברור';
+    case 'strong_away_favorite':
+      return away != null ? '$away פייבוריטית חזקה' : 'פייבוריט חוץ חזק';
+    default:
+      return 'לא זמין';
+  }
+}
+
 /// Interpreted market-primary prediction tab (תחזית שוק).
 class MarketPrimaryPredictionPanel extends StatelessWidget {
   final PredictionResult result;
@@ -39,9 +100,19 @@ class MarketPrimaryPredictionPanel extends StatelessWidget {
       children: [
         _HeroCard(block: block, theme: theme),
         const SizedBox(height: 12),
-        _MarketDirectionCard(block: block, theme: theme),
+        _MarketDirectionCard(
+          block: block,
+          homeTeam: result.homeTeam,
+          awayTeam: result.awayTeam,
+          theme: theme,
+        ),
         const SizedBox(height: 12),
-        _GoalSignalsCard(block: block, theme: theme),
+        _GoalSignalsCard(
+          block: block,
+          homeTeam: result.homeTeam,
+          awayTeam: result.awayTeam,
+          theme: theme,
+        ),
         const SizedBox(height: 12),
         if (block.explanation != null && block.explanation!.isNotEmpty)
           _ExplanationCard(text: block.explanation!),
@@ -150,12 +221,15 @@ class _HeroCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 12),
-            Text(
-              block.selectedScore ?? '—',
-              textAlign: TextAlign.center,
-              style: theme.textTheme.displaySmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.primary,
+            Directionality(
+              textDirection: TextDirection.ltr,
+              child: Text(
+                block.selectedScore ?? '—',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.displaySmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary,
+                ),
               ),
             ),
             const SizedBox(height: 4),
@@ -193,13 +267,22 @@ class _HeroCard extends StatelessWidget {
 
 class _MarketDirectionCard extends StatelessWidget {
   final MarketPrimaryPrediction block;
+  final String homeTeam;
+  final String awayTeam;
   final ThemeData theme;
 
-  const _MarketDirectionCard({required this.block, required this.theme});
+  const _MarketDirectionCard({
+    required this.block,
+    required this.homeTeam,
+    required this.awayTeam,
+    required this.theme,
+  });
 
   @override
   Widget build(BuildContext context) {
     final h2h = block.inputs.h2h;
+    final homeLabel = primaryTeamLabel(homeTeam);
+    final awayLabel = primaryTeamLabel(awayTeam);
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
@@ -218,21 +301,31 @@ class _MarketDirectionCard extends StatelessWidget {
                 textAlign: TextAlign.right,
               ),
             const SizedBox(height: 8),
-            _PctRow(label: 'בית', value: h2h.home),
-            _PctRow(label: 'תיקו', value: h2h.draw),
-            _PctRow(label: 'חוץ', value: h2h.away),
+            _LabelValueRow(label: homeLabel, value: _pct(h2h.home)),
+            _LabelValueRow(label: 'תיקו', value: _pct(h2h.draw)),
+            _LabelValueRow(label: awayLabel, value: _pct(h2h.away)),
           ],
         ),
       ),
     );
   }
+
+  static String _pct(double? value) =>
+      value != null ? '${value.toStringAsFixed(1)}%' : '—';
 }
 
 class _GoalSignalsCard extends StatelessWidget {
   final MarketPrimaryPrediction block;
+  final String homeTeam;
+  final String awayTeam;
   final ThemeData theme;
 
-  const _GoalSignalsCard({required this.block, required this.theme});
+  const _GoalSignalsCard({
+    required this.block,
+    required this.homeTeam,
+    required this.awayTeam,
+    required this.theme,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -248,51 +341,26 @@ class _GoalSignalsCard extends StatelessWidget {
               style: theme.textTheme.titleMedium,
             ),
             const SizedBox(height: 8),
-            _SignalRow(
+            _LabelValueRow(
               label: 'מעל/מתחת 2.5',
-              value: _goalTrendLabel(block.marketGoalTrend),
+              value: marketGoalTrendLabel(block.marketGoalTrend),
             ),
-            _SignalRow(label: 'BTTS', value: _bttsLabel(block.bttsSignal)),
-            _SignalRow(
+            _LabelValueRow(
+              label: 'BTTS',
+              value: bttsSignalLabel(block.bttsSignal),
+            ),
+            _LabelValueRow(
               label: 'האנדיקפ',
-              value: _spreadLabel(block.spreadSignal),
+              value: spreadSignalLabel(
+                signal: block.spreadSignal,
+                homeTeam: homeTeam,
+                awayTeam: awayTeam,
+              ),
             ),
           ],
         ),
       ),
     );
-  }
-
-  static String _goalTrendLabel(String? trend) {
-    switch (trend) {
-      case 'under_2_5':
-        return 'מתחת 2.5';
-      case 'over_2_5':
-        return 'מעל 2.5';
-      case 'neutral':
-        return 'ניטרלי';
-      default:
-        return 'לא זמין';
-    }
-  }
-
-  static String _bttsLabel(String? signal) {
-    switch (signal) {
-      case 'yes':
-        return 'כן';
-      case 'no':
-        return 'לא';
-      case 'neutral':
-        return 'ניטרלי';
-      default:
-        return 'לא זמין';
-    }
-  }
-
-  static String _spreadLabel(String? signal) {
-    if (signal == null || signal == 'unavailable') return 'לא זמין';
-    if (signal == 'neutral') return 'ניטרלי';
-    return signal.replaceAll('_', ' ');
   }
 }
 
@@ -364,34 +432,43 @@ class _TopScoresCard extends StatelessWidget {
             ...scores.map((row) {
               final highlight = row.score == selected;
               final frac = maxProb > 0 ? row.probability / maxProb : 0.0;
+              final textStyle = highlight
+                  ? theme.textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    )
+                  : theme.textTheme.bodyMedium;
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
-                child: Row(
-                  children: [
-                    Expanded(
-                      flex: 3,
-                      child: LinearProgressIndicator(
-                        value: frac,
-                        backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                        color: highlight
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.secondary,
+                child: Directionality(
+                  textDirection: TextDirection.ltr,
+                  child: Row(
+                    children: [
+                      SizedBox(
+                        width: 40,
+                        child: Text(
+                          row.score,
+                          style: textStyle,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    SizedBox(
-                      width: 72,
-                      child: Text(
-                        '${row.score}  ${row.probability.toStringAsFixed(1)}%',
-                        textAlign: TextAlign.left,
-                        style: highlight
-                            ? theme.textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              )
-                            : theme.textTheme.bodyMedium,
+                      SizedBox(
+                        width: 56,
+                        child: Text(
+                          '${row.probability.toStringAsFixed(1)}%',
+                          style: textStyle,
+                        ),
                       ),
-                    ),
-                  ],
+                      Expanded(
+                        child: LinearProgressIndicator(
+                          value: frac,
+                          backgroundColor:
+                              theme.colorScheme.surfaceContainerHighest,
+                          color: highlight
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.secondary,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               );
             }),
@@ -452,42 +529,32 @@ class _InputsCard extends StatelessWidget {
   }
 }
 
-class _PctRow extends StatelessWidget {
-  final String label;
-  final double? value;
-
-  const _PctRow({required this.label, this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 2),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(value != null ? '${value!.toStringAsFixed(1)}%' : '—'),
-          Text(label),
-        ],
-      ),
-    );
-  }
-}
-
-class _SignalRow extends StatelessWidget {
+class _LabelValueRow extends StatelessWidget {
   final String label;
   final String value;
 
-  const _SignalRow({required this.label, required this.value});
+  const _LabelValueRow({required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(value),
-          Text(label),
+          Expanded(
+            child: Text(
+              label,
+              textAlign: TextAlign.right,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Text(
+              value,
+              textAlign: TextAlign.left,
+            ),
+          ),
         ],
       ),
     );

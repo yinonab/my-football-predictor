@@ -10,32 +10,38 @@ void main() {
   Map<String, dynamic> marketPrimaryBlock({
     bool applied = true,
     String reason = 'applied',
+    String selectedScore = '2-1',
+    String spreadSignal = 'strong_home_favorite',
+    String marketGoalTrend = 'neutral',
+    String bttsSignal = 'yes',
+    List<Map<String, dynamic>>? topScores,
   }) {
     return {
       'applied': applied,
       'reason': reason,
       'market_weight_pct': 70,
       'model_weight_pct': 30,
-      'selected_score': '1-0',
+      'selected_score': selectedScore,
       'selected_outcome': 'home_win',
       'market_favorite': 'France',
       'confidence': 'GREEN',
-      'market_goal_trend': 'under_2_5',
-      'btts_signal': 'no',
-      'spread_signal': 'slight_home_favorite',
+      'market_goal_trend': marketGoalTrend,
+      'btts_signal': bttsSignal,
+      'spread_signal': spreadSignal,
       'explanation':
-          'Market odds favored France overall, while goal markets pointed to a relatively low-scoring match.',
+          'Market odds favored France overall, while goal markets pointed to a neutral goal environment and both teams likely to score. The market-primary prediction is therefore 2-1 (France win).',
       'inputs': {
-        'h2h': {'home': 41.3, 'draw': 29.5, 'away': 29.2},
-        'totals': {'line': 2.5, 'over': 48.0, 'under': 52.0},
-        'btts': {'yes': 45.0, 'no': 55.0},
-        'spread': -0.5,
+        'h2h': {'home': 40.78, 'draw': 29.53, 'away': 29.69},
+        'totals': {'line': 2.5, 'over': 49.76, 'under': 50.24},
+        'btts': {'yes': 56.56, 'no': 43.44},
+        'spread': 0.0,
       },
-      'top_scores': [
-        {'score': '1-0', 'probability': 12.4},
-        {'score': '2-1', 'probability': 10.1},
-        {'score': '1-1', 'probability': 9.8},
-      ],
+      'top_scores': topScores ??
+          [
+            {'score': '2-1', 'probability': 33.7},
+            {'score': '2-0', 'probability': 20.5},
+            {'score': '3-1', 'probability': 19.2},
+          ],
       'notes': [],
     };
   }
@@ -105,13 +111,37 @@ void main() {
     });
     final block = result.marketPrimaryPrediction!;
     expect(block.applied, isTrue);
-    expect(block.selectedScore, '1-0');
+    expect(block.selectedScore, '2-1');
     expect(block.marketWeightPct, 70);
-    expect(block.inputs.h2h.home, 41.3);
+    expect(block.inputs.h2h.home, 40.78);
     expect(block.topScores.length, 3);
+    expect(block.topScores.first.score, '2-1');
   });
 
-  testWidgets('Market primary panel shows selected score and signals', (
+  test('spreadSignalLabel translates strong_home_favorite with team name', () {
+    expect(
+      spreadSignalLabel(
+        signal: 'strong_home_favorite',
+        homeTeam: 'France',
+        awayTeam: 'Spain',
+      ),
+      'France פייבוריטית חזקה',
+    );
+    expect(
+      spreadSignalLabel(signal: 'strong_home_favorite'),
+      'פייבוריט ביתי חזק',
+    );
+  });
+
+  test('signal label helpers handle null values', () {
+    expect(marketGoalTrendLabel(null), 'לא זמין');
+    expect(bttsSignalLabel(null), 'לא זמין');
+    expect(spreadSignalLabel(signal: null), 'לא זמין');
+    expect(marketGoalTrendLabel('neutral'), 'ניטרלי');
+    expect(bttsSignalLabel('yes'), 'כן');
+  });
+
+  testWidgets('Market primary panel shows selected score 2-1 and signals', (
     tester,
   ) async {
     final result = baseResult({
@@ -127,12 +157,71 @@ void main() {
       ),
     );
     expect(find.text('תחזית שוק'), findsOneWidget);
-    expect(find.text('1-0'), findsWidgets);
-    expect(find.textContaining('France'), findsWidgets);
+    expect(find.text('2-1'), findsWidgets);
+    expect(find.textContaining('מועדף שוק: France'), findsOneWidget);
     expect(find.textContaining('70% שוק'), findsOneWidget);
     expect(find.textContaining('GREEN'), findsOneWidget);
     expect(find.textContaining('Market odds favored France'), findsOneWidget);
     expect(find.textContaining('תוצאות מובילות לפי שוק'), findsOneWidget);
+    expect(find.text('ניטרלי'), findsOneWidget);
+    expect(find.text('כן'), findsOneWidget);
+    expect(find.textContaining('France פייבוריטית חזקה'), findsOneWidget);
+    expect(find.textContaining('strong_home_favorite'), findsNothing);
+    expect(find.textContaining('strong home favorite'), findsNothing);
+  });
+
+  testWidgets('Top score rows render in deterministic order', (tester) async {
+    final result = baseResult({
+      'market_primary_prediction': marketPrimaryBlock(),
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: MarketPrimaryPredictionPanel(result: result),
+          ),
+        ),
+      ),
+    );
+
+    final scoreFinder = find.byWidgetPredicate(
+      (widget) =>
+          widget is Text &&
+          RegExp(r'^\d+-\d+$').hasMatch(widget.data ?? ''),
+    );
+    final scores = scoreFinder
+        .evaluate()
+        .map((e) => (e.widget as Text).data)
+        .whereType<String>()
+        .toList();
+    expect(scores, contains('2-1'));
+    expect(scores, contains('2-0'));
+    expect(scores, contains('3-1'));
+    expect(scores.indexOf('2-1'), lessThan(scores.indexOf('2-0')));
+    expect(scores.indexOf('2-0'), lessThan(scores.indexOf('3-1')));
+  });
+
+  testWidgets('Market direction uses team names with percentages', (
+    tester,
+  ) async {
+    final result = baseResult({
+      'market_primary_prediction': marketPrimaryBlock(),
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: MarketPrimaryPredictionPanel(result: result),
+          ),
+        ),
+      ),
+    );
+    expect(find.text('France'), findsWidgets);
+    expect(find.text('Spain'), findsWidgets);
+    expect(find.text('תיקו'), findsOneWidget);
+    expect(find.text('40.8%'), findsOneWidget);
+    expect(find.text('29.5%'), findsOneWidget);
+    expect(find.text('29.7%'), findsOneWidget);
   });
 
   testWidgets('applied=false shows safe fallback', (tester) async {
@@ -162,6 +251,26 @@ void main() {
       ),
     );
     expect(find.text('תחזית שוק אינה זמינה למשחק זה'), findsOneWidget);
+  });
+
+  testWidgets('missing optional signal fields do not crash', (tester) async {
+    final block = marketPrimaryBlock();
+    block.remove('market_goal_trend');
+    block.remove('btts_signal');
+    block.remove('spread_signal');
+    block['top_scores'] = [];
+    final result = baseResult({'market_primary_prediction': block});
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: MarketPrimaryPredictionPanel(result: result),
+          ),
+        ),
+      ),
+    );
+    expect(find.text('2-1'), findsWidgets);
+    expect(find.text('לא זמין'), findsNWidgets(3));
   });
 
   testWidgets('Market tab unchanged when market primary present', (
@@ -215,6 +324,7 @@ void main() {
     await tester.tap(find.text('תחזית שוק'));
     await tester.pumpAndSettle();
     expect(find.textContaining('תוצאה מומלצת לפי שוק'), findsOneWidget);
+    expect(find.text('2-1'), findsWidgets);
   });
 
   testWidgets('Prediction tab still shows primary score card', (tester) async {
