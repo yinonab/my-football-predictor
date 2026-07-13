@@ -2,6 +2,56 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:football_predictor/models/prediction_result.dart';
 
 void main() {
+  test('PredictionResult parses market_primary_prediction block', () {
+    final result = PredictionResult.fromJson({
+      'home_team': 'France',
+      'away_team': 'Spain',
+      'home_power': 994,
+      'away_power': 1006,
+      'home_breakdown': {
+        'name': 'France',
+        'power_score': 994,
+        'elo': 1840,
+        'breakdown': '',
+      },
+      'away_breakdown': {
+        'name': 'Spain',
+        'power_score': 1006,
+        'elo': 1808,
+        'breakdown': '',
+      },
+      'home_xg': 1.08,
+      'away_xg': 1.02,
+      'probabilities_1x2': {
+        'home_win': 34.5,
+        'draw': 34.0,
+        'away_win': 31.5,
+      },
+      'outcome_explanations': {
+        'home_win': 'h',
+        'draw': 'd',
+        'away_win': 'a',
+      },
+      'top_scores': [
+        {'score': '1-1', 'probability': 15.5, 'explanation': ''},
+      ],
+      'score_coverage': {
+        'target_percent': 50.0,
+        'achieved_percent': 50.0,
+        'scores': ['1-1'],
+      },
+      'market_primary_prediction': {
+        'applied': true,
+        'reason': 'applied',
+        'selected_score': '1-0',
+        'market_weight_pct': 70,
+        'model_weight_pct': 30,
+      },
+    });
+    expect(result.marketPrimaryPrediction?.selectedScore, '1-0');
+    expect(result.marketPrimaryPrediction?.marketWeightPct, 70);
+  });
+
   test('PredictionResult parses scoreline_decision and diagnostics', () {
     final result = PredictionResult.fromJson({
       'home_team': 'Canada',

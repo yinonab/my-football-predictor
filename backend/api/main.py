@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import logging
 import sys
 from pathlib import Path
@@ -41,6 +42,7 @@ from api.schemas import (
     MarketShadowDiagnosticsBlock,
     MarketInfluenceAppliedResponse,
     MarketInfluenceStatusResponse,
+    MarketPrimaryPredictionResponse,
     MarketShadowDiagnosticsRequest,
     MarketShadowDiagnosticsResponse,
     ActualScoreResponse,
@@ -109,6 +111,7 @@ from core.fusion_blowout import apply_fusion_blowout, compute_fusion_blowout_sig
 from core.market_diagnostics import build_market_diagnostics
 from core.market_influence import try_apply_market_influence_to_predict
 from core.market_influence_explanation import build_market_influence_explanation
+from core.market_primary_prediction import build_market_primary_prediction
 from core.market_resolution import build_market_resolution_context
 from core.market_shadow_api import (
     MarketShadowApiError,
@@ -1111,6 +1114,9 @@ def predict(request: PredictRequest) -> PredictResponse:
 
     market_influence_block: MarketInfluenceAppliedResponse | None = None
     market_influence_status_block: MarketInfluenceStatusResponse | None = None
+    model_score_matrix_for_primary = (
+        copy.deepcopy(dict(result["all_scores"])) if result.get("all_scores") else None
+    )
     influence_result = try_apply_market_influence_to_predict(
         home_team=home_name,
         away_team=away_name,
@@ -1151,6 +1157,21 @@ def predict(request: PredictRequest) -> PredictResponse:
     if influence_result.status is not None:
         market_influence_status_block = MarketInfluenceStatusResponse.model_validate(
             influence_result.status
+        )
+
+    market_primary_block: MarketPrimaryPredictionResponse | None = None
+    primary_result = build_market_primary_prediction(
+        home_team=home_name,
+        away_team=away_name,
+        model_score_matrix=model_score_matrix_for_primary,
+        base_probabilities_1x2=probs,
+        home_xg=result["home_xg"],
+        away_xg=result["away_xg"],
+        resolution_context=market_resolution,
+    )
+    if primary_result.payload is not None:
+        market_primary_block = MarketPrimaryPredictionResponse.model_validate(
+            primary_result.payload
         )
 
     top_with_expl = []
@@ -1299,6 +1320,7 @@ def predict(request: PredictRequest) -> PredictResponse:
         market_shadow_diagnostics=market_shadow_block,
         market_influence=market_influence_block,
         market_influence_status=market_influence_status_block,
+        market_primary_prediction=market_primary_block,
     )
 
 

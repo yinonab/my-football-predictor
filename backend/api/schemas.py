@@ -691,6 +691,53 @@ class MarketInfluenceAppliedResponse(BaseModel):
     explanation: MarketInfluenceExplanation | None = None
 
 
+class MarketPrimaryPredictionH2HInputs(BaseModel):
+    home: float | None = None
+    draw: float | None = None
+    away: float | None = None
+
+
+class MarketPrimaryPredictionTotalsInputs(BaseModel):
+    line: float | None = None
+    over: float | None = None
+    under: float | None = None
+
+
+class MarketPrimaryPredictionBttsInputs(BaseModel):
+    yes: float | None = None
+    no: float | None = None
+
+
+class MarketPrimaryPredictionInputs(BaseModel):
+    h2h: MarketPrimaryPredictionH2HInputs | None = None
+    totals: MarketPrimaryPredictionTotalsInputs | None = None
+    btts: MarketPrimaryPredictionBttsInputs | None = None
+    spread: float | None = None
+
+
+class MarketPrimaryPredictionScore(BaseModel):
+    score: str
+    probability: float
+
+
+class MarketPrimaryPredictionResponse(BaseModel):
+    applied: bool = False
+    reason: str = ""
+    market_weight_pct: int | None = None
+    model_weight_pct: int | None = None
+    selected_score: str | None = None
+    selected_outcome: str | None = None
+    market_favorite: str | None = None
+    confidence: str | None = None
+    market_goal_trend: str | None = None
+    btts_signal: str | None = None
+    spread_signal: str | None = None
+    explanation: str | None = None
+    inputs: MarketPrimaryPredictionInputs | None = None
+    top_scores: list[MarketPrimaryPredictionScore] = Field(default_factory=list)
+    notes: list[str] = Field(default_factory=list)
+
+
 class PredictResponse(BaseModel):
     home_team: str
     away_team: str
@@ -727,6 +774,7 @@ class PredictResponse(BaseModel):
     market_shadow_diagnostics: MarketShadowDiagnosticsBlock | None = None
     market_influence: MarketInfluenceAppliedResponse | None = None
     market_influence_status: MarketInfluenceStatusResponse | None = None
+    market_primary_prediction: MarketPrimaryPredictionResponse | None = None
 
     @model_serializer(mode="wrap")
     def _omit_null_optional_blocks(self, handler):
@@ -737,6 +785,8 @@ class PredictResponse(BaseModel):
             data.pop("market_influence", None)
         if data.get("market_influence_status") is None:
             data.pop("market_influence_status", None)
+        if data.get("market_primary_prediction") is None:
+            data.pop("market_primary_prediction", None)
         return data
 
 
