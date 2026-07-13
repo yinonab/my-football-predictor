@@ -224,7 +224,9 @@ void main() {
     expect(find.text('29.7%'), findsOneWidget);
   });
 
-  testWidgets('applied=false shows safe fallback', (tester) async {
+  testWidgets('applied=false quality_below_minimum shows dedicated fallback', (
+    tester,
+  ) async {
     final result = baseResult({
       'market_primary_prediction': marketPrimaryBlock(
         applied: false,
@@ -238,10 +240,159 @@ void main() {
         ),
       ),
     );
-    expect(find.textContaining('תחזית שוק אינה זמינה'), findsOneWidget);
+    expect(find.text('איכות נתוני השוק נמוכה'), findsOneWidget);
+    expect(find.textContaining('אינם מספיק אמינים'), findsOneWidget);
+    expect(find.textContaining('quality_below_minimum'), findsNothing);
   });
 
-  testWidgets('missing block shows unavailable message', (tester) async {
+  testWidgets('resolver_no_match shows transient fallback with diagnostics', (
+    tester,
+  ) async {
+    final result = baseResult({
+      'market_primary_prediction': marketPrimaryBlock(
+        applied: false,
+        reason: 'market_unavailable',
+      ),
+      'market_influence_status': {
+        'attempted': true,
+        'applied': false,
+        'reason': 'resolver_no_match',
+        'provider': 'rapidapi_odds_feed',
+        'resolver_pages_fetched': 3,
+        'resolver_events_seen': 300,
+        'resolver_discovery_status': 'SCHEDULED',
+      },
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MarketPrimaryPredictionPanel(result: result),
+        ),
+      ),
+    );
+    expect(find.text('תחזית שוק לא זמינה זמנית'), findsOneWidget);
+    expect(find.textContaining('לא נמצא אירוע שוק מתאים'), findsWidgets);
+    expect(find.textContaining('נסה להריץ את החיזוי שוב בעוד דקה'), findsOneWidget);
+    expect(find.textContaining('עמודים שנבדקו'), findsOneWidget);
+    expect(find.textContaining('3 / 5'), findsOneWidget);
+    expect(find.textContaining('אירועים שנבדקו'), findsOneWidget);
+    expect(find.textContaining('300'), findsOneWidget);
+    expect(find.textContaining('SCHEDULED'), findsOneWidget);
+    expect(find.textContaining('rapidapi_odds_feed'), findsOneWidget);
+    expect(find.textContaining('resolver_no_match'), findsNothing);
+    expect(find.textContaining('market_unavailable'), findsNothing);
+  });
+
+  testWidgets('market_unavailable shows regular prediction guidance', (
+    tester,
+  ) async {
+    final result = baseResult({
+      'market_primary_prediction': marketPrimaryBlock(
+        applied: false,
+        reason: 'market_unavailable',
+      ),
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MarketPrimaryPredictionPanel(result: result),
+        ),
+      ),
+    );
+    expect(find.text('תחזית שוק לא זמינה'), findsOneWidget);
+    expect(
+      find.textContaining('לא התקבלו נתוני שוק מספיקים'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('התחזית הרגילה עדיין זמינה בטאב תחזית'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('market_unavailable'), findsNothing);
+  });
+
+  testWidgets('quota_exceeded from legacy diagnostics shows friendly message', (
+    tester,
+  ) async {
+    final result = baseResult({
+      'market_primary_prediction': marketPrimaryBlock(
+        applied: false,
+        reason: 'market_unavailable',
+      ),
+      'market_diagnostics': {
+        'available': false,
+        'status': 'quota_exceeded',
+        'primary_source': 'the_odds_api',
+        'bookmakers': [],
+        'notes': ['quota exceeded on The Odds API'],
+      },
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MarketPrimaryPredictionPanel(result: result),
+        ),
+      ),
+    );
+    expect(find.text('נתוני שוק אינם זמינים כרגע'), findsOneWidget);
+    expect(find.textContaining('מגבלת שימוש'), findsOneWidget);
+    expect(find.textContaining('quota_exceeded'), findsNothing);
+    expect(find.textContaining('The Odds API'), findsNothing);
+  });
+
+  testWidgets('resolver miss takes priority over quota diagnostics', (
+    tester,
+  ) async {
+    final result = baseResult({
+      'market_primary_prediction': marketPrimaryBlock(
+        applied: false,
+        reason: 'market_unavailable',
+      ),
+      'market_influence_status': {
+        'attempted': true,
+        'applied': false,
+        'reason': 'resolver_no_match',
+      },
+      'market_diagnostics': {
+        'available': false,
+        'status': 'quota_exceeded',
+        'primary_source': 'the_odds_api',
+        'bookmakers': [],
+        'notes': [],
+      },
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MarketPrimaryPredictionPanel(result: result),
+        ),
+      ),
+    );
+    expect(find.text('תחזית שוק לא זמינה זמנית'), findsOneWidget);
+    expect(find.text('נתוני שוק אינם זמינים כרגע'), findsNothing);
+  });
+
+  testWidgets('raw enum reasons are not shown in fallback UI', (tester) async {
+    final result = baseResult({
+      'market_primary_prediction': marketPrimaryBlock(
+        applied: false,
+        reason: 'market_unavailable',
+        spreadSignal: 'strong_home_favorite',
+      ),
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MarketPrimaryPredictionPanel(result: result),
+        ),
+      ),
+    );
+    expect(find.textContaining('market_unavailable'), findsNothing);
+    expect(find.textContaining('strong_home_favorite'), findsNothing);
+    expect(find.textContaining('resolver_no_match'), findsNothing);
+  });
+
+  testWidgets('missing block shows generic unavailable fallback', (tester) async {
     final result = baseResult({});
     await tester.pumpWidget(
       MaterialApp(
@@ -250,7 +401,53 @@ void main() {
         ),
       ),
     );
-    expect(find.text('תחזית שוק אינה זמינה למשחק זה'), findsOneWidget);
+    expect(find.text('תחזית שוק לא זמינה'), findsOneWidget);
+    expect(find.textContaining('תחזית שוק אינה זמינה למשחק זה'), findsOneWidget);
+  });
+
+  testWidgets('null optional influence and diagnostics fields do not crash', (
+    tester,
+  ) async {
+    final result = baseResult({
+      'market_primary_prediction': marketPrimaryBlock(
+        applied: false,
+        reason: 'market_unavailable',
+      ),
+      'market_influence_status': {
+        'attempted': true,
+        'applied': false,
+        'reason': 'resolver_ambiguous',
+      },
+    });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MarketPrimaryPredictionPanel(result: result),
+        ),
+      ),
+    );
+    expect(find.text('תחזית שוק לא זמינה זמנית'), findsOneWidget);
+    expect(find.textContaining('נמצאו כמה אירועים אפשריים'), findsWidgets);
+  });
+
+  test('PredictionResult parses market_influence_status', () {
+    final result = baseResult({
+      'market_influence_status': {
+        'attempted': true,
+        'applied': false,
+        'reason': 'resolver_no_match',
+        'provider': 'rapidapi_odds_feed',
+        'resolver_pages_fetched': 3,
+        'resolver_events_seen': 300,
+        'resolver_discovery_status': 'SCHEDULED',
+      },
+    });
+    final status = result.marketInfluenceStatus!;
+    expect(status.reason, 'resolver_no_match');
+    expect(status.provider, 'rapidapi_odds_feed');
+    expect(status.resolverPagesFetched, 3);
+    expect(status.resolverEventsSeen, 300);
+    expect(status.resolverDiscoveryStatus, 'SCHEDULED');
   });
 
   testWidgets('missing optional signal fields do not crash', (tester) async {
